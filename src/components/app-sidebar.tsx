@@ -26,6 +26,8 @@ import Link from "next/link"
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session, isPending, refetch } = useSession()
 
+  console.log("data",session)
+
   React.useEffect(() => {
     refetch()
     // eslint-disable-next-line react-hooks/exhaustive-deps

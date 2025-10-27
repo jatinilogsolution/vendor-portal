@@ -12,6 +12,10 @@ import { UserRoleEnum } from "@/utils/constant";
 import { sendEmailAction } from "@/actions/email/send-email.action";
 
 const options = {
+
+
+    baseURL: process.env.BETTER_AUTH_URL!,
+    secret: process.env.BETTER_AUTH_SECRET!,
     database: prismaAdapter(prisma, {
         provider: "sqlserver",
     }),
@@ -57,10 +61,10 @@ const options = {
     },
 
     socialProviders: {
-        google: { 
-            clientId: process.env.GOOGLE_CLIENT_ID as string, 
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string, 
-        }, 
+        google: {
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        },
     },
 
     hooks: {
@@ -88,7 +92,7 @@ const options = {
                 return {
                     context: {
                         ...ctx,
-                        body: { ...ctx.body, name, role,  },
+                        body: { ...ctx.body, name, role, },
                     },
                 };
             }
@@ -113,9 +117,9 @@ const options = {
                 // defaultValue: UserRoleEnum.VENDOR,
 
             },
-            vendorId :{
-            
-                type:"string",
+            vendorId: {
+
+                type: "string",
                 required: false,
 
             }
@@ -141,8 +145,11 @@ const options = {
 
 
 export const auth = betterAuth(
+
     {
+
         ...options,
+
         plugins: [...(options.plugins || []),
         customSession(async ({ user, session }) => {
             return {
@@ -159,7 +166,7 @@ export const auth = betterAuth(
                     createdAt: user.createdAt,
                     role: user.role,
                     vendorId: user.vendorId
-                    
+
                 },
             };
         }, options),
