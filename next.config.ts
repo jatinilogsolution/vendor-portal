@@ -8,22 +8,23 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
-        port: "", 
-        pathname: "/**", 
+        port: "",
+        pathname: "/**",
       },
-        {
+      {
         protocol: "https",
         hostname: "swimlocker.blob.core.windows.net",
         port: "", // optional
-        pathname: "/**",  
+        pathname: "/**",
       },
-      
+
     ],
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '5mb',
+      bodySizeLimit: '10mb',
     },
+    globalNotFound: true,
   },
 };
 

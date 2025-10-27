@@ -20,12 +20,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.16.3
- * Query Engine version: bb420e667c1820a8c05a38023385f6cc7ef8e83a
+ * Prisma Client JS version: 6.17.1
+ * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
  */
 Prisma.prismaVersion = {
-  client: "6.16.3",
-  engine: "bb420e667c1820a8c05a38023385f6cc7ef8e83a"
+  client: "6.17.1",
+  engine: "272a37d34178c2894197e17273bf937f25acdeac"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -204,6 +204,7 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   invoiceNumber: 'invoiceNumber',
+  refernceNumber: 'refernceNumber',
   invoiceDate: 'invoiceDate',
   vendorId: 'vendorId',
   poId: 'poId',
@@ -213,13 +214,23 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   taxAmount: 'taxAmount',
   grandTotal: 'grandTotal',
   notes: 'notes',
-  dueDate: 'dueDate',
-  paidDate: 'paidDate',
   hasDiscrepancy: 'hasDiscrepancy',
   discrepancyNotes: 'discrepancyNotes',
   billTo: 'billTo',
   billToId: 'billToId',
-  billToGstin: 'billToGstin'
+  billToGstin: 'billToGstin',
+  invoiceURI: 'invoiceURI'
+};
+
+exports.Prisma.InvoiceReferenceScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  from: 'from',
+  to: 'to',
+  dueDate: 'dueDate',
+  paidDate: 'paidDate',
+  refernceId: 'refernceId'
 };
 
 exports.Prisma.InvoiceItemScalarFieldEnum = {
@@ -287,10 +298,10 @@ exports.Prisma.AccountScalarFieldEnum = {
   accessToken: 'accessToken',
   refreshToken: 'refreshToken',
   idToken: 'idToken',
-  accessTokenExpiresAt: 'accessTokenExpiresAt',
-  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
   scope: 'scope',
   password: 'password',
+  accessTokenExpiresAt: 'accessTokenExpiresAt',
+  refreshTokenExpiresAt: 'refreshTokenExpiresAt',
   userId: 'userId'
 };
 
@@ -334,6 +345,7 @@ exports.Prisma.ModelName = {
   Address: 'Address',
   LRRequest: 'LRRequest',
   Invoice: 'Invoice',
+  InvoiceReference: 'InvoiceReference',
   InvoiceItem: 'InvoiceItem',
   PurchaseOrder: 'PurchaseOrder',
   PurchaseOrderItem: 'PurchaseOrderItem',

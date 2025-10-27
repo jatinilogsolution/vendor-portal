@@ -12,7 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { SideBarData } from "@/utils/constant"
 export function SiteHeader(porps: any) {
+
+  const path = usePathname()
+  console.log("PathName", path)
+
+  const currentNav = SideBarData.navMain.find(item => item.url === path);
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -22,7 +29,7 @@ export function SiteHeader(porps: any) {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium"></h1>
+        <h1 className="text-base font-medium">{currentNav?.headerTitle || "Page"}</h1>
         <div className="ml-auto flex items-center gap-2">
 
           <DropdownMenu>

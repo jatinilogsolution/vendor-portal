@@ -1,3 +1,4 @@
+import { IconChartBar, IconDashboard, IconFolder, IconHelp, IconListDetails, IconSettings, IconUsers } from "@tabler/icons-react";
 
 export const UserRole = ["BOSS", "ADMIN", "VENDOR", "TVENDOR", "TADMIN"] as const;
 export type Role = (typeof UserRole)[number];
@@ -25,4 +26,19 @@ export function getGreeting() {
   } else {
     return "Living on Coffie!";
   }
+}
+
+
+export const SideBarData = {
+  navMain: [
+    { title: "Dashboard", url: "/dashboard", icon: IconDashboard, headerTitle: "Dashboard" },
+    { title: "POD", url: "/pod", icon: IconListDetails, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle:"Proof of Deliveries" },
+    { title: "Lorries", url: "/lorries", icon: IconChartBar, headerTitle:"Lorries Reciepts asigned with Vehicle (Without POD)" },
+    { title: "Invoice", url: "/invoices", icon: IconFolder , headerTitle:"Booking Cover Note with Invoices"},
+    { title: "Admin", url: "/admin", icon: IconUsers, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Admin Control"},
+  ],
+  navSecondary: [
+    { title: "Settings", url: "#", icon: IconSettings },
+    { title: "Get Help", url: "#", icon: IconHelp },
+  ],
 }

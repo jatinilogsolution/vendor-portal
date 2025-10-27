@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const {id} = await params
   const body = await req.json().catch(() => ({}))
   const data: Record<string, any> = {}
   if (typeof body.line1 === "string") data.line1 = body.line1
