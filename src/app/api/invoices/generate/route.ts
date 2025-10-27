@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { vendorId, fileNumbers } = await req.json();
+    const { vendorId, fileNumbers, refernceNumber } = await req.json();
 
     if (!vendorId || !fileNumbers?.length) {
       return NextResponse.json({ error: "Vendor ID and fileNumbers are required" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     for (const [fileNo, lrs] of Object.entries(grouped)) {
       const invoice = await prisma.invoice.create({
         data: {
+          refernceNumber:refernceNumber,
           vendorId,
           invoiceNumber: `INV-${Date.now()}-${fileNo}`,
           invoiceDate: new Date(),
