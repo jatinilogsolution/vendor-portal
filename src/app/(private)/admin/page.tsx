@@ -56,7 +56,13 @@ export default async function Home({
     }).format(date)
   }
 
+
+
+ 
+
   return (
+      <Suspense fallback={<div className=" flex items-center justify-center h-dvh"><Spinner /></div>}>
+
     <div className="space-y-6">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -89,58 +95,9 @@ export default async function Home({
           <CreateNewUserButton />
         </div>
 
-        {/* <div className="grid gap-4 md:grid-cols-3">
-          <Card className="py-4">
-            <CardContent className="flex items-center gap-4 p-0">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="size-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">
-                   <Suspense fallback="...">
-                    <span>—</span>
-                  </Suspense>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="py-4">
-            <CardContent className="flex items-center gap-4 p-0">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-green-500/10">
-                <UserPlus className="size-6 text-green-600 dark:text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">New This Month</p>
-                <p className="text-2xl font-bold">
-                  <Suspense fallback="...">
-                    <span>—</span>
-                  </Suspense>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="py-4">
-            <CardContent className="flex items-center gap-4 p-0">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-blue-500/10">
-                <Shield className="size-6 text-blue-600 dark:text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Admin Users</p>
-                <p className="text-2xl font-bold">
-                  <Suspense fallback="...">
-                    <span>—</span>
-                  </Suspense>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div> */}
       </div>
 
-      {/* Users Section */}
+
       <Card>
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -170,5 +127,7 @@ export default async function Home({
         </CardContent>
       </Card>
     </div>
+    </Suspense>
+
   )
 }
