@@ -6,14 +6,30 @@ import { auth } from "@/lib/auth"
 
 
 const authClient = createAuthClient({
-    baseURL: process.env.NEXT_PUBLIC_API_URL as string,
-    plugins: [
+  baseURL: process.env.NEXT_PUBLIC_API_URL as string,
+  plugins: [
     inferAdditionalFields<typeof auth>(),
     adminClient({ ac, roles }),
     customSessionClient<typeof auth>(),
- 
+
   ],
 })
 
 
-export const { signOut, useSession,forgetPassword,sendVerificationEmail ,resetPassword ,admin, signUp} = authClient
+export const { signOut, useSession, forgetPassword, sendVerificationEmail, resetPassword, admin, signUp } = authClient
+
+// export const signIn = async () => {
+//   try {
+
+
+// console.log("hahaha clicked")
+//     const data = await authClient.signIn.social({
+//       provider: "google",
+//     });
+
+//     console.log("Login Sucess", data)
+//   }
+//   catch (er) {
+//     console.log("Failed ot login", er)
+//   }
+// };

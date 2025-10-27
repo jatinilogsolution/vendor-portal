@@ -1,9 +1,11 @@
 "use server"
 
+import { BillToAddressByNameId } from "@/actions/wms/warehouse"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { cache } from "react"
 
-export const getVendor = async ({ id }: { id: string }) => {
+export const getVendor = cache( async ({ id }: { id: string }) => {
 
   try {
 
@@ -17,9 +19,11 @@ export const getVendor = async ({ id }: { id: string }) => {
         image: true,
         role: true,
         vendorId: true,
+        id: true,
         Vendor: {
           include: {
             Address: true,
+            
           }
         }
       }
@@ -36,7 +40,7 @@ export const getVendor = async ({ id }: { id: string }) => {
     return { error: "Something went wrong" }
   }
 }
-
+)
 
 
 
@@ -48,7 +52,12 @@ interface GetAllLRParams {
   search?: string;
   fromDate?: string;
   toDate?: string;
+  pod: boolean
 }
+
+
+ 
+
 
 export const getAllLRforVendorById = async ({
   vendorId,
@@ -57,31 +66,36 @@ export const getAllLRforVendorById = async ({
   search = "",
   fromDate,
   toDate,
+  pod,
 }: GetAllLRParams) => {
   try {
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * limit
 
-    // Base filter
+
+
     const filters: any = {
       tvendorId: vendorId,
-      isInvoiced: false, // exclude already invoiced LRs
-    };
+      isInvoiced: false,
+      invoiceId: null,
+    }
 
-    // Date filter
+    // POD filter
+
+    // 📅 Date filter
     if (fromDate && toDate) {
       filters.outDate = {
         gte: new Date(fromDate),
         lte: new Date(toDate),
-      };
+      }
     } else if (fromDate) {
-      filters.outDate = { gte: new Date(fromDate) };
+      filters.outDate = { gte: new Date(fromDate) }
     } else if (toDate) {
-      filters.outDate = { lte: new Date(toDate) };
+      filters.outDate = { lte: new Date(toDate) }
     }
 
-    // Search filter
+    // 🔍 Search filter
     if (search?.trim()) {
-      const searchTerm = search.trim();
+      const searchTerm = search.trim()
       filters.AND = [
         {
           OR: [
@@ -96,15 +110,21 @@ export const getAllLRforVendorById = async ({
             },
           ],
         },
-      ];
+      ]
+    }
+    if (pod === true) {
+      filters.podlink = { not: null }  
+
+      filters.AND = [
+        ...(filters.AND || []),
+        { podlink: { not: "" } },  
+      ]
     }
 
     // 🧮 Total count
-    const totalItems = await prisma.lRRequest.count({
-      where: filters,
-    });
+    const totalItems = await prisma.lRRequest.count({ where: filters })
 
-    // 📦 Fetch paginated data
+    // 📋 Fetch paginated data
     const data = await prisma.lRRequest.findMany({
       where: filters,
       include: {
@@ -112,22 +132,46 @@ export const getAllLRforVendorById = async ({
       },
       skip,
       take: limit,
-      orderBy: {
-        outDate: "desc",
-      },
-    });
+      orderBy: { outDate: "desc" },
+    })
+
+    // 🏭 Resolve warehouse names for origins (with caching)
+    const warehouseCache: Record<string, string> = {}
+
+    const enhancedData = await Promise.all(
+      data.map(async (item) => {
+        const originName = item.origin
+
+        if (originName && !warehouseCache[originName]) {
+          try {
+            const { warehouseName } = await BillToAddressByNameId(originName)
+            warehouseCache[originName] = warehouseName || originName
+          } catch (err) {
+            console.warn(`Failed to fetch warehouse name for ID: ${originName}`, err)
+            warehouseCache[originName] = originName
+          }
+        }
+
+        return {
+          ...item,
+          origin: warehouseCache[originName!] || originName,
+        }
+      })
+    )
 
     return {
-      data,
+      data: enhancedData,
       totalItems,
       totalPages: Math.ceil(totalItems / limit),
       currentPage: page,
-    };
+    }
   } catch (err) {
-    console.error("Error fetching LRs:", err);
-    throw new Error("Failed to fetch lorry receipts");
+    console.error("❌ Error fetching LRs:", err)
+    throw new Error("Failed to fetch lorry receipts")
   }
-};
+}
+
+
 
 
 export const getAddressByVendorId = async (id: string) => {

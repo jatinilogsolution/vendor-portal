@@ -5,7 +5,7 @@ import { ChevronLeftIcon } from '@heroicons/react/16/solid'
 
 import { getVendor } from '../_action/getVendor'
 import Image from 'next/image'
-import LorryTable from '../_components/lorry-table'
+import LorryTable from '../../lorries/_components/lorry-table'
 import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
 import { ErrorCard } from '@/components/error'

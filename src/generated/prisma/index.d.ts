@@ -44,6 +44,11 @@ export type LRRequest = $Result.DefaultSelection<Prisma.$LRRequestPayload>
  */
 export type Invoice = $Result.DefaultSelection<Prisma.$InvoicePayload>
 /**
+ * Model InvoiceReference
+ * 
+ */
+export type InvoiceReference = $Result.DefaultSelection<Prisma.$InvoiceReferencePayload>
+/**
  * Model InvoiceItem
  * 
  */
@@ -258,6 +263,16 @@ export class PrismaClient<
   get invoice(): Prisma.InvoiceDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.invoiceReference`: Exposes CRUD operations for the **InvoiceReference** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more InvoiceReferences
+    * const invoiceReferences = await prisma.invoiceReference.findMany()
+    * ```
+    */
+  get invoiceReference(): Prisma.InvoiceReferenceDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.invoiceItem`: Exposes CRUD operations for the **InvoiceItem** model.
     * Example usage:
     * ```ts
@@ -384,8 +399,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.16.3
-   * Query Engine version: bb420e667c1820a8c05a38023385f6cc7ef8e83a
+   * Prisma Client JS version: 6.17.1
+   * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
    */
   export type PrismaVersion = {
     client: string
@@ -772,6 +787,7 @@ export namespace Prisma {
     Address: 'Address',
     LRRequest: 'LRRequest',
     Invoice: 'Invoice',
+    InvoiceReference: 'InvoiceReference',
     InvoiceItem: 'InvoiceItem',
     PurchaseOrder: 'PurchaseOrder',
     PurchaseOrderItem: 'PurchaseOrderItem',
@@ -797,7 +813,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "vendor" | "document" | "address" | "lRRequest" | "invoice" | "invoiceItem" | "purchaseOrder" | "purchaseOrderItem" | "session" | "account" | "verification" | "lorryReceipt"
+      modelProps: "user" | "vendor" | "document" | "address" | "lRRequest" | "invoice" | "invoiceReference" | "invoiceItem" | "purchaseOrder" | "purchaseOrderItem" | "session" | "account" | "verification" | "lorryReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1194,6 +1210,72 @@ export namespace Prisma {
           count: {
             args: Prisma.InvoiceCountArgs<ExtArgs>
             result: $Utils.Optional<InvoiceCountAggregateOutputType> | number
+          }
+        }
+      }
+      InvoiceReference: {
+        payload: Prisma.$InvoiceReferencePayload<ExtArgs>
+        fields: Prisma.InvoiceReferenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.InvoiceReferenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.InvoiceReferenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          findFirst: {
+            args: Prisma.InvoiceReferenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.InvoiceReferenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          findMany: {
+            args: Prisma.InvoiceReferenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>[]
+          }
+          create: {
+            args: Prisma.InvoiceReferenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          createMany: {
+            args: Prisma.InvoiceReferenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          delete: {
+            args: Prisma.InvoiceReferenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          update: {
+            args: Prisma.InvoiceReferenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          deleteMany: {
+            args: Prisma.InvoiceReferenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.InvoiceReferenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.InvoiceReferenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InvoiceReferencePayload>
+          }
+          aggregate: {
+            args: Prisma.InvoiceReferenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateInvoiceReference>
+          }
+          groupBy: {
+            args: Prisma.InvoiceReferenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<InvoiceReferenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.InvoiceReferenceCountArgs<ExtArgs>
+            result: $Utils.Optional<InvoiceReferenceCountAggregateOutputType> | number
           }
         }
       }
@@ -1761,6 +1843,7 @@ export namespace Prisma {
     address?: AddressOmit
     lRRequest?: LRRequestOmit
     invoice?: InvoiceOmit
+    invoiceReference?: InvoiceReferenceOmit
     invoiceItem?: InvoiceItemOmit
     purchaseOrder?: PurchaseOrderOmit
     purchaseOrderItem?: PurchaseOrderItemOmit
@@ -1966,11 +2049,13 @@ export namespace Prisma {
   export type InvoiceCountOutputType = {
     items: number
     LRRequest: number
+    InvoiceReference: number
   }
 
   export type InvoiceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     items?: boolean | InvoiceCountOutputTypeCountItemsArgs
     LRRequest?: boolean | InvoiceCountOutputTypeCountLRRequestArgs
+    InvoiceReference?: boolean | InvoiceCountOutputTypeCountInvoiceReferenceArgs
   }
 
   // Custom InputTypes
@@ -1996,6 +2081,13 @@ export namespace Prisma {
    */
   export type InvoiceCountOutputTypeCountLRRequestArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LRRequestWhereInput
+  }
+
+  /**
+   * InvoiceCountOutputType without action
+   */
+  export type InvoiceCountOutputTypeCountInvoiceReferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InvoiceReferenceWhereInput
   }
 
 
@@ -7393,6 +7485,7 @@ export namespace Prisma {
     createdAt: Date | null
     updatedAt: Date | null
     invoiceNumber: string | null
+    refernceNumber: string | null
     invoiceDate: Date | null
     vendorId: string | null
     poId: string | null
@@ -7402,13 +7495,12 @@ export namespace Prisma {
     taxAmount: number | null
     grandTotal: number | null
     notes: string | null
-    dueDate: Date | null
-    paidDate: Date | null
     hasDiscrepancy: boolean | null
     discrepancyNotes: string | null
     billTo: string | null
     billToId: string | null
     billToGstin: string | null
+    invoiceURI: string | null
   }
 
   export type InvoiceMaxAggregateOutputType = {
@@ -7416,6 +7508,7 @@ export namespace Prisma {
     createdAt: Date | null
     updatedAt: Date | null
     invoiceNumber: string | null
+    refernceNumber: string | null
     invoiceDate: Date | null
     vendorId: string | null
     poId: string | null
@@ -7425,13 +7518,12 @@ export namespace Prisma {
     taxAmount: number | null
     grandTotal: number | null
     notes: string | null
-    dueDate: Date | null
-    paidDate: Date | null
     hasDiscrepancy: boolean | null
     discrepancyNotes: string | null
     billTo: string | null
     billToId: string | null
     billToGstin: string | null
+    invoiceURI: string | null
   }
 
   export type InvoiceCountAggregateOutputType = {
@@ -7439,6 +7531,7 @@ export namespace Prisma {
     createdAt: number
     updatedAt: number
     invoiceNumber: number
+    refernceNumber: number
     invoiceDate: number
     vendorId: number
     poId: number
@@ -7448,13 +7541,12 @@ export namespace Prisma {
     taxAmount: number
     grandTotal: number
     notes: number
-    dueDate: number
-    paidDate: number
     hasDiscrepancy: number
     discrepancyNotes: number
     billTo: number
     billToId: number
     billToGstin: number
+    invoiceURI: number
     _all: number
   }
 
@@ -7478,6 +7570,7 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     invoiceNumber?: true
+    refernceNumber?: true
     invoiceDate?: true
     vendorId?: true
     poId?: true
@@ -7487,13 +7580,12 @@ export namespace Prisma {
     taxAmount?: true
     grandTotal?: true
     notes?: true
-    dueDate?: true
-    paidDate?: true
     hasDiscrepancy?: true
     discrepancyNotes?: true
     billTo?: true
     billToId?: true
     billToGstin?: true
+    invoiceURI?: true
   }
 
   export type InvoiceMaxAggregateInputType = {
@@ -7501,6 +7593,7 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     invoiceNumber?: true
+    refernceNumber?: true
     invoiceDate?: true
     vendorId?: true
     poId?: true
@@ -7510,13 +7603,12 @@ export namespace Prisma {
     taxAmount?: true
     grandTotal?: true
     notes?: true
-    dueDate?: true
-    paidDate?: true
     hasDiscrepancy?: true
     discrepancyNotes?: true
     billTo?: true
     billToId?: true
     billToGstin?: true
+    invoiceURI?: true
   }
 
   export type InvoiceCountAggregateInputType = {
@@ -7524,6 +7616,7 @@ export namespace Prisma {
     createdAt?: true
     updatedAt?: true
     invoiceNumber?: true
+    refernceNumber?: true
     invoiceDate?: true
     vendorId?: true
     poId?: true
@@ -7533,13 +7626,12 @@ export namespace Prisma {
     taxAmount?: true
     grandTotal?: true
     notes?: true
-    dueDate?: true
-    paidDate?: true
     hasDiscrepancy?: true
     discrepancyNotes?: true
     billTo?: true
     billToId?: true
     billToGstin?: true
+    invoiceURI?: true
     _all?: true
   }
 
@@ -7633,7 +7725,8 @@ export namespace Prisma {
     id: string
     createdAt: Date
     updatedAt: Date
-    invoiceNumber: string
+    invoiceNumber: string | null
+    refernceNumber: string
     invoiceDate: Date
     vendorId: string
     poId: string | null
@@ -7643,13 +7736,12 @@ export namespace Prisma {
     taxAmount: number
     grandTotal: number
     notes: string | null
-    dueDate: Date | null
-    paidDate: Date | null
     hasDiscrepancy: boolean
     discrepancyNotes: string | null
     billTo: string | null
     billToId: string | null
     billToGstin: string | null
+    invoiceURI: string | null
     _count: InvoiceCountAggregateOutputType | null
     _avg: InvoiceAvgAggregateOutputType | null
     _sum: InvoiceSumAggregateOutputType | null
@@ -7676,6 +7768,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     invoiceNumber?: boolean
+    refernceNumber?: boolean
     invoiceDate?: boolean
     vendorId?: boolean
     poId?: boolean
@@ -7685,17 +7778,17 @@ export namespace Prisma {
     taxAmount?: boolean
     grandTotal?: boolean
     notes?: boolean
-    dueDate?: boolean
-    paidDate?: boolean
     hasDiscrepancy?: boolean
     discrepancyNotes?: boolean
     billTo?: boolean
     billToId?: boolean
     billToGstin?: boolean
+    invoiceURI?: boolean
     vendor?: boolean | VendorDefaultArgs<ExtArgs>
     purchaseOrder?: boolean | Invoice$purchaseOrderArgs<ExtArgs>
     items?: boolean | Invoice$itemsArgs<ExtArgs>
     LRRequest?: boolean | Invoice$LRRequestArgs<ExtArgs>
+    InvoiceReference?: boolean | Invoice$InvoiceReferenceArgs<ExtArgs>
     _count?: boolean | InvoiceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["invoice"]>
 
@@ -7706,6 +7799,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     invoiceNumber?: boolean
+    refernceNumber?: boolean
     invoiceDate?: boolean
     vendorId?: boolean
     poId?: boolean
@@ -7715,21 +7809,21 @@ export namespace Prisma {
     taxAmount?: boolean
     grandTotal?: boolean
     notes?: boolean
-    dueDate?: boolean
-    paidDate?: boolean
     hasDiscrepancy?: boolean
     discrepancyNotes?: boolean
     billTo?: boolean
     billToId?: boolean
     billToGstin?: boolean
+    invoiceURI?: boolean
   }
 
-  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "invoiceNumber" | "invoiceDate" | "vendorId" | "poId" | "status" | "subtotal" | "taxRate" | "taxAmount" | "grandTotal" | "notes" | "dueDate" | "paidDate" | "hasDiscrepancy" | "discrepancyNotes" | "billTo" | "billToId" | "billToGstin", ExtArgs["result"]["invoice"]>
+  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "invoiceNumber" | "refernceNumber" | "invoiceDate" | "vendorId" | "poId" | "status" | "subtotal" | "taxRate" | "taxAmount" | "grandTotal" | "notes" | "hasDiscrepancy" | "discrepancyNotes" | "billTo" | "billToId" | "billToGstin" | "invoiceURI", ExtArgs["result"]["invoice"]>
   export type InvoiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     vendor?: boolean | VendorDefaultArgs<ExtArgs>
     purchaseOrder?: boolean | Invoice$purchaseOrderArgs<ExtArgs>
     items?: boolean | Invoice$itemsArgs<ExtArgs>
     LRRequest?: boolean | Invoice$LRRequestArgs<ExtArgs>
+    InvoiceReference?: boolean | Invoice$InvoiceReferenceArgs<ExtArgs>
     _count?: boolean | InvoiceCountOutputTypeDefaultArgs<ExtArgs>
   }
 
@@ -7740,12 +7834,14 @@ export namespace Prisma {
       purchaseOrder: Prisma.$PurchaseOrderPayload<ExtArgs> | null
       items: Prisma.$InvoiceItemPayload<ExtArgs>[]
       LRRequest: Prisma.$LRRequestPayload<ExtArgs>[]
+      InvoiceReference: Prisma.$InvoiceReferencePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       createdAt: Date
       updatedAt: Date
-      invoiceNumber: string
+      invoiceNumber: string | null
+      refernceNumber: string
       invoiceDate: Date
       vendorId: string
       poId: string | null
@@ -7755,13 +7851,12 @@ export namespace Prisma {
       taxAmount: number
       grandTotal: number
       notes: string | null
-      dueDate: Date | null
-      paidDate: Date | null
       hasDiscrepancy: boolean
       discrepancyNotes: string | null
       billTo: string | null
       billToId: string | null
       billToGstin: string | null
+      invoiceURI: string | null
     }, ExtArgs["result"]["invoice"]>
     composites: {}
   }
@@ -8106,6 +8201,7 @@ export namespace Prisma {
     purchaseOrder<T extends Invoice$purchaseOrderArgs<ExtArgs> = {}>(args?: Subset<T, Invoice$purchaseOrderArgs<ExtArgs>>): Prisma__PurchaseOrderClient<$Result.GetResult<Prisma.$PurchaseOrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     items<T extends Invoice$itemsArgs<ExtArgs> = {}>(args?: Subset<T, Invoice$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoiceItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     LRRequest<T extends Invoice$LRRequestArgs<ExtArgs> = {}>(args?: Subset<T, Invoice$LRRequestArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LRRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    InvoiceReference<T extends Invoice$InvoiceReferenceArgs<ExtArgs> = {}>(args?: Subset<T, Invoice$InvoiceReferenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8139,6 +8235,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Invoice", 'DateTime'>
     readonly updatedAt: FieldRef<"Invoice", 'DateTime'>
     readonly invoiceNumber: FieldRef<"Invoice", 'String'>
+    readonly refernceNumber: FieldRef<"Invoice", 'String'>
     readonly invoiceDate: FieldRef<"Invoice", 'DateTime'>
     readonly vendorId: FieldRef<"Invoice", 'String'>
     readonly poId: FieldRef<"Invoice", 'String'>
@@ -8148,13 +8245,12 @@ export namespace Prisma {
     readonly taxAmount: FieldRef<"Invoice", 'Float'>
     readonly grandTotal: FieldRef<"Invoice", 'Float'>
     readonly notes: FieldRef<"Invoice", 'String'>
-    readonly dueDate: FieldRef<"Invoice", 'DateTime'>
-    readonly paidDate: FieldRef<"Invoice", 'DateTime'>
     readonly hasDiscrepancy: FieldRef<"Invoice", 'Boolean'>
     readonly discrepancyNotes: FieldRef<"Invoice", 'String'>
     readonly billTo: FieldRef<"Invoice", 'String'>
     readonly billToId: FieldRef<"Invoice", 'String'>
     readonly billToGstin: FieldRef<"Invoice", 'String'>
+    readonly invoiceURI: FieldRef<"Invoice", 'String'>
   }
     
 
@@ -8564,6 +8660,30 @@ export namespace Prisma {
   }
 
   /**
+   * Invoice.InvoiceReference
+   */
+  export type Invoice$InvoiceReferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    where?: InvoiceReferenceWhereInput
+    orderBy?: InvoiceReferenceOrderByWithRelationInput | InvoiceReferenceOrderByWithRelationInput[]
+    cursor?: InvoiceReferenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: InvoiceReferenceScalarFieldEnum | InvoiceReferenceScalarFieldEnum[]
+  }
+
+  /**
    * Invoice without action
    */
   export type InvoiceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8579,6 +8699,967 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: InvoiceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model InvoiceReference
+   */
+
+  export type AggregateInvoiceReference = {
+    _count: InvoiceReferenceCountAggregateOutputType | null
+    _min: InvoiceReferenceMinAggregateOutputType | null
+    _max: InvoiceReferenceMaxAggregateOutputType | null
+  }
+
+  export type InvoiceReferenceMinAggregateOutputType = {
+    id: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    from: Date | null
+    to: Date | null
+    dueDate: Date | null
+    paidDate: Date | null
+    refernceId: string | null
+  }
+
+  export type InvoiceReferenceMaxAggregateOutputType = {
+    id: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    from: Date | null
+    to: Date | null
+    dueDate: Date | null
+    paidDate: Date | null
+    refernceId: string | null
+  }
+
+  export type InvoiceReferenceCountAggregateOutputType = {
+    id: number
+    createdAt: number
+    updatedAt: number
+    from: number
+    to: number
+    dueDate: number
+    paidDate: number
+    refernceId: number
+    _all: number
+  }
+
+
+  export type InvoiceReferenceMinAggregateInputType = {
+    id?: true
+    createdAt?: true
+    updatedAt?: true
+    from?: true
+    to?: true
+    dueDate?: true
+    paidDate?: true
+    refernceId?: true
+  }
+
+  export type InvoiceReferenceMaxAggregateInputType = {
+    id?: true
+    createdAt?: true
+    updatedAt?: true
+    from?: true
+    to?: true
+    dueDate?: true
+    paidDate?: true
+    refernceId?: true
+  }
+
+  export type InvoiceReferenceCountAggregateInputType = {
+    id?: true
+    createdAt?: true
+    updatedAt?: true
+    from?: true
+    to?: true
+    dueDate?: true
+    paidDate?: true
+    refernceId?: true
+    _all?: true
+  }
+
+  export type InvoiceReferenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InvoiceReference to aggregate.
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InvoiceReferences to fetch.
+     */
+    orderBy?: InvoiceReferenceOrderByWithRelationInput | InvoiceReferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: InvoiceReferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InvoiceReferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InvoiceReferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned InvoiceReferences
+    **/
+    _count?: true | InvoiceReferenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: InvoiceReferenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: InvoiceReferenceMaxAggregateInputType
+  }
+
+  export type GetInvoiceReferenceAggregateType<T extends InvoiceReferenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateInvoiceReference]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateInvoiceReference[P]>
+      : GetScalarType<T[P], AggregateInvoiceReference[P]>
+  }
+
+
+
+
+  export type InvoiceReferenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InvoiceReferenceWhereInput
+    orderBy?: InvoiceReferenceOrderByWithAggregationInput | InvoiceReferenceOrderByWithAggregationInput[]
+    by: InvoiceReferenceScalarFieldEnum[] | InvoiceReferenceScalarFieldEnum
+    having?: InvoiceReferenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: InvoiceReferenceCountAggregateInputType | true
+    _min?: InvoiceReferenceMinAggregateInputType
+    _max?: InvoiceReferenceMaxAggregateInputType
+  }
+
+  export type InvoiceReferenceGroupByOutputType = {
+    id: string
+    createdAt: Date
+    updatedAt: Date
+    from: Date
+    to: Date
+    dueDate: Date | null
+    paidDate: Date | null
+    refernceId: string
+    _count: InvoiceReferenceCountAggregateOutputType | null
+    _min: InvoiceReferenceMinAggregateOutputType | null
+    _max: InvoiceReferenceMaxAggregateOutputType | null
+  }
+
+  type GetInvoiceReferenceGroupByPayload<T extends InvoiceReferenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<InvoiceReferenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof InvoiceReferenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], InvoiceReferenceGroupByOutputType[P]>
+            : GetScalarType<T[P], InvoiceReferenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type InvoiceReferenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    from?: boolean
+    to?: boolean
+    dueDate?: boolean
+    paidDate?: boolean
+    refernceId?: boolean
+    invoiceRefernce?: boolean | InvoiceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["invoiceReference"]>
+
+
+
+  export type InvoiceReferenceSelectScalar = {
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    from?: boolean
+    to?: boolean
+    dueDate?: boolean
+    paidDate?: boolean
+    refernceId?: boolean
+  }
+
+  export type InvoiceReferenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "from" | "to" | "dueDate" | "paidDate" | "refernceId", ExtArgs["result"]["invoiceReference"]>
+  export type InvoiceReferenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    invoiceRefernce?: boolean | InvoiceDefaultArgs<ExtArgs>
+  }
+
+  export type $InvoiceReferencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "InvoiceReference"
+    objects: {
+      invoiceRefernce: Prisma.$InvoicePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      createdAt: Date
+      updatedAt: Date
+      from: Date
+      to: Date
+      dueDate: Date | null
+      paidDate: Date | null
+      refernceId: string
+    }, ExtArgs["result"]["invoiceReference"]>
+    composites: {}
+  }
+
+  type InvoiceReferenceGetPayload<S extends boolean | null | undefined | InvoiceReferenceDefaultArgs> = $Result.GetResult<Prisma.$InvoiceReferencePayload, S>
+
+  type InvoiceReferenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<InvoiceReferenceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: InvoiceReferenceCountAggregateInputType | true
+    }
+
+  export interface InvoiceReferenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InvoiceReference'], meta: { name: 'InvoiceReference' } }
+    /**
+     * Find zero or one InvoiceReference that matches the filter.
+     * @param {InvoiceReferenceFindUniqueArgs} args - Arguments to find a InvoiceReference
+     * @example
+     * // Get one InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends InvoiceReferenceFindUniqueArgs>(args: SelectSubset<T, InvoiceReferenceFindUniqueArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one InvoiceReference that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {InvoiceReferenceFindUniqueOrThrowArgs} args - Arguments to find a InvoiceReference
+     * @example
+     * // Get one InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends InvoiceReferenceFindUniqueOrThrowArgs>(args: SelectSubset<T, InvoiceReferenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InvoiceReference that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceFindFirstArgs} args - Arguments to find a InvoiceReference
+     * @example
+     * // Get one InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends InvoiceReferenceFindFirstArgs>(args?: SelectSubset<T, InvoiceReferenceFindFirstArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InvoiceReference that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceFindFirstOrThrowArgs} args - Arguments to find a InvoiceReference
+     * @example
+     * // Get one InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends InvoiceReferenceFindFirstOrThrowArgs>(args?: SelectSubset<T, InvoiceReferenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more InvoiceReferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all InvoiceReferences
+     * const invoiceReferences = await prisma.invoiceReference.findMany()
+     * 
+     * // Get first 10 InvoiceReferences
+     * const invoiceReferences = await prisma.invoiceReference.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const invoiceReferenceWithIdOnly = await prisma.invoiceReference.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends InvoiceReferenceFindManyArgs>(args?: SelectSubset<T, InvoiceReferenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a InvoiceReference.
+     * @param {InvoiceReferenceCreateArgs} args - Arguments to create a InvoiceReference.
+     * @example
+     * // Create one InvoiceReference
+     * const InvoiceReference = await prisma.invoiceReference.create({
+     *   data: {
+     *     // ... data to create a InvoiceReference
+     *   }
+     * })
+     * 
+     */
+    create<T extends InvoiceReferenceCreateArgs>(args: SelectSubset<T, InvoiceReferenceCreateArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many InvoiceReferences.
+     * @param {InvoiceReferenceCreateManyArgs} args - Arguments to create many InvoiceReferences.
+     * @example
+     * // Create many InvoiceReferences
+     * const invoiceReference = await prisma.invoiceReference.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends InvoiceReferenceCreateManyArgs>(args?: SelectSubset<T, InvoiceReferenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Delete a InvoiceReference.
+     * @param {InvoiceReferenceDeleteArgs} args - Arguments to delete one InvoiceReference.
+     * @example
+     * // Delete one InvoiceReference
+     * const InvoiceReference = await prisma.invoiceReference.delete({
+     *   where: {
+     *     // ... filter to delete one InvoiceReference
+     *   }
+     * })
+     * 
+     */
+    delete<T extends InvoiceReferenceDeleteArgs>(args: SelectSubset<T, InvoiceReferenceDeleteArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one InvoiceReference.
+     * @param {InvoiceReferenceUpdateArgs} args - Arguments to update one InvoiceReference.
+     * @example
+     * // Update one InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends InvoiceReferenceUpdateArgs>(args: SelectSubset<T, InvoiceReferenceUpdateArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more InvoiceReferences.
+     * @param {InvoiceReferenceDeleteManyArgs} args - Arguments to filter InvoiceReferences to delete.
+     * @example
+     * // Delete a few InvoiceReferences
+     * const { count } = await prisma.invoiceReference.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends InvoiceReferenceDeleteManyArgs>(args?: SelectSubset<T, InvoiceReferenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InvoiceReferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many InvoiceReferences
+     * const invoiceReference = await prisma.invoiceReference.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends InvoiceReferenceUpdateManyArgs>(args: SelectSubset<T, InvoiceReferenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one InvoiceReference.
+     * @param {InvoiceReferenceUpsertArgs} args - Arguments to update or create a InvoiceReference.
+     * @example
+     * // Update or create a InvoiceReference
+     * const invoiceReference = await prisma.invoiceReference.upsert({
+     *   create: {
+     *     // ... data to create a InvoiceReference
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the InvoiceReference we want to update
+     *   }
+     * })
+     */
+    upsert<T extends InvoiceReferenceUpsertArgs>(args: SelectSubset<T, InvoiceReferenceUpsertArgs<ExtArgs>>): Prisma__InvoiceReferenceClient<$Result.GetResult<Prisma.$InvoiceReferencePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of InvoiceReferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceCountArgs} args - Arguments to filter InvoiceReferences to count.
+     * @example
+     * // Count the number of InvoiceReferences
+     * const count = await prisma.invoiceReference.count({
+     *   where: {
+     *     // ... the filter for the InvoiceReferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends InvoiceReferenceCountArgs>(
+      args?: Subset<T, InvoiceReferenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], InvoiceReferenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a InvoiceReference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends InvoiceReferenceAggregateArgs>(args: Subset<T, InvoiceReferenceAggregateArgs>): Prisma.PrismaPromise<GetInvoiceReferenceAggregateType<T>>
+
+    /**
+     * Group by InvoiceReference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InvoiceReferenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends InvoiceReferenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: InvoiceReferenceGroupByArgs['orderBy'] }
+        : { orderBy?: InvoiceReferenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, InvoiceReferenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInvoiceReferenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the InvoiceReference model
+   */
+  readonly fields: InvoiceReferenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for InvoiceReference.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__InvoiceReferenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    invoiceRefernce<T extends InvoiceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, InvoiceDefaultArgs<ExtArgs>>): Prisma__InvoiceClient<$Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the InvoiceReference model
+   */
+  interface InvoiceReferenceFieldRefs {
+    readonly id: FieldRef<"InvoiceReference", 'String'>
+    readonly createdAt: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly updatedAt: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly from: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly to: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly dueDate: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly paidDate: FieldRef<"InvoiceReference", 'DateTime'>
+    readonly refernceId: FieldRef<"InvoiceReference", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * InvoiceReference findUnique
+   */
+  export type InvoiceReferenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which InvoiceReference to fetch.
+     */
+    where: InvoiceReferenceWhereUniqueInput
+  }
+
+  /**
+   * InvoiceReference findUniqueOrThrow
+   */
+  export type InvoiceReferenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which InvoiceReference to fetch.
+     */
+    where: InvoiceReferenceWhereUniqueInput
+  }
+
+  /**
+   * InvoiceReference findFirst
+   */
+  export type InvoiceReferenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which InvoiceReference to fetch.
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InvoiceReferences to fetch.
+     */
+    orderBy?: InvoiceReferenceOrderByWithRelationInput | InvoiceReferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InvoiceReferences.
+     */
+    cursor?: InvoiceReferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InvoiceReferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InvoiceReferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InvoiceReferences.
+     */
+    distinct?: InvoiceReferenceScalarFieldEnum | InvoiceReferenceScalarFieldEnum[]
+  }
+
+  /**
+   * InvoiceReference findFirstOrThrow
+   */
+  export type InvoiceReferenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which InvoiceReference to fetch.
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InvoiceReferences to fetch.
+     */
+    orderBy?: InvoiceReferenceOrderByWithRelationInput | InvoiceReferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InvoiceReferences.
+     */
+    cursor?: InvoiceReferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InvoiceReferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InvoiceReferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InvoiceReferences.
+     */
+    distinct?: InvoiceReferenceScalarFieldEnum | InvoiceReferenceScalarFieldEnum[]
+  }
+
+  /**
+   * InvoiceReference findMany
+   */
+  export type InvoiceReferenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which InvoiceReferences to fetch.
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InvoiceReferences to fetch.
+     */
+    orderBy?: InvoiceReferenceOrderByWithRelationInput | InvoiceReferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing InvoiceReferences.
+     */
+    cursor?: InvoiceReferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InvoiceReferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InvoiceReferences.
+     */
+    skip?: number
+    distinct?: InvoiceReferenceScalarFieldEnum | InvoiceReferenceScalarFieldEnum[]
+  }
+
+  /**
+   * InvoiceReference create
+   */
+  export type InvoiceReferenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a InvoiceReference.
+     */
+    data: XOR<InvoiceReferenceCreateInput, InvoiceReferenceUncheckedCreateInput>
+  }
+
+  /**
+   * InvoiceReference createMany
+   */
+  export type InvoiceReferenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many InvoiceReferences.
+     */
+    data: InvoiceReferenceCreateManyInput | InvoiceReferenceCreateManyInput[]
+  }
+
+  /**
+   * InvoiceReference update
+   */
+  export type InvoiceReferenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a InvoiceReference.
+     */
+    data: XOR<InvoiceReferenceUpdateInput, InvoiceReferenceUncheckedUpdateInput>
+    /**
+     * Choose, which InvoiceReference to update.
+     */
+    where: InvoiceReferenceWhereUniqueInput
+  }
+
+  /**
+   * InvoiceReference updateMany
+   */
+  export type InvoiceReferenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update InvoiceReferences.
+     */
+    data: XOR<InvoiceReferenceUpdateManyMutationInput, InvoiceReferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which InvoiceReferences to update
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * Limit how many InvoiceReferences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * InvoiceReference upsert
+   */
+  export type InvoiceReferenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the InvoiceReference to update in case it exists.
+     */
+    where: InvoiceReferenceWhereUniqueInput
+    /**
+     * In case the InvoiceReference found by the `where` argument doesn't exist, create a new InvoiceReference with this data.
+     */
+    create: XOR<InvoiceReferenceCreateInput, InvoiceReferenceUncheckedCreateInput>
+    /**
+     * In case the InvoiceReference was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<InvoiceReferenceUpdateInput, InvoiceReferenceUncheckedUpdateInput>
+  }
+
+  /**
+   * InvoiceReference delete
+   */
+  export type InvoiceReferenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
+    /**
+     * Filter which InvoiceReference to delete.
+     */
+    where: InvoiceReferenceWhereUniqueInput
+  }
+
+  /**
+   * InvoiceReference deleteMany
+   */
+  export type InvoiceReferenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InvoiceReferences to delete
+     */
+    where?: InvoiceReferenceWhereInput
+    /**
+     * Limit how many InvoiceReferences to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * InvoiceReference without action
+   */
+  export type InvoiceReferenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InvoiceReference
+     */
+    select?: InvoiceReferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InvoiceReference
+     */
+    omit?: InvoiceReferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InvoiceReferenceInclude<ExtArgs> | null
   }
 
 
@@ -12769,10 +13850,10 @@ export namespace Prisma {
     accessToken: string | null
     refreshToken: string | null
     idToken: string | null
-    accessTokenExpiresAt: Date | null
-    refreshTokenExpiresAt: Date | null
     scope: string | null
     password: string | null
+    accessTokenExpiresAt: Date | null
+    refreshTokenExpiresAt: Date | null
     userId: string | null
   }
 
@@ -12785,10 +13866,10 @@ export namespace Prisma {
     accessToken: string | null
     refreshToken: string | null
     idToken: string | null
-    accessTokenExpiresAt: Date | null
-    refreshTokenExpiresAt: Date | null
     scope: string | null
     password: string | null
+    accessTokenExpiresAt: Date | null
+    refreshTokenExpiresAt: Date | null
     userId: string | null
   }
 
@@ -12801,10 +13882,10 @@ export namespace Prisma {
     accessToken: number
     refreshToken: number
     idToken: number
-    accessTokenExpiresAt: number
-    refreshTokenExpiresAt: number
     scope: number
     password: number
+    accessTokenExpiresAt: number
+    refreshTokenExpiresAt: number
     userId: number
     _all: number
   }
@@ -12819,10 +13900,10 @@ export namespace Prisma {
     accessToken?: true
     refreshToken?: true
     idToken?: true
-    accessTokenExpiresAt?: true
-    refreshTokenExpiresAt?: true
     scope?: true
     password?: true
+    accessTokenExpiresAt?: true
+    refreshTokenExpiresAt?: true
     userId?: true
   }
 
@@ -12835,10 +13916,10 @@ export namespace Prisma {
     accessToken?: true
     refreshToken?: true
     idToken?: true
-    accessTokenExpiresAt?: true
-    refreshTokenExpiresAt?: true
     scope?: true
     password?: true
+    accessTokenExpiresAt?: true
+    refreshTokenExpiresAt?: true
     userId?: true
   }
 
@@ -12851,10 +13932,10 @@ export namespace Prisma {
     accessToken?: true
     refreshToken?: true
     idToken?: true
-    accessTokenExpiresAt?: true
-    refreshTokenExpiresAt?: true
     scope?: true
     password?: true
+    accessTokenExpiresAt?: true
+    refreshTokenExpiresAt?: true
     userId?: true
     _all?: true
   }
@@ -12940,10 +14021,10 @@ export namespace Prisma {
     accessToken: string | null
     refreshToken: string | null
     idToken: string | null
-    accessTokenExpiresAt: Date | null
-    refreshTokenExpiresAt: Date | null
     scope: string | null
     password: string | null
+    accessTokenExpiresAt: Date | null
+    refreshTokenExpiresAt: Date | null
     userId: string
     _count: AccountCountAggregateOutputType | null
     _min: AccountMinAggregateOutputType | null
@@ -12973,10 +14054,10 @@ export namespace Prisma {
     accessToken?: boolean
     refreshToken?: boolean
     idToken?: boolean
-    accessTokenExpiresAt?: boolean
-    refreshTokenExpiresAt?: boolean
     scope?: boolean
     password?: boolean
+    accessTokenExpiresAt?: boolean
+    refreshTokenExpiresAt?: boolean
     userId?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["account"]>
@@ -12992,14 +14073,14 @@ export namespace Prisma {
     accessToken?: boolean
     refreshToken?: boolean
     idToken?: boolean
-    accessTokenExpiresAt?: boolean
-    refreshTokenExpiresAt?: boolean
     scope?: boolean
     password?: boolean
+    accessTokenExpiresAt?: boolean
+    refreshTokenExpiresAt?: boolean
     userId?: boolean
   }
 
-  export type AccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "accountId" | "providerId" | "accessToken" | "refreshToken" | "idToken" | "accessTokenExpiresAt" | "refreshTokenExpiresAt" | "scope" | "password" | "userId", ExtArgs["result"]["account"]>
+  export type AccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "accountId" | "providerId" | "accessToken" | "refreshToken" | "idToken" | "scope" | "password" | "accessTokenExpiresAt" | "refreshTokenExpiresAt" | "userId", ExtArgs["result"]["account"]>
   export type AccountInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -13018,10 +14099,10 @@ export namespace Prisma {
       accessToken: string | null
       refreshToken: string | null
       idToken: string | null
-      accessTokenExpiresAt: Date | null
-      refreshTokenExpiresAt: Date | null
       scope: string | null
       password: string | null
+      accessTokenExpiresAt: Date | null
+      refreshTokenExpiresAt: Date | null
       userId: string
     }, ExtArgs["result"]["account"]>
     composites: {}
@@ -13401,10 +14482,10 @@ export namespace Prisma {
     readonly accessToken: FieldRef<"Account", 'String'>
     readonly refreshToken: FieldRef<"Account", 'String'>
     readonly idToken: FieldRef<"Account", 'String'>
-    readonly accessTokenExpiresAt: FieldRef<"Account", 'DateTime'>
-    readonly refreshTokenExpiresAt: FieldRef<"Account", 'DateTime'>
     readonly scope: FieldRef<"Account", 'String'>
     readonly password: FieldRef<"Account", 'String'>
+    readonly accessTokenExpiresAt: FieldRef<"Account", 'DateTime'>
+    readonly refreshTokenExpiresAt: FieldRef<"Account", 'DateTime'>
     readonly userId: FieldRef<"Account", 'String'>
   }
     
@@ -15707,6 +16788,7 @@ export namespace Prisma {
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     invoiceNumber: 'invoiceNumber',
+    refernceNumber: 'refernceNumber',
     invoiceDate: 'invoiceDate',
     vendorId: 'vendorId',
     poId: 'poId',
@@ -15716,16 +16798,29 @@ export namespace Prisma {
     taxAmount: 'taxAmount',
     grandTotal: 'grandTotal',
     notes: 'notes',
-    dueDate: 'dueDate',
-    paidDate: 'paidDate',
     hasDiscrepancy: 'hasDiscrepancy',
     discrepancyNotes: 'discrepancyNotes',
     billTo: 'billTo',
     billToId: 'billToId',
-    billToGstin: 'billToGstin'
+    billToGstin: 'billToGstin',
+    invoiceURI: 'invoiceURI'
   };
 
   export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+  export const InvoiceReferenceScalarFieldEnum: {
+    id: 'id',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    from: 'from',
+    to: 'to',
+    dueDate: 'dueDate',
+    paidDate: 'paidDate',
+    refernceId: 'refernceId'
+  };
+
+  export type InvoiceReferenceScalarFieldEnum = (typeof InvoiceReferenceScalarFieldEnum)[keyof typeof InvoiceReferenceScalarFieldEnum]
 
 
   export const InvoiceItemScalarFieldEnum: {
@@ -15805,10 +16900,10 @@ export namespace Prisma {
     accessToken: 'accessToken',
     refreshToken: 'refreshToken',
     idToken: 'idToken',
-    accessTokenExpiresAt: 'accessTokenExpiresAt',
-    refreshTokenExpiresAt: 'refreshTokenExpiresAt',
     scope: 'scope',
     password: 'password',
+    accessTokenExpiresAt: 'accessTokenExpiresAt',
+    refreshTokenExpiresAt: 'refreshTokenExpiresAt',
     userId: 'userId'
   };
 
@@ -16397,7 +17492,8 @@ export namespace Prisma {
     id?: StringFilter<"Invoice"> | string
     createdAt?: DateTimeFilter<"Invoice"> | Date | string
     updatedAt?: DateTimeFilter<"Invoice"> | Date | string
-    invoiceNumber?: StringFilter<"Invoice"> | string
+    invoiceNumber?: StringNullableFilter<"Invoice"> | string | null
+    refernceNumber?: StringFilter<"Invoice"> | string
     invoiceDate?: DateTimeFilter<"Invoice"> | Date | string
     vendorId?: StringFilter<"Invoice"> | string
     poId?: StringNullableFilter<"Invoice"> | string | null
@@ -16407,24 +17503,25 @@ export namespace Prisma {
     taxAmount?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
-    dueDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
-    paidDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
     discrepancyNotes?: StringNullableFilter<"Invoice"> | string | null
     billTo?: StringNullableFilter<"Invoice"> | string | null
     billToId?: StringNullableFilter<"Invoice"> | string | null
     billToGstin?: StringNullableFilter<"Invoice"> | string | null
+    invoiceURI?: StringNullableFilter<"Invoice"> | string | null
     vendor?: XOR<VendorScalarRelationFilter, VendorWhereInput>
     purchaseOrder?: XOR<PurchaseOrderNullableScalarRelationFilter, PurchaseOrderWhereInput> | null
     items?: InvoiceItemListRelationFilter
     LRRequest?: LRRequestListRelationFilter
+    InvoiceReference?: InvoiceReferenceListRelationFilter
   }
 
   export type InvoiceOrderByWithRelationInput = {
     id?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    invoiceNumber?: SortOrder
+    invoiceNumber?: SortOrderInput | SortOrder
+    refernceNumber?: SortOrder
     invoiceDate?: SortOrder
     vendorId?: SortOrder
     poId?: SortOrderInput | SortOrder
@@ -16434,27 +17531,28 @@ export namespace Prisma {
     taxAmount?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrderInput | SortOrder
-    dueDate?: SortOrderInput | SortOrder
-    paidDate?: SortOrderInput | SortOrder
     hasDiscrepancy?: SortOrder
     discrepancyNotes?: SortOrderInput | SortOrder
     billTo?: SortOrderInput | SortOrder
     billToId?: SortOrderInput | SortOrder
     billToGstin?: SortOrderInput | SortOrder
+    invoiceURI?: SortOrderInput | SortOrder
     vendor?: VendorOrderByWithRelationInput
     purchaseOrder?: PurchaseOrderOrderByWithRelationInput
     items?: InvoiceItemOrderByRelationAggregateInput
     LRRequest?: LRRequestOrderByRelationAggregateInput
+    InvoiceReference?: InvoiceReferenceOrderByRelationAggregateInput
   }
 
   export type InvoiceWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    invoiceNumber?: string
+    refernceNumber?: string
     AND?: InvoiceWhereInput | InvoiceWhereInput[]
     OR?: InvoiceWhereInput[]
     NOT?: InvoiceWhereInput | InvoiceWhereInput[]
     createdAt?: DateTimeFilter<"Invoice"> | Date | string
     updatedAt?: DateTimeFilter<"Invoice"> | Date | string
+    invoiceNumber?: StringNullableFilter<"Invoice"> | string | null
     invoiceDate?: DateTimeFilter<"Invoice"> | Date | string
     vendorId?: StringFilter<"Invoice"> | string
     poId?: StringNullableFilter<"Invoice"> | string | null
@@ -16464,24 +17562,25 @@ export namespace Prisma {
     taxAmount?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
-    dueDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
-    paidDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
     discrepancyNotes?: StringNullableFilter<"Invoice"> | string | null
     billTo?: StringNullableFilter<"Invoice"> | string | null
     billToId?: StringNullableFilter<"Invoice"> | string | null
     billToGstin?: StringNullableFilter<"Invoice"> | string | null
+    invoiceURI?: StringNullableFilter<"Invoice"> | string | null
     vendor?: XOR<VendorScalarRelationFilter, VendorWhereInput>
     purchaseOrder?: XOR<PurchaseOrderNullableScalarRelationFilter, PurchaseOrderWhereInput> | null
     items?: InvoiceItemListRelationFilter
     LRRequest?: LRRequestListRelationFilter
-  }, "id" | "invoiceNumber">
+    InvoiceReference?: InvoiceReferenceListRelationFilter
+  }, "id" | "refernceNumber">
 
   export type InvoiceOrderByWithAggregationInput = {
     id?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    invoiceNumber?: SortOrder
+    invoiceNumber?: SortOrderInput | SortOrder
+    refernceNumber?: SortOrder
     invoiceDate?: SortOrder
     vendorId?: SortOrder
     poId?: SortOrderInput | SortOrder
@@ -16491,13 +17590,12 @@ export namespace Prisma {
     taxAmount?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrderInput | SortOrder
-    dueDate?: SortOrderInput | SortOrder
-    paidDate?: SortOrderInput | SortOrder
     hasDiscrepancy?: SortOrder
     discrepancyNotes?: SortOrderInput | SortOrder
     billTo?: SortOrderInput | SortOrder
     billToId?: SortOrderInput | SortOrder
     billToGstin?: SortOrderInput | SortOrder
+    invoiceURI?: SortOrderInput | SortOrder
     _count?: InvoiceCountOrderByAggregateInput
     _avg?: InvoiceAvgOrderByAggregateInput
     _max?: InvoiceMaxOrderByAggregateInput
@@ -16512,7 +17610,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Invoice"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Invoice"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Invoice"> | Date | string
-    invoiceNumber?: StringWithAggregatesFilter<"Invoice"> | string
+    invoiceNumber?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    refernceNumber?: StringWithAggregatesFilter<"Invoice"> | string
     invoiceDate?: DateTimeWithAggregatesFilter<"Invoice"> | Date | string
     vendorId?: StringWithAggregatesFilter<"Invoice"> | string
     poId?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
@@ -16522,13 +17621,82 @@ export namespace Prisma {
     taxAmount?: FloatWithAggregatesFilter<"Invoice"> | number
     grandTotal?: FloatWithAggregatesFilter<"Invoice"> | number
     notes?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
-    dueDate?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
-    paidDate?: DateTimeNullableWithAggregatesFilter<"Invoice"> | Date | string | null
     hasDiscrepancy?: BoolWithAggregatesFilter<"Invoice"> | boolean
     discrepancyNotes?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
     billTo?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
     billToId?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
     billToGstin?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    invoiceURI?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+  }
+
+  export type InvoiceReferenceWhereInput = {
+    AND?: InvoiceReferenceWhereInput | InvoiceReferenceWhereInput[]
+    OR?: InvoiceReferenceWhereInput[]
+    NOT?: InvoiceReferenceWhereInput | InvoiceReferenceWhereInput[]
+    id?: StringFilter<"InvoiceReference"> | string
+    createdAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    updatedAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    from?: DateTimeFilter<"InvoiceReference"> | Date | string
+    to?: DateTimeFilter<"InvoiceReference"> | Date | string
+    dueDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    paidDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    refernceId?: StringFilter<"InvoiceReference"> | string
+    invoiceRefernce?: XOR<InvoiceScalarRelationFilter, InvoiceWhereInput>
+  }
+
+  export type InvoiceReferenceOrderByWithRelationInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    from?: SortOrder
+    to?: SortOrder
+    dueDate?: SortOrderInput | SortOrder
+    paidDate?: SortOrderInput | SortOrder
+    refernceId?: SortOrder
+    invoiceRefernce?: InvoiceOrderByWithRelationInput
+  }
+
+  export type InvoiceReferenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: InvoiceReferenceWhereInput | InvoiceReferenceWhereInput[]
+    OR?: InvoiceReferenceWhereInput[]
+    NOT?: InvoiceReferenceWhereInput | InvoiceReferenceWhereInput[]
+    createdAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    updatedAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    from?: DateTimeFilter<"InvoiceReference"> | Date | string
+    to?: DateTimeFilter<"InvoiceReference"> | Date | string
+    dueDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    paidDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    refernceId?: StringFilter<"InvoiceReference"> | string
+    invoiceRefernce?: XOR<InvoiceScalarRelationFilter, InvoiceWhereInput>
+  }, "id">
+
+  export type InvoiceReferenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    from?: SortOrder
+    to?: SortOrder
+    dueDate?: SortOrderInput | SortOrder
+    paidDate?: SortOrderInput | SortOrder
+    refernceId?: SortOrder
+    _count?: InvoiceReferenceCountOrderByAggregateInput
+    _max?: InvoiceReferenceMaxOrderByAggregateInput
+    _min?: InvoiceReferenceMinOrderByAggregateInput
+  }
+
+  export type InvoiceReferenceScalarWhereWithAggregatesInput = {
+    AND?: InvoiceReferenceScalarWhereWithAggregatesInput | InvoiceReferenceScalarWhereWithAggregatesInput[]
+    OR?: InvoiceReferenceScalarWhereWithAggregatesInput[]
+    NOT?: InvoiceReferenceScalarWhereWithAggregatesInput | InvoiceReferenceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"InvoiceReference"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"InvoiceReference"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"InvoiceReference"> | Date | string
+    from?: DateTimeWithAggregatesFilter<"InvoiceReference"> | Date | string
+    to?: DateTimeWithAggregatesFilter<"InvoiceReference"> | Date | string
+    dueDate?: DateTimeNullableWithAggregatesFilter<"InvoiceReference"> | Date | string | null
+    paidDate?: DateTimeNullableWithAggregatesFilter<"InvoiceReference"> | Date | string | null
+    refernceId?: StringWithAggregatesFilter<"InvoiceReference"> | string
   }
 
   export type InvoiceItemWhereInput = {
@@ -16898,10 +18066,10 @@ export namespace Prisma {
     accessToken?: StringNullableFilter<"Account"> | string | null
     refreshToken?: StringNullableFilter<"Account"> | string | null
     idToken?: StringNullableFilter<"Account"> | string | null
-    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
-    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     scope?: StringNullableFilter<"Account"> | string | null
     password?: StringNullableFilter<"Account"> | string | null
+    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
+    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     userId?: StringFilter<"Account"> | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }
@@ -16915,10 +18083,10 @@ export namespace Prisma {
     accessToken?: SortOrderInput | SortOrder
     refreshToken?: SortOrderInput | SortOrder
     idToken?: SortOrderInput | SortOrder
-    accessTokenExpiresAt?: SortOrderInput | SortOrder
-    refreshTokenExpiresAt?: SortOrderInput | SortOrder
     scope?: SortOrderInput | SortOrder
     password?: SortOrderInput | SortOrder
+    accessTokenExpiresAt?: SortOrderInput | SortOrder
+    refreshTokenExpiresAt?: SortOrderInput | SortOrder
     userId?: SortOrder
     user?: UserOrderByWithRelationInput
   }
@@ -16935,10 +18103,10 @@ export namespace Prisma {
     accessToken?: StringNullableFilter<"Account"> | string | null
     refreshToken?: StringNullableFilter<"Account"> | string | null
     idToken?: StringNullableFilter<"Account"> | string | null
-    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
-    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     scope?: StringNullableFilter<"Account"> | string | null
     password?: StringNullableFilter<"Account"> | string | null
+    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
+    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     userId?: StringFilter<"Account"> | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }, "id">
@@ -16952,10 +18120,10 @@ export namespace Prisma {
     accessToken?: SortOrderInput | SortOrder
     refreshToken?: SortOrderInput | SortOrder
     idToken?: SortOrderInput | SortOrder
-    accessTokenExpiresAt?: SortOrderInput | SortOrder
-    refreshTokenExpiresAt?: SortOrderInput | SortOrder
     scope?: SortOrderInput | SortOrder
     password?: SortOrderInput | SortOrder
+    accessTokenExpiresAt?: SortOrderInput | SortOrder
+    refreshTokenExpiresAt?: SortOrderInput | SortOrder
     userId?: SortOrder
     _count?: AccountCountOrderByAggregateInput
     _max?: AccountMaxOrderByAggregateInput
@@ -16974,10 +18142,10 @@ export namespace Prisma {
     accessToken?: StringNullableWithAggregatesFilter<"Account"> | string | null
     refreshToken?: StringNullableWithAggregatesFilter<"Account"> | string | null
     idToken?: StringNullableWithAggregatesFilter<"Account"> | string | null
-    accessTokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"Account"> | Date | string | null
-    refreshTokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"Account"> | Date | string | null
     scope?: StringNullableWithAggregatesFilter<"Account"> | string | null
     password?: StringNullableWithAggregatesFilter<"Account"> | string | null
+    accessTokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"Account"> | Date | string | null
+    refreshTokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"Account"> | Date | string | null
     userId?: StringWithAggregatesFilter<"Account"> | string
   }
 
@@ -17693,7 +18861,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     status?: string
     subtotal?: number
@@ -17701,24 +18870,25 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     vendor: VendorCreateNestedOneWithoutInvoicesInput
     purchaseOrder?: PurchaseOrderCreateNestedOneWithoutInvoicesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceUncheckedCreateInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     poId?: string | null
@@ -17728,22 +18898,23 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestUncheckedCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -17751,24 +18922,25 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     vendor?: VendorUpdateOneRequiredWithoutInvoicesNestedInput
     purchaseOrder?: PurchaseOrderUpdateOneWithoutInvoicesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -17778,22 +18950,23 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUncheckedUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceCreateManyInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     poId?: string | null
@@ -17803,20 +18976,20 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
   }
 
   export type InvoiceUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -17824,20 +18997,20 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InvoiceUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -17847,13 +19020,88 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type InvoiceReferenceCreateInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+    invoiceRefernce: InvoiceCreateNestedOneWithoutInvoiceReferenceInput
+  }
+
+  export type InvoiceReferenceUncheckedCreateInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+    refernceId: string
+  }
+
+  export type InvoiceReferenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    invoiceRefernce?: InvoiceUpdateOneRequiredWithoutInvoiceReferenceNestedInput
+  }
+
+  export type InvoiceReferenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refernceId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type InvoiceReferenceCreateManyInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+    refernceId: string
+  }
+
+  export type InvoiceReferenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type InvoiceReferenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refernceId?: StringFieldUpdateOperationsInput | string
   }
 
   export type InvoiceItemCreateInput = {
@@ -18260,10 +19508,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
     user: UserCreateNestedOneWithoutAccountsInput
   }
 
@@ -18276,10 +19524,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
     userId: string
   }
 
@@ -18292,10 +19540,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     user?: UserUpdateOneRequiredWithoutAccountsNestedInput
   }
 
@@ -18308,10 +19556,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     userId?: StringFieldUpdateOperationsInput | string
   }
 
@@ -18324,10 +19572,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
     userId: string
   }
 
@@ -18340,10 +19588,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AccountUncheckedUpdateManyInput = {
@@ -18355,10 +19603,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     userId?: StringFieldUpdateOperationsInput | string
   }
 
@@ -19039,7 +20287,17 @@ export namespace Prisma {
     none?: InvoiceItemWhereInput
   }
 
+  export type InvoiceReferenceListRelationFilter = {
+    every?: InvoiceReferenceWhereInput
+    some?: InvoiceReferenceWhereInput
+    none?: InvoiceReferenceWhereInput
+  }
+
   export type InvoiceItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type InvoiceReferenceOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -19048,6 +20306,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     invoiceNumber?: SortOrder
+    refernceNumber?: SortOrder
     invoiceDate?: SortOrder
     vendorId?: SortOrder
     poId?: SortOrder
@@ -19057,13 +20316,12 @@ export namespace Prisma {
     taxAmount?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
-    dueDate?: SortOrder
-    paidDate?: SortOrder
     hasDiscrepancy?: SortOrder
     discrepancyNotes?: SortOrder
     billTo?: SortOrder
     billToId?: SortOrder
     billToGstin?: SortOrder
+    invoiceURI?: SortOrder
   }
 
   export type InvoiceAvgOrderByAggregateInput = {
@@ -19078,6 +20336,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     invoiceNumber?: SortOrder
+    refernceNumber?: SortOrder
     invoiceDate?: SortOrder
     vendorId?: SortOrder
     poId?: SortOrder
@@ -19087,13 +20346,12 @@ export namespace Prisma {
     taxAmount?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
-    dueDate?: SortOrder
-    paidDate?: SortOrder
     hasDiscrepancy?: SortOrder
     discrepancyNotes?: SortOrder
     billTo?: SortOrder
     billToId?: SortOrder
     billToGstin?: SortOrder
+    invoiceURI?: SortOrder
   }
 
   export type InvoiceMinOrderByAggregateInput = {
@@ -19101,6 +20359,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     invoiceNumber?: SortOrder
+    refernceNumber?: SortOrder
     invoiceDate?: SortOrder
     vendorId?: SortOrder
     poId?: SortOrder
@@ -19110,13 +20369,12 @@ export namespace Prisma {
     taxAmount?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
-    dueDate?: SortOrder
-    paidDate?: SortOrder
     hasDiscrepancy?: SortOrder
     discrepancyNotes?: SortOrder
     billTo?: SortOrder
     billToId?: SortOrder
     billToGstin?: SortOrder
+    invoiceURI?: SortOrder
   }
 
   export type InvoiceSumOrderByAggregateInput = {
@@ -19142,6 +20400,44 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type InvoiceScalarRelationFilter = {
+    is?: InvoiceWhereInput
+    isNot?: InvoiceWhereInput
+  }
+
+  export type InvoiceReferenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    from?: SortOrder
+    to?: SortOrder
+    dueDate?: SortOrder
+    paidDate?: SortOrder
+    refernceId?: SortOrder
+  }
+
+  export type InvoiceReferenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    from?: SortOrder
+    to?: SortOrder
+    dueDate?: SortOrder
+    paidDate?: SortOrder
+    refernceId?: SortOrder
+  }
+
+  export type InvoiceReferenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    from?: SortOrder
+    to?: SortOrder
+    dueDate?: SortOrder
+    paidDate?: SortOrder
+    refernceId?: SortOrder
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[]
@@ -19151,11 +20447,6 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
-  }
-
-  export type InvoiceScalarRelationFilter = {
-    is?: InvoiceWhereInput
-    isNot?: InvoiceWhereInput
   }
 
   export type InvoiceItemCountOrderByAggregateInput = {
@@ -19409,10 +20700,10 @@ export namespace Prisma {
     accessToken?: SortOrder
     refreshToken?: SortOrder
     idToken?: SortOrder
-    accessTokenExpiresAt?: SortOrder
-    refreshTokenExpiresAt?: SortOrder
     scope?: SortOrder
     password?: SortOrder
+    accessTokenExpiresAt?: SortOrder
+    refreshTokenExpiresAt?: SortOrder
     userId?: SortOrder
   }
 
@@ -19425,10 +20716,10 @@ export namespace Prisma {
     accessToken?: SortOrder
     refreshToken?: SortOrder
     idToken?: SortOrder
-    accessTokenExpiresAt?: SortOrder
-    refreshTokenExpiresAt?: SortOrder
     scope?: SortOrder
     password?: SortOrder
+    accessTokenExpiresAt?: SortOrder
+    refreshTokenExpiresAt?: SortOrder
     userId?: SortOrder
   }
 
@@ -19441,10 +20732,10 @@ export namespace Prisma {
     accessToken?: SortOrder
     refreshToken?: SortOrder
     idToken?: SortOrder
-    accessTokenExpiresAt?: SortOrder
-    refreshTokenExpiresAt?: SortOrder
     scope?: SortOrder
     password?: SortOrder
+    accessTokenExpiresAt?: SortOrder
+    refreshTokenExpiresAt?: SortOrder
     userId?: SortOrder
   }
 
@@ -19968,6 +21259,13 @@ export namespace Prisma {
     connect?: LRRequestWhereUniqueInput | LRRequestWhereUniqueInput[]
   }
 
+  export type InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput = {
+    create?: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput> | InvoiceReferenceCreateWithoutInvoiceRefernceInput[] | InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput[]
+    connectOrCreate?: InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput | InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput[]
+    createMany?: InvoiceReferenceCreateManyInvoiceRefernceInputEnvelope
+    connect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+  }
+
   export type InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput = {
     create?: XOR<InvoiceItemCreateWithoutInvoiceInput, InvoiceItemUncheckedCreateWithoutInvoiceInput> | InvoiceItemCreateWithoutInvoiceInput[] | InvoiceItemUncheckedCreateWithoutInvoiceInput[]
     connectOrCreate?: InvoiceItemCreateOrConnectWithoutInvoiceInput | InvoiceItemCreateOrConnectWithoutInvoiceInput[]
@@ -19980,6 +21278,13 @@ export namespace Prisma {
     connectOrCreate?: LRRequestCreateOrConnectWithoutInvoiceInput | LRRequestCreateOrConnectWithoutInvoiceInput[]
     createMany?: LRRequestCreateManyInvoiceInputEnvelope
     connect?: LRRequestWhereUniqueInput | LRRequestWhereUniqueInput[]
+  }
+
+  export type InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput = {
+    create?: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput> | InvoiceReferenceCreateWithoutInvoiceRefernceInput[] | InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput[]
+    connectOrCreate?: InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput | InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput[]
+    createMany?: InvoiceReferenceCreateManyInvoiceRefernceInputEnvelope
+    connect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
   }
 
   export type FloatFieldUpdateOperationsInput = {
@@ -20036,6 +21341,20 @@ export namespace Prisma {
     deleteMany?: LRRequestScalarWhereInput | LRRequestScalarWhereInput[]
   }
 
+  export type InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput = {
+    create?: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput> | InvoiceReferenceCreateWithoutInvoiceRefernceInput[] | InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput[]
+    connectOrCreate?: InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput | InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput[]
+    upsert?: InvoiceReferenceUpsertWithWhereUniqueWithoutInvoiceRefernceInput | InvoiceReferenceUpsertWithWhereUniqueWithoutInvoiceRefernceInput[]
+    createMany?: InvoiceReferenceCreateManyInvoiceRefernceInputEnvelope
+    set?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    disconnect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    delete?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    connect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    update?: InvoiceReferenceUpdateWithWhereUniqueWithoutInvoiceRefernceInput | InvoiceReferenceUpdateWithWhereUniqueWithoutInvoiceRefernceInput[]
+    updateMany?: InvoiceReferenceUpdateManyWithWhereWithoutInvoiceRefernceInput | InvoiceReferenceUpdateManyWithWhereWithoutInvoiceRefernceInput[]
+    deleteMany?: InvoiceReferenceScalarWhereInput | InvoiceReferenceScalarWhereInput[]
+  }
+
   export type InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput = {
     create?: XOR<InvoiceItemCreateWithoutInvoiceInput, InvoiceItemUncheckedCreateWithoutInvoiceInput> | InvoiceItemCreateWithoutInvoiceInput[] | InvoiceItemUncheckedCreateWithoutInvoiceInput[]
     connectOrCreate?: InvoiceItemCreateOrConnectWithoutInvoiceInput | InvoiceItemCreateOrConnectWithoutInvoiceInput[]
@@ -20062,6 +21381,34 @@ export namespace Prisma {
     update?: LRRequestUpdateWithWhereUniqueWithoutInvoiceInput | LRRequestUpdateWithWhereUniqueWithoutInvoiceInput[]
     updateMany?: LRRequestUpdateManyWithWhereWithoutInvoiceInput | LRRequestUpdateManyWithWhereWithoutInvoiceInput[]
     deleteMany?: LRRequestScalarWhereInput | LRRequestScalarWhereInput[]
+  }
+
+  export type InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput = {
+    create?: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput> | InvoiceReferenceCreateWithoutInvoiceRefernceInput[] | InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput[]
+    connectOrCreate?: InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput | InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput[]
+    upsert?: InvoiceReferenceUpsertWithWhereUniqueWithoutInvoiceRefernceInput | InvoiceReferenceUpsertWithWhereUniqueWithoutInvoiceRefernceInput[]
+    createMany?: InvoiceReferenceCreateManyInvoiceRefernceInputEnvelope
+    set?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    disconnect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    delete?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    connect?: InvoiceReferenceWhereUniqueInput | InvoiceReferenceWhereUniqueInput[]
+    update?: InvoiceReferenceUpdateWithWhereUniqueWithoutInvoiceRefernceInput | InvoiceReferenceUpdateWithWhereUniqueWithoutInvoiceRefernceInput[]
+    updateMany?: InvoiceReferenceUpdateManyWithWhereWithoutInvoiceRefernceInput | InvoiceReferenceUpdateManyWithWhereWithoutInvoiceRefernceInput[]
+    deleteMany?: InvoiceReferenceScalarWhereInput | InvoiceReferenceScalarWhereInput[]
+  }
+
+  export type InvoiceCreateNestedOneWithoutInvoiceReferenceInput = {
+    create?: XOR<InvoiceCreateWithoutInvoiceReferenceInput, InvoiceUncheckedCreateWithoutInvoiceReferenceInput>
+    connectOrCreate?: InvoiceCreateOrConnectWithoutInvoiceReferenceInput
+    connect?: InvoiceWhereUniqueInput
+  }
+
+  export type InvoiceUpdateOneRequiredWithoutInvoiceReferenceNestedInput = {
+    create?: XOR<InvoiceCreateWithoutInvoiceReferenceInput, InvoiceUncheckedCreateWithoutInvoiceReferenceInput>
+    connectOrCreate?: InvoiceCreateOrConnectWithoutInvoiceReferenceInput
+    upsert?: InvoiceUpsertWithoutInvoiceReferenceInput
+    connect?: InvoiceWhereUniqueInput
+    update?: XOR<XOR<InvoiceUpdateToOneWithWhereWithoutInvoiceReferenceInput, InvoiceUpdateWithoutInvoiceReferenceInput>, InvoiceUncheckedUpdateWithoutInvoiceReferenceInput>
   }
 
   export type InvoiceCreateNestedOneWithoutItemsInput = {
@@ -20510,10 +21857,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
   }
 
   export type AccountUncheckedCreateWithoutUserInput = {
@@ -20525,10 +21872,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
   }
 
   export type AccountCreateOrConnectWithoutUserInput = {
@@ -20691,10 +22038,10 @@ export namespace Prisma {
     accessToken?: StringNullableFilter<"Account"> | string | null
     refreshToken?: StringNullableFilter<"Account"> | string | null
     idToken?: StringNullableFilter<"Account"> | string | null
-    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
-    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     scope?: StringNullableFilter<"Account"> | string | null
     password?: StringNullableFilter<"Account"> | string | null
+    accessTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
+    refreshTokenExpiresAt?: DateTimeNullableFilter<"Account"> | Date | string | null
     userId?: StringFilter<"Account"> | string
   }
 
@@ -20835,7 +22182,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     status?: string
     subtotal?: number
@@ -20843,23 +22191,24 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     purchaseOrder?: PurchaseOrderCreateNestedOneWithoutInvoicesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceUncheckedCreateWithoutVendorInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     poId?: string | null
     status?: string
@@ -20868,15 +22217,15 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestUncheckedCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceCreateOrConnectWithoutVendorInput = {
@@ -21084,7 +22433,8 @@ export namespace Prisma {
     id?: StringFilter<"Invoice"> | string
     createdAt?: DateTimeFilter<"Invoice"> | Date | string
     updatedAt?: DateTimeFilter<"Invoice"> | Date | string
-    invoiceNumber?: StringFilter<"Invoice"> | string
+    invoiceNumber?: StringNullableFilter<"Invoice"> | string | null
+    refernceNumber?: StringFilter<"Invoice"> | string
     invoiceDate?: DateTimeFilter<"Invoice"> | Date | string
     vendorId?: StringFilter<"Invoice"> | string
     poId?: StringNullableFilter<"Invoice"> | string | null
@@ -21094,13 +22444,12 @@ export namespace Prisma {
     taxAmount?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
-    dueDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
-    paidDate?: DateTimeNullableFilter<"Invoice"> | Date | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
     discrepancyNotes?: StringNullableFilter<"Invoice"> | string | null
     billTo?: StringNullableFilter<"Invoice"> | string | null
     billToId?: StringNullableFilter<"Invoice"> | string | null
     billToGstin?: StringNullableFilter<"Invoice"> | string | null
+    invoiceURI?: StringNullableFilter<"Invoice"> | string | null
   }
 
   export type PurchaseOrderUpsertWithWhereUniqueWithoutVendorInput = {
@@ -21326,7 +22675,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     status?: string
     subtotal?: number
@@ -21334,23 +22684,24 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     vendor: VendorCreateNestedOneWithoutInvoicesInput
     purchaseOrder?: PurchaseOrderCreateNestedOneWithoutInvoicesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceUncheckedCreateWithoutLRRequestInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     poId?: string | null
@@ -21360,14 +22711,14 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceCreateOrConnectWithoutLRRequestInput = {
@@ -21437,7 +22788,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -21445,23 +22797,24 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     vendor?: VendorUpdateOneRequiredWithoutInvoicesNestedInput
     purchaseOrder?: PurchaseOrderUpdateOneWithoutInvoicesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateWithoutLRRequestInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21471,14 +22824,14 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type VendorCreateWithoutInvoicesInput = {
@@ -21653,6 +23006,35 @@ export namespace Prisma {
     data: LRRequestCreateManyInvoiceInput | LRRequestCreateManyInvoiceInput[]
   }
 
+  export type InvoiceReferenceCreateWithoutInvoiceRefernceInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+  }
+
+  export type InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+  }
+
+  export type InvoiceReferenceCreateOrConnectWithoutInvoiceRefernceInput = {
+    where: InvoiceReferenceWhereUniqueInput
+    create: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput>
+  }
+
+  export type InvoiceReferenceCreateManyInvoiceRefernceInputEnvelope = {
+    data: InvoiceReferenceCreateManyInvoiceRefernceInput | InvoiceReferenceCreateManyInvoiceRefernceInput[]
+  }
+
   export type VendorUpsertWithoutInvoicesInput = {
     update: XOR<VendorUpdateWithoutInvoicesInput, VendorUncheckedUpdateWithoutInvoicesInput>
     create: XOR<VendorCreateWithoutInvoicesInput, VendorUncheckedCreateWithoutInvoicesInput>
@@ -21800,11 +23182,42 @@ export namespace Prisma {
     data: XOR<LRRequestUpdateManyMutationInput, LRRequestUncheckedUpdateManyWithoutInvoiceInput>
   }
 
-  export type InvoiceCreateWithoutItemsInput = {
+  export type InvoiceReferenceUpsertWithWhereUniqueWithoutInvoiceRefernceInput = {
+    where: InvoiceReferenceWhereUniqueInput
+    update: XOR<InvoiceReferenceUpdateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedUpdateWithoutInvoiceRefernceInput>
+    create: XOR<InvoiceReferenceCreateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedCreateWithoutInvoiceRefernceInput>
+  }
+
+  export type InvoiceReferenceUpdateWithWhereUniqueWithoutInvoiceRefernceInput = {
+    where: InvoiceReferenceWhereUniqueInput
+    data: XOR<InvoiceReferenceUpdateWithoutInvoiceRefernceInput, InvoiceReferenceUncheckedUpdateWithoutInvoiceRefernceInput>
+  }
+
+  export type InvoiceReferenceUpdateManyWithWhereWithoutInvoiceRefernceInput = {
+    where: InvoiceReferenceScalarWhereInput
+    data: XOR<InvoiceReferenceUpdateManyMutationInput, InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceInput>
+  }
+
+  export type InvoiceReferenceScalarWhereInput = {
+    AND?: InvoiceReferenceScalarWhereInput | InvoiceReferenceScalarWhereInput[]
+    OR?: InvoiceReferenceScalarWhereInput[]
+    NOT?: InvoiceReferenceScalarWhereInput | InvoiceReferenceScalarWhereInput[]
+    id?: StringFilter<"InvoiceReference"> | string
+    createdAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    updatedAt?: DateTimeFilter<"InvoiceReference"> | Date | string
+    from?: DateTimeFilter<"InvoiceReference"> | Date | string
+    to?: DateTimeFilter<"InvoiceReference"> | Date | string
+    dueDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    paidDate?: DateTimeNullableFilter<"InvoiceReference"> | Date | string | null
+    refernceId?: StringFilter<"InvoiceReference"> | string
+  }
+
+  export type InvoiceCreateWithoutInvoiceReferenceInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     status?: string
     subtotal?: number
@@ -21812,23 +23225,24 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     vendor: VendorCreateNestedOneWithoutInvoicesInput
     purchaseOrder?: PurchaseOrderCreateNestedOneWithoutInvoicesInput
+    items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestCreateNestedManyWithoutInvoiceInput
   }
 
-  export type InvoiceUncheckedCreateWithoutItemsInput = {
+  export type InvoiceUncheckedCreateWithoutInvoiceReferenceInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     poId?: string | null
@@ -21838,14 +23252,130 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
+    items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestUncheckedCreateNestedManyWithoutInvoiceInput
+  }
+
+  export type InvoiceCreateOrConnectWithoutInvoiceReferenceInput = {
+    where: InvoiceWhereUniqueInput
+    create: XOR<InvoiceCreateWithoutInvoiceReferenceInput, InvoiceUncheckedCreateWithoutInvoiceReferenceInput>
+  }
+
+  export type InvoiceUpsertWithoutInvoiceReferenceInput = {
+    update: XOR<InvoiceUpdateWithoutInvoiceReferenceInput, InvoiceUncheckedUpdateWithoutInvoiceReferenceInput>
+    create: XOR<InvoiceCreateWithoutInvoiceReferenceInput, InvoiceUncheckedCreateWithoutInvoiceReferenceInput>
+    where?: InvoiceWhereInput
+  }
+
+  export type InvoiceUpdateToOneWithWhereWithoutInvoiceReferenceInput = {
+    where?: InvoiceWhereInput
+    data: XOR<InvoiceUpdateWithoutInvoiceReferenceInput, InvoiceUncheckedUpdateWithoutInvoiceReferenceInput>
+  }
+
+  export type InvoiceUpdateWithoutInvoiceReferenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    subtotal?: FloatFieldUpdateOperationsInput | number
+    taxRate?: FloatFieldUpdateOperationsInput | number
+    taxAmount?: FloatFieldUpdateOperationsInput | number
+    grandTotal?: FloatFieldUpdateOperationsInput | number
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
+    discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    billTo?: NullableStringFieldUpdateOperationsInput | string | null
+    billToId?: NullableStringFieldUpdateOperationsInput | string | null
+    billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
+    vendor?: VendorUpdateOneRequiredWithoutInvoicesNestedInput
+    purchaseOrder?: PurchaseOrderUpdateOneWithoutInvoicesNestedInput
+    items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
+    LRRequest?: LRRequestUpdateManyWithoutInvoiceNestedInput
+  }
+
+  export type InvoiceUncheckedUpdateWithoutInvoiceReferenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    vendorId?: StringFieldUpdateOperationsInput | string
+    poId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    subtotal?: FloatFieldUpdateOperationsInput | number
+    taxRate?: FloatFieldUpdateOperationsInput | number
+    taxAmount?: FloatFieldUpdateOperationsInput | number
+    grandTotal?: FloatFieldUpdateOperationsInput | number
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
+    discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    billTo?: NullableStringFieldUpdateOperationsInput | string | null
+    billToId?: NullableStringFieldUpdateOperationsInput | string | null
+    billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
+    items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
+    LRRequest?: LRRequestUncheckedUpdateManyWithoutInvoiceNestedInput
+  }
+
+  export type InvoiceCreateWithoutItemsInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    invoiceNumber?: string | null
+    refernceNumber: string
+    invoiceDate: Date | string
+    status?: string
+    subtotal?: number
+    taxRate?: number
+    taxAmount?: number
+    grandTotal?: number
+    notes?: string | null
+    hasDiscrepancy?: boolean
+    discrepancyNotes?: string | null
+    billTo?: string | null
+    billToId?: string | null
+    billToGstin?: string | null
+    invoiceURI?: string | null
+    vendor: VendorCreateNestedOneWithoutInvoicesInput
+    purchaseOrder?: PurchaseOrderCreateNestedOneWithoutInvoicesInput
+    LRRequest?: LRRequestCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput
+  }
+
+  export type InvoiceUncheckedCreateWithoutItemsInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    invoiceNumber?: string | null
+    refernceNumber: string
+    invoiceDate: Date | string
+    vendorId: string
+    poId?: string | null
+    status?: string
+    subtotal?: number
+    taxRate?: number
+    taxAmount?: number
+    grandTotal?: number
+    notes?: string | null
+    hasDiscrepancy?: boolean
+    discrepancyNotes?: string | null
+    billTo?: string | null
+    billToId?: string | null
+    billToGstin?: string | null
+    invoiceURI?: string | null
+    LRRequest?: LRRequestUncheckedCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceCreateOrConnectWithoutItemsInput = {
@@ -21868,7 +23398,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -21876,23 +23407,24 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     vendor?: VendorUpdateOneRequiredWithoutInvoicesNestedInput
     purchaseOrder?: PurchaseOrderUpdateOneWithoutInvoicesNestedInput
     LRRequest?: LRRequestUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateWithoutItemsInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21902,14 +23434,14 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     LRRequest?: LRRequestUncheckedUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type VendorCreateWithoutPurchaseOrderInput = {
@@ -22031,7 +23563,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     status?: string
     subtotal?: number
@@ -22039,23 +23572,24 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     vendor: VendorCreateNestedOneWithoutInvoicesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceUncheckedCreateWithoutPurchaseOrderInput = {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     status?: string
@@ -22064,15 +23598,15 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     LRRequest?: LRRequestUncheckedCreateNestedManyWithoutInvoiceInput
+    InvoiceReference?: InvoiceReferenceUncheckedCreateNestedManyWithoutInvoiceRefernceInput
   }
 
   export type InvoiceCreateOrConnectWithoutPurchaseOrderInput = {
@@ -22531,10 +24065,10 @@ export namespace Prisma {
     accessToken?: string | null
     refreshToken?: string | null
     idToken?: string | null
-    accessTokenExpiresAt?: Date | string | null
-    refreshTokenExpiresAt?: Date | string | null
     scope?: string | null
     password?: string | null
+    accessTokenExpiresAt?: Date | string | null
+    refreshTokenExpiresAt?: Date | string | null
   }
 
   export type PurchaseOrderCreateManyUserInput = {
@@ -22598,10 +24132,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AccountUncheckedUpdateWithoutUserInput = {
@@ -22613,10 +24147,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AccountUncheckedUpdateManyWithoutUserInput = {
@@ -22628,10 +24162,10 @@ export namespace Prisma {
     accessToken?: NullableStringFieldUpdateOperationsInput | string | null
     refreshToken?: NullableStringFieldUpdateOperationsInput | string | null
     idToken?: NullableStringFieldUpdateOperationsInput | string | null
-    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     scope?: NullableStringFieldUpdateOperationsInput | string | null
     password?: NullableStringFieldUpdateOperationsInput | string | null
+    accessTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    refreshTokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type PurchaseOrderUpdateWithoutUserInput = {
@@ -22715,7 +24249,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     poId?: string | null
     status?: string
@@ -22724,13 +24259,12 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
   }
 
   export type PurchaseOrderCreateManyVendorInput = {
@@ -22844,7 +24378,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -22852,23 +24387,24 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     purchaseOrder?: PurchaseOrderUpdateOneWithoutInvoicesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateWithoutVendorInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -22877,22 +24413,23 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUncheckedUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateManyWithoutVendorInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     poId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -22901,13 +24438,12 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type PurchaseOrderUpdateWithoutVendorInput = {
@@ -23106,6 +24642,16 @@ export namespace Prisma {
     tvendorId: string
   }
 
+  export type InvoiceReferenceCreateManyInvoiceRefernceInput = {
+    id?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    from: Date | string
+    to: Date | string
+    dueDate?: Date | string | null
+    paidDate?: Date | string | null
+  }
+
   export type InvoiceItemUpdateWithoutInvoiceInput = {
     id?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
@@ -23205,6 +24751,36 @@ export namespace Prisma {
     tvendorId?: StringFieldUpdateOperationsInput | string
   }
 
+  export type InvoiceReferenceUpdateWithoutInvoiceRefernceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type InvoiceReferenceUncheckedUpdateWithoutInvoiceRefernceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: DateTimeFieldUpdateOperationsInput | Date | string
+    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type PurchaseOrderItemCreateManyPurchaseOrderInput = {
     id?: string
     description: string
@@ -23220,7 +24796,8 @@ export namespace Prisma {
     id?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    invoiceNumber: string
+    invoiceNumber?: string | null
+    refernceNumber: string
     invoiceDate: Date | string
     vendorId: string
     status?: string
@@ -23229,13 +24806,12 @@ export namespace Prisma {
     taxAmount?: number
     grandTotal?: number
     notes?: string | null
-    dueDate?: Date | string | null
-    paidDate?: Date | string | null
     hasDiscrepancy?: boolean
     discrepancyNotes?: string | null
     billTo?: string | null
     billToId?: string | null
     billToGstin?: string | null
+    invoiceURI?: string | null
   }
 
   export type PurchaseOrderItemUpdateWithoutPurchaseOrderInput = {
@@ -23275,7 +24851,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -23283,23 +24860,24 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     vendor?: VendorUpdateOneRequiredWithoutInvoicesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateWithoutPurchaseOrderInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -23308,22 +24886,23 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     LRRequest?: LRRequestUncheckedUpdateManyWithoutInvoiceNestedInput
+    InvoiceReference?: InvoiceReferenceUncheckedUpdateManyWithoutInvoiceRefernceNestedInput
   }
 
   export type InvoiceUncheckedUpdateManyWithoutPurchaseOrderInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    invoiceNumber?: StringFieldUpdateOperationsInput | string
+    invoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    refernceNumber?: StringFieldUpdateOperationsInput | string
     invoiceDate?: DateTimeFieldUpdateOperationsInput | Date | string
     vendorId?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -23332,13 +24911,12 @@ export namespace Prisma {
     taxAmount?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
-    dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    paidDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
     discrepancyNotes?: NullableStringFieldUpdateOperationsInput | string | null
     billTo?: NullableStringFieldUpdateOperationsInput | string | null
     billToId?: NullableStringFieldUpdateOperationsInput | string | null
     billToGstin?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceURI?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
 

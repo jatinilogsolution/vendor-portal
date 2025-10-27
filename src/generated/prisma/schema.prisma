@@ -112,7 +112,7 @@ model LRRequest {
   origin       String?
   destination  String?
   outDate      DateTime
-  status       String?
+  status       String?  @default("PENDING") // WRONG, VERIFIED
   priceOffered Float?
   priceSettled Float?
   extraCost    Float?
@@ -132,30 +132,45 @@ model Invoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invoiceNumber    String    @unique
-  invoiceDate      DateTime
-  vendorId         String
-  poId             String?
-  status           String    @default("DRAFT") //DRAFT PENDING APPROVED COMPLETED CANCELLED
-  subtotal         Float     @default(0)
-  taxRate          Float     @default(0)
-  taxAmount        Float     @default(0)
-  grandTotal       Float     @default(0)
-  notes            String?
-  dueDate          DateTime?
-  paidDate         DateTime?
-  hasDiscrepancy   Boolean   @default(false)
+  invoiceNumber  String?
+  refernceNumber String   @unique
+  invoiceDate    DateTime
+  vendorId       String
+  poId           String?
+  status         String   @default("DRAFT") // sent
+  subtotal       Float    @default(0)
+  taxRate        Float    @default(0)
+  taxAmount      Float    @default(0)
+  grandTotal     Float    @default(0)
+  notes          String?
+
+  hasDiscrepancy   Boolean            @default(false)
   discrepancyNotes String?
   billTo           String?
   billToId         String?
   billToGstin      String?
-
-  vendor        Vendor         @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id])
-  items         InvoiceItem[]
-  LRRequest     LRRequest[]
+  invoiceURI       String?
+  vendor           Vendor             @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  purchaseOrder    PurchaseOrder?     @relation(fields: [poId], references: [id])
+  items            InvoiceItem[]
+  LRRequest        LRRequest[]
+  InvoiceReference InvoiceReference[]
 
   @@map("invoices")
+}
+
+model InvoiceReference {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  from     DateTime
+  to       DateTime
+  dueDate  DateTime?
+  paidDate DateTime?
+
+  refernceId      String
+  invoiceRefernce Invoice @relation(fields: [refernceId], references: [refernceNumber])
 }
 
 model InvoiceItem {
@@ -245,13 +260,15 @@ model Account {
   accountId  String
   providerId String
 
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
+  // 🔹 Changed to @db.Text to handle long token strings
+  accessToken  String? @db.Text
+  refreshToken String? @db.Text
+  idToken      String? @db.Text // ✅ main fix
+  scope        String? @db.Text
+  password     String?
+
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

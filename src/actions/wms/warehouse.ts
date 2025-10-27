@@ -1,42 +1,42 @@
+// "use client"
+
 import { getAWLWMSDBPOOL } from "@/services/db";
-
-
-
-
+ import { unstable_cache,  } from 'next/cache';
+import { cache } from "react";
 
 export interface Warehouse {
-    id: number;
-    warehouseId: string;
-    customerAccount: string;
-    warehouseMainId: string;
-    warehouseName: string;
-    addressLine1: string | null;
-    addressLine2: string | null;
-    city: string | null;
-    state: string | null;
-    pinCode: string | null;
-    country: string | null;
-    locationId: string | null;
-    fromDate: Date | null;
-    toDate: Date | null;
-    stateCode: string | null;
-    isActive: string;
-    gstinNumber: string | null;
-    gstinAddress: string | null;
-    totalArea: number | null;
-    budgetArea2425: number | null;
-    gstinNumberAlt: string | null;
-    ilogGstin: string | null;
-    latitude: number | null;
-    longitude: number | null;
+  id: number;
+  warehouseId: string;
+  customerAccount: string;
+  warehouseMainId: string;
+  warehouseName: string;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  pinCode: string | null;
+  country: string | null;
+  locationId: string | null;
+  fromDate: Date | null;
+  toDate: Date | null;
+  stateCode: string | null;
+  isActive: string;
+  gstinNumber: string | null;
+  gstinAddress: string | null;
+  totalArea: number | null;
+  budgetArea2425: number | null;
+  gstinNumberAlt: string | null;
+  ilogGstin: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export const BillToAddress = async (): Promise<Warehouse[]> => {
-    try {
-        const pool = await getAWLWMSDBPOOL();
-        const request = pool.request();
+  try {
+    const pool = await getAWLWMSDBPOOL();
+    const request = pool.request();
 
-        const query = `
+    const query = `
       SELECT 
         ID AS id,
         WHid AS warehouseId,
@@ -66,34 +66,34 @@ export const BillToAddress = async (): Promise<Warehouse[]> => {
       WHERE LTRIM(RTRIM(active)) = 'Y';
     `;
 
-        const response = await request.query<Warehouse>(query);
-        const warehouses = response.recordset;
+    const response = await request.query<Warehouse>(query);
+    const warehouses = response.recordset;
 
-        console.log(`✅ Retrieved ${warehouses.length} active warehouses.`);
-        return warehouses;
-    } catch (e) {
-        console.error("❌ Error fetching active warehouses:", e);
-        throw e;
-    }
+    console.log(`✅ Retrieved ${warehouses.length} active warehouses.`);
+    return warehouses;
+  } catch (e) {
+    console.error("❌ Error fetching active warehouses:", e);
+    throw e;
+  }
 };
 
 
 export const BillToAddressById = async (id: string): Promise<Warehouse[]> => {
-    // 1️⃣ Validate input
-    if (!id || typeof id !== "string" || !id.trim()) {
-        throw new Error("Invalid warehouse ID provided.");
-    }
+  // 1️⃣ Validate input
+  if (!id || typeof id !== "string" || !id.trim()) {
+    throw new Error("Invalid warehouse ID provided.");
+  }
 
-    const trimmedId = id.trim();
+  const trimmedId = id.trim();
 
-    try {
-        // 2️⃣ Get database pool
-        const pool = await getAWLWMSDBPOOL();
-        const request = pool.request();
+  try {
+    // 2️⃣ Get database pool
+    const pool = await getAWLWMSDBPOOL();
+    const request = pool.request();
 
-        // 3️⃣ Use parameterized query
-        request.input("id", trimmedId);
-        const query = `
+    // 3️⃣ Use parameterized query
+    request.input("id", trimmedId);
+    const query = `
           SELECT 
             ID AS id,
             WHid AS warehouseId,
@@ -123,20 +123,60 @@ export const BillToAddressById = async (id: string): Promise<Warehouse[]> => {
           WHERE active = 'Y' AND ID = @id;
         `;
 
-        // 4️⃣ Execute query
-        const response = await request.query<Warehouse>(query);
-        const warehouses = response.recordset;
+    // 4️⃣ Execute query
+    const response = await request.query<Warehouse>(query);
+    const warehouses = response.recordset;
 
-        // 5️⃣ Validate response
-        if (!warehouses || warehouses.length === 0) {
-            console.warn(`No active warehouses found with ID: ${trimmedId}`);
-            return [];
-        }
-
-        console.log(`✅ Retrieved ${warehouses.length} active warehouse(s) with ID: ${trimmedId}`);
-        return warehouses;
-    } catch (e) {
-        console.error(`❌ Error fetching warehouse with ID ${trimmedId}:`, e);
-        throw new Error(`Failed to fetch warehouse with ID ${trimmedId}`);
+    // 5️⃣ Validate response
+    if (!warehouses || warehouses.length === 0) {
+      console.warn(`No active warehouses found with ID: ${trimmedId}`);
+      return [];
     }
+
+    console.log(`✅ Retrieved ${warehouses.length} active warehouse(s) with ID: ${trimmedId}`);
+    return warehouses;
+  } catch (e) {
+    console.error(`❌ Error fetching warehouse with ID ${trimmedId}:`, e);
+    throw new Error(`Failed to fetch warehouse with ID ${trimmedId}`);
+  }
 };
+
+const fetchWarehouseName = async (id: string): Promise<{ warehouseName: string }> => {
+  const trimmedId = id.trim();
+
+  const pool = await getAWLWMSDBPOOL();
+  const request = pool.request();
+  request.input("id", trimmedId);
+
+  const query = `
+    SELECT WHname AS warehouseName
+    FROM tbl_whaddress
+    WHERE active = 'Y' AND WHid = @id;
+  `;
+  const response = await request.query(query);
+  const warehouse = response.recordset[0];
+
+  return warehouse ? warehouse : { warehouseName: "" };
+};
+
+const cachedFetch = unstable_cache(
+  fetchWarehouseName,
+  ['warehouse-name'],
+  {
+    revalidate: 86400, 
+    tags: ['warehouse-data']
+  }
+);
+
+export const BillToAddressByNameId = cache(async (id: string) => {
+  if (!id || typeof id !== "string" || !id.trim()) {
+    throw new Error("Invalid warehouse name ID provided.");
+  }
+
+  try {
+    return await cachedFetch(id);
+  } catch (e) {
+    console.error(`❌ Error fetching warehouse name for ID ${id}:`, e);
+    throw new Error(`Failed to fetch warehouse name with ID ${id}`);
+  }
+});

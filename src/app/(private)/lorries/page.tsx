@@ -1,7 +1,7 @@
 
 
 import React from 'react'
-import LorryTable from '../profile/_components/lorry-table'
+import LorryTable from './_components/lorry-table'
 import { getCustomSession } from '@/actions/auth.action'
 import { redirect } from 'next/navigation'
 import { signOut } from '@/lib/auth-client'
@@ -38,10 +38,7 @@ const page = async () => {
       <div>
 
         <p className="leading-7  mb-2">Your All Pending LR without POD</p>
-
-
-
-        <LorryTable   vendorId={vendor?.Vendor?.id} />
+        <LorryTable vendorId={vendor?.Vendor?.id} height={38} />
       </div>
     )
   }
@@ -52,7 +49,7 @@ const page = async () => {
     <div>
       {/* <h1>Lorry Recipet </h1> */}
       <h2 className=' mb-2'> All Pending LR without POD</h2>
-      <LorryTable  />
+      <LorryTable height={38} />
     </div>
 
   )

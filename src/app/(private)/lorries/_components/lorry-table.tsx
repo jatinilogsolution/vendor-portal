@@ -12,8 +12,10 @@ import { debounce } from "lodash"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { LazyDate } from "@/components/lazzy-date"
-import { getAllLRforVendorById } from "../_action/getVendor"
-import { generateSingleInvoiceFromLorryPage } from "@/app/(private)/invoices/_action/invoice"
+import { getAllLRforVendorById } from "../../profile/_action/getVendor"
+import { generateSingleInvoiceFromLorryPage } from "../../invoices/_action/invoice"
+import { useSession } from "@/lib/auth-client"
+import { useUserCheck } from "@/hooks/useRoleCheck"
 
 interface Lorry {
   LRNumber: string
@@ -30,6 +32,10 @@ interface Lorry {
 interface LorryTableProps {
   vendorId?: string
   limit?: number
+  pod?: boolean
+  refernceNo?: string
+  setOpen?: () => void
+  height?: number
 }
 
 const PAGE_SIZE = 10
@@ -52,7 +58,7 @@ const TableSkeletonLoader = () => (
   </>
 )
 
-const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) => {
+const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, pod = false, refernceNo, setOpen, height = 38 }) => {
   const [data, setData] = useState<Lorry[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -62,9 +68,11 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
   const [fromDate, setFromDate] = useState<string>("")
   const [toDate, setToDate] = useState<string>("")
 
+
   // store actual selected files across pages
   const [selectedFilesData, setSelectedFilesData] = useState<Record<string, Lorry[]>>({})
 
+  const { roleCheck } = useUserCheck()
   const searchParams = useSearchParams()
   const router = useRouter()
   const page = Number(searchParams.get("page")) || 1
@@ -108,6 +116,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
         search: querySearch,
         fromDate,
         toDate,
+        pod
       })
 
       const formattedData: Lorry[] = res.data.map((item: any) => ({
@@ -193,12 +202,16 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
     }))
 
 
-    const { error, invoice } = await generateSingleInvoiceFromLorryPage(invoiceData)
+    const { error, reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
     if (error) {
       toast.error(error)
     }
-
-    router.push(`/invoices/${invoice?.id}`)
+    if (reference.id) {
+      console.log("hha")
+      router.push(`/invoices/${reference?.id}`)
+    } else if (setOpen) {
+      setOpen!()
+    }
 
     toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
     // console.log("Invoice Data:", invoiceData)
@@ -217,12 +230,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
     }
   }, [])
 
-  const handleRowClick = useCallback(
-    (fileNumber: string) => {
-      router.push(`/lorries/${fileNumber}`)
-    },
-    [router]
-  )
+
 
   const hasActiveFilters = searchTerm || fromDate || toDate
 
@@ -286,7 +294,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
 
       {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden">
-        <div className="overflow-auto max-h-[38rem]">
+        <div className={`overflow-auto  max-h-[38rem]`}>
           <Table>
             <TableHeader className="sticky top-0 bg-accent backdrop-blur-sm z-10">
               <TableRow>
@@ -342,7 +350,11 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
                       {records.map((lr) => (
                         <TableRow
                           key={lr.LRNumber}
-                          onClick={() => handleRowClick(lr.fileNumber)}
+                          onClick={() => {
+                            if (!pod) {
+                              router.push(`/lorries/${lr.fileNumber}`);
+                            }
+                          }}
                           className="cursor-pointer hover:bg-muted/30 transition-colors"
                         >
                           <TableCell></TableCell>
@@ -390,15 +402,17 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE }) 
         </div>
 
         <div className="flex items-center gap-3 order-1 sm:order-2">
-          <Button
+
+          {roleCheck("TVENDOR") && <Button
             onClick={handleGenerateInvoice}
             disabled={Object.keys(selectedFilesData).length === 0}
             className="gap-2"
             size="sm"
           >
             <FileText className="w-4 h-4" />
-            Generate Invoice ({Object.keys(selectedFilesData).length})
+            {pod ? `Add (${Object.keys(selectedFilesData).length})` : `Generate BCN (${Object.keys(selectedFilesData).length})`}
           </Button>
+          }
 
           <div className="flex items-center gap-2">
             <Button

@@ -1,123 +1,163 @@
-// "use server";
-
-// import { prisma } from "@/lib/prisma";
-// import { cookies } from "next/headers";
-
-// export const updateBillToAddress = async (invoiceId: string, billToId: string) => {
-//   try {
-//     // Get cookies
-//     const cookieStore = await cookies(); // no await needed
-//     const cookieHeader = cookieStore
-//       .getAll()
-//       .map(c => `${c.name}=${c.value}`)
-//       .join("; ");
-
-//     // Fetch warehouse address
-//     const res = await fetch(
-//       `${process.env.NEXT_PUBLIC_API_URL}/api/addresses/warehouse/${billToId}`,
-//       {
-//         headers: {
-//           Cookie: cookieHeader,
-//         },
-//       }
-//     );
-
-//     if (!res.ok) {
-//       return { error: "Address not found" };
-//     }
-
-//     const addressArr = await res.json();
-//     if (!addressArr || !addressArr[0]) {
-//       return { error: "No address returned from API" };
-//     }
-
-//     const addr = addressArr[0];
-
-//     // Build formatted address dynamically without extra commas/spaces
-//     const fields = [
-//       addr.addressLine1,
-//       addr.addressLine2,
-//       addr.city,
-//       addr.state,
-//       addr.pinCode,
-//       addr.country,
-//     ];
-
-//     const formattedAddress = fields
-//       .filter(f => f && f.trim() !== "") // keep only non-empty fields
-//       .map(f => f.trim()) // remove extra spaces
-//       .join(", "); // join with comma
-
-//     const updatedInvoice = await prisma.invoice.update({
-//       where: { id: invoiceId },
-//       data: {
-//         billToId,
-//         billTo: formattedAddress || "", // always update
-//         billToGstin: addr.gstinNumber?.trim() || "", // remove extra spaces
-//       },
-//     });
-
-//     return updatedInvoice;
-//   } catch (err) {
-//     console.error("Error in Updating Bill To Address:", err);
-//     return { error: "Failed to update Bill to Address" };
-//   }
-// };
 "use server"
-
-import { prisma } from "@/lib/prisma"
-import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { BillToAddressById, Warehouse } from "@/actions/wms/warehouse";
+import { prisma } from "@/lib/prisma";
 
 export const updateBillToAddress = async (invoiceId: string, billToId: string) => {
   try {
-    // Get cookies
-    const cookieStore = await cookies() // no await needed
-    const cookieHeader = cookieStore
-      .getAll()
-      .map((c) => `${c.name}=${c.value}`)
-      .join("; ")
 
-    // Fetch warehouse address
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/addresses/warehouse/${billToId}`, {
-      headers: {
-        Cookie: cookieHeader,
-      },
-    })
-
-    if (!res.ok) {
-      return { error: "Address not found" }
+    // 1️⃣ Validate the ID
+    if (!billToId || typeof billToId !== "string" || !billToId.trim()) {
+      return { error: "Invalid warehouse ID provided" };
     }
 
-    const addressArr = await res.json()
-    if (!addressArr || !addressArr[0]) {
-      return { error: "No address returned from API" }
+    const warehouses: Warehouse[] = await BillToAddressById(billToId?.trim());
+
+
+
+    if (!warehouses || !warehouses[0]) {
+      return { error: "No address returned from API" };
     }
 
-    const addr = addressArr[0]
+    const addr = warehouses[0];
 
-    // Build formatted address dynamically without extra commas/spaces
-    const fields = [addr.addressLine1, addr.addressLine2, addr.city, addr.state, addr.pinCode, addr.country]
+    // Format address neatly
+    const formattedAddress = [
+      addr.addressLine1,
+      addr.addressLine2,
+      addr.city,
+      addr.state,
+      addr.pinCode,
+      addr.country,
+    ]
+      .map((f) => f?.trim() || "")
+      .filter((f) => f !== "")
+      .join(", ");
 
-    const formattedAddress = fields
-      .filter((f) => f && f.trim() !== "") // keep only non-empty fields
-      .map((f) => f.trim()) // remove extra spaces
-      .join(", ") // join with comma
-
+    // Update invoice in DB
     const updatedInvoice = await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         billToId,
-        billTo: formattedAddress || "", // always update
-        billToGstin: addr.gstinNumber?.trim() || "", // remove extra spaces
+        billTo: formattedAddress || "",
+        billToGstin: addr.gstinNumber?.trim() || "",
       },
-    })
+    });
 
-    revalidatePath(`/invoices/${invoiceId}`)
 
-    return updatedInvoice
+
+    return updatedInvoice;
   } catch (err) {
-    console.error("Error in Updating Bill To Address:", err)
-    return { error: "Failed to update Bill to Address" }
+    console.error("Error updating Bill To Address:", err);
+    return { error: "Failed to update Bill to Address" };
+  }
+};
+
+
+
+
+
+import { uploadAttachmentToAzure, deleteAttachmentFromAzure } from "@/services/azure-blob"
+
+
+// export async function saveInvoiceFile(invoiceId: string, invoiceNumber: string, file: File) {
+//   if (!invoiceId) throw new Error("Invoice ID is required")
+//   if (!file) throw new Error("File is required")
+
+//   try {
+//     const path = `invoices/${invoiceId}/${file.name}`
+
+//     // Prepare FormData
+//     const formData = new FormData()
+//     formData.append("file", file)
+
+//     // Upload to Azure
+//     const fileUrl = await uploadAttachmentToAzure(path, formData)
+
+//     // Save file URL to invoice
+//     await prisma.invoice.update({
+//       where: { id: invoiceId },
+//       data: {
+//         invoiceURI: fileUrl,
+//         invoiceNumber: invoiceNumber
+//       },
+//     })
+
+//     return { id: path, name: file.name, fileUrl }
+//   } catch (err) {
+//     console.error("Error saving invoice file:", err)
+//     throw new Error("Failed to save invoice file")
+//   }
+// }
+
+
+export async function saveInvoiceFile(
+  invoiceId: string,
+  invoiceNumber: string,
+  file: File,
+  referenceNumber: string
+) {
+  if (!invoiceId) throw new Error("Invoice ID is required");
+  if (!referenceNumber?.trim()) throw new Error("Reference number is required");
+  if (!invoiceNumber?.trim()) throw new Error("Invoice number is required");
+  if (!file) throw new Error("File is required");
+
+  try {
+    // Check if the invoiceNumber already exists for the same reference
+    const existingInvoice = await prisma.invoice.findFirst({
+      where: {
+        refernceNumber: referenceNumber,
+        invoiceNumber: invoiceNumber,
+        NOT: { id: invoiceId }, // exclude current invoice
+      },
+    });
+
+    if (existingInvoice) {
+      throw new Error(
+        `Invoice number "${invoiceNumber}" already exists for reference "${referenceNumber}"`
+      );
+    }
+
+    const path = `invoices/${invoiceId}/${file.name}`;
+
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Upload to Azure
+    const fileUrl = await uploadAttachmentToAzure(path, formData);
+
+    // Save file URL and invoice number
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        invoiceURI: fileUrl,
+        invoiceNumber: invoiceNumber,
+        refernceNumber: referenceNumber,
+      },
+    });
+
+    return { id: path, name: file.name, fileUrl };
+  } catch (err: any) {
+    console.error("Error saving invoice file:", err);
+    throw new Error(err.message || "Failed to save invoice file");
+  }
+}
+
+export async function deleteInvoiceFile(invoiceId: string, fileUrl: string) {
+  if (!invoiceId) throw new Error("Invoice ID is required")
+  if (!fileUrl) throw new Error("File URL is required")
+
+  try {
+    // Delete from Azure
+    await deleteAttachmentFromAzure(fileUrl)
+
+    // Remove from invoice
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { invoiceURI: null },
+    })
+  } catch (err) {
+    console.error("Error deleting invoice file:", err)
+    throw new Error("Failed to delete invoice file")
   }
 }
