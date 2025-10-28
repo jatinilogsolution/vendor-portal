@@ -46,9 +46,7 @@ const PrivateLayout = ({ children }: PropsWithChildren) => {
           </div>
         </div> */}
 
-        <div className=" px-6 py-6">
-
-
+        <div className=" px-2 md:px-4 py-6">
                 {children}
         </div>
 

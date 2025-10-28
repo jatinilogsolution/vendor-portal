@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Input } from '@/components/ui/input';
+ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { Search } from 'lucide-react';
  
 
 export function UserSearch() {
@@ -30,17 +31,22 @@ export function UserSearch() {
     }, [name]);
 
     return (
-        <div>
 
-            <Input
-                type="text"
+        
+
+     
+        <InputGroup>
+            <InputGroupInput placeholder="Search by name..."
+
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Search by name..."
-                className="  rounded w-full min-w-md max-w-lg  "
             />
+            <InputGroupAddon>
+                <Search />
+            </InputGroupAddon>
+            <InputGroupAddon align="inline-end">{ } results</InputGroupAddon>
+        </InputGroup>
 
-        </div>
 
     );
 }

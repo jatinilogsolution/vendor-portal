@@ -57,7 +57,7 @@ const TableSkeletonLoader = () => (
   </>
 )
 
-const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, pod = false, refernceNo, setOpen, height = 38 }) => {
+const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, pod = false, refernceNo, setOpen }) => {
   const [data, setData] = useState<Lorry[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)

@@ -1,11 +1,10 @@
 "use client"
 
 import {
-  IconCreditCard,
+ 
   IconDotsVertical,
   IconLogout,
-  IconNotification,
-  IconUserCircle,
+ 
 } from "@tabler/icons-react"
 
 import {
@@ -16,7 +15,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
+ 
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -28,7 +27,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { usePathname, useRouter } from "next/navigation"
+import {  useRouter } from "next/navigation"
 import React from "react"
 import { signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
