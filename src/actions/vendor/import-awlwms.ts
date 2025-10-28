@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getAWLWMSDBPOOL } from "@/services/db";
-import { WarehouseAddressProps } from "@/validations/global";
-
+ 
 
 export async function mainDDDD() {
   try {
@@ -103,41 +102,7 @@ export async function LRIMPORT() {
 
     console.log(`Found ${records.length} lorry receipts, : `, JSON.stringify(records[0]));
 
-    //   for (const r of records) {
-    //   const existing = await prisma.lRRequest.findUnique({
-    //     where: { LRNumber: r.OutLRNo },
-    //   });
-
-    //   if (existing) {
-    //     await prisma.lRRequest.update({
-    //       where: { LRNumber: r.OutLRNo },
-    //       data: {
-    //         outDate: new Date(r.OutLRDate),
-    //         destination: r.City || "Unknown",
-    //         tvendorId: r.OutTPT || "N/A",
-    //         origin: r.WH || "N/A",
-    //         vehicleType: r.OutVehType || "Unknown",
-    //         vehicleNo: r.OutVehNo || "Unknown",
-    //         CustomerName: r.PartyName,
-    //         fileNumber: r.FileNo
-    //       },
-    //     });
-    //   } else {
-    //     await prisma.lRRequest.create({
-    //       data: {
-    //         LRNumber: r.OutLRNo,
-    //         outDate: new Date(r.OutLRDate),
-    //         destination: r.City || "Unknown",
-    //         tvendorId: r.OutTPT,
-    //         origin: r.WH || "N/A",
-    //         vehicleType: r.OutVehType || "Unknown",
-    //         vehicleNo: r.OutVehNo || "Unknown",
-    //         CustomerName: r.PartyName,
-    //         fileNumber: r.FileNo
-    //       },
-    //     });
-    //   }
-    // }
+ 
 
     for (const r of records) {
       try {

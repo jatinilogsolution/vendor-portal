@@ -2,21 +2,17 @@
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
+ 
 } from "@/components/ui/card";
-import { TrendingUpIcon, UsersIcon, DollarSignIcon, ActivityIcon, Edit2Icon, Car } from "lucide-react";
+import {   Edit2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { getCustomSession } from "@/actions/auth.action";
-import Image from "next/image";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+ import { getCustomSession } from "@/actions/auth.action";
+ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { VendorAddressCard } from "./_components/address-form";
+ import { VendorAddressCard } from "./_components/address-form";
 
 export default async function Profile() {
 
@@ -30,18 +26,7 @@ export default async function Profile() {
   }else if(!user.vendorId){
     return <div>not a trasporter</div>
   }
-
  
-
-const address = await prisma.vendor.findFirst({
-  where:{
-    id: user.vendorId
-  },
-  select:{
-    id: true,
-    Address: true
-  }
-})
   return (
     <div className="p-4">
       {/* Header */}

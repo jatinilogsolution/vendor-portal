@@ -1,4 +1,4 @@
-"use client"
+ 
 // import { LRIMPORT,mainDDDD } from '@/actions/vendor/import-awlwms'
 import Hero from '@/components/modules/hero'
 // import { prisma } from '@/lib/prisma'
@@ -6,9 +6,9 @@ import Hero from '@/components/modules/hero'
 import React from 'react'
 
 
-const page = () => {
+const page = async() => {
 
-  // await LRIMPORT()
+  // await mainDDDD()
 
   return (
 

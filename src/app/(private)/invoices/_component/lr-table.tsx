@@ -8,8 +8,7 @@ import { ExternalLink, Search } from "lucide-react"
 import { SettlePrice } from "../../lorries/_components/settle-price"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 
 interface LR {
     id: string
