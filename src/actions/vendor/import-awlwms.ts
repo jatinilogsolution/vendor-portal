@@ -1,6 +1,7 @@
+"use server"
 import { prisma } from "@/lib/prisma";
 import { getAWLWMSDBPOOL } from "@/services/db";
- 
+
 
 export async function mainDDDD() {
   try {
@@ -92,17 +93,30 @@ export async function LRIMPORT() {
   try {
     const pool = await getAWLWMSDBPOOL();
     const request = pool.request();
+    const today = new Date();
 
-    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='2025-07-01' 
+    // Get the second last day (2 days before today)
+    const secondLastDay = new Date();
+    secondLastDay.setDate(today.getDate() - 2);
+
+    // Format as YYYY-MM-DD
+    const year = secondLastDay.getFullYear();
+    const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");
+    const day = String(secondLastDay.getDate()).padStart(2, "0");
+
+    const formattedDate = `${year}-${month}-${day}`;
+
+
+    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='${formattedDate}' 
          and OutLRNo not in (select distinct tranId from NEWAWLDB.dbo.gDrive_Data  with(nolock)  where subFolder='pod'  ) and OutTransportBy='AWL' 
          and isnull(OutGPNo,'')<>''  and  OutVehType not in ('COURIER')`;
 
     const response = await request.query(query);
     const records = response.recordset;
 
-    console.log(`Found ${records.length} lorry receipts, : `, JSON.stringify(records[0]));
+    // console.log(`Found ${records.length} lorry receipts, : `, JSON.stringify(records[0]));
 
- 
+
 
     for (const r of records) {
       try {
@@ -151,6 +165,7 @@ export async function LRIMPORT() {
     }
 
 
+    return { total: records.length }
 
     console.log("✅ Lorry Receipt seed completed!");
   } catch (e) {

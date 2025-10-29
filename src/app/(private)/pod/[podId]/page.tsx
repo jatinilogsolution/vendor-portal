@@ -1,4 +1,4 @@
- 
+
 import { Badge } from "@/components/ui/badge"
 import { ErrorCard } from "@/components/error"
 import { Separator } from "@/components/ui/separator"
@@ -28,10 +28,9 @@ export default async function VendorDetailPage({
         redirect("/")
     }
 
-    if (user.role !== "TADMIN") {
-        redirect("/dashboard")
-    }
-
+ if (user.role !== "TADMIN" && user.role !== "BOSS") {
+  redirect("/dashboard")
+}
     const { data, error } = await getLRInfo(filenumber)
     if (error || !data) {
         return (

@@ -1,145 +1,234 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+import type React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { CardContent, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { getAddressByVendorId, updateAddressByVendorId } from "../_action/getVendor"
-import { toast } from "sonner"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { updateAddress } from "../_action/profile"
+import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import { Address } from "@/generated/prisma"
+ 
+// interface AddressProfile {
+//   id: string
+//   line1: string
+//   line2?: string
+//   city: string
+//   state?: string
+//   postal?: string
+//   country: string
+//   vendorId: string
+//   createdAt: Date
+//   updatedAt: Date
+// }
 
-// ✅ Address Schema
-const addressSchema = z.object({
-    line1: z.string().min(1, "Line 1 is required"),
-    line2: z.string().optional(),
-    city: z.string().min(1, "City is required"),
-    state: z.string().optional(),
-    postal: z.string().optional(),
-    country: z.string().min(1, "Country is required"),
-})
+interface AddressFormProps {
+  address: Address
+  isEditing: boolean
+  onUpdate: (address: Address) => void
+  onCancel: () => void
+}
 
-type AddressFormValues = z.infer<typeof addressSchema>
+export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressFormProps) {
+  const [formData, setFormData] = useState<Address>(address)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-export function VendorAddressCard({
-    vendorId
-}: {
-    vendorId: string
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
 
-}) {
-    const [open, setOpen] = useState(false)
-
-    const [address, setAddress] = useState<AddressFormValues | undefined>(undefined);
-    useEffect(() => {
-        const fetchAddress = async () => {
-
-
-            const { data, error } = await getAddressByVendorId(vendorId)
-            if (error) {
-                toast.error("Error in getting Address")
-            }
-            setAddress(data as any)
-        }
-        fetchAddress()
-    }, [vendorId])
-
-
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<AddressFormValues>({
-        resolver: zodResolver(addressSchema),
-        defaultValues: {},
-    })
-
-    const handleEdit = async (data: AddressFormValues) => {
-
-        try {
-
-            await updateAddressByVendorId({
-                data: {
-                    city: data.city,
-                    country: data.country,
-                    line1: data.line1,
-                    line2: data.line2,
-                    postal: data.postal,
-                    state: data.state
-                },
-                id: vendorId
-            })
-
-            toast.success("Address updated sucessfully")
-            reset()
-        } catch (e) {
-            console.log("Error while saving: ", e)
-            toast.error("Failed to update address")
-        }
-        setOpen(false)
+    if (!formData.line1.trim()) {
+      newErrors.line1 = "Address line 1 is required"
     }
 
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required"
+    }
+
+    if (!formData.country.trim()) {
+      newErrors.country = "Country is required"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateForm()) return
+
+    try {
+      setIsSubmitting(true)
+      setSubmitError(null)
+      const result = await updateAddress(address.vendorId, formData)
+      if (result.success && result.address) {
+        onUpdate(result.address)
+      } else {
+        setSubmitError(result.error || "Failed to update address")
+      }
+    } catch (err) {
+      setSubmitError("An error occurred while updating address")
+      console.error("[v0] Error updating address:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }))
+    }
+  }
+
+  if (!isEditing) {
     return (
-        <div className="w-full max-w-lg shadow-md">
-
-            <CardTitle className="text-lg">Vendor Address</CardTitle>
-            {/* <CardDescription>Current saved address details</CardDescription> */}
-
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="outline">Edit</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Address</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit(handleEdit)} className="space-y-4">
-                        <div>
-                            <Label>Line 1</Label>
-                            <Input {...register("line1")} />
-                            {errors.line1 && <p className="text-sm text-red-500">{errors.line1.message}</p>}
-                        </div>
-                        <div>
-                            <Label>Line 2</Label>
-                            <Input {...register("line2")} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label>City</Label>
-                                <Input {...register("city")} />
-                                {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
-                            </div>
-                            <div>
-                                <Label>State</Label>
-                                <Input {...register("state")} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label>Postal Code</Label>
-                                <Input {...register("postal")} />
-                            </div>
-                            <div>
-                                <Label>Country</Label>
-                                <Input {...register("country")} />
-                                {errors.country && <p className="text-sm text-red-500">{errors.country.message}</p>}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                            <Button type="submit">Save</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-
-            <CardContent className="space-y-2 text-sm">
-                <p>  {address?.line1}</p>
-                {address?.line2}
-                {address?.city}
-                {address?.state}
-                {address?.postal}
-                {address?.country}
-            </CardContent>
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <Label className="text-muted-foreground">Address Line 1</Label>
+            <p className="mt-2 text-lg font-medium">{address.line1}</p>
+          </div>
+          {address.line2 && (
+            <div>
+              <Label className="text-muted-foreground">Address Line 2</Label>
+              <p className="mt-2 text-lg font-medium">{address.line2}</p>
+            </div>
+          )}
+          <div>
+            <Label className="text-muted-foreground">City</Label>
+            <p className="mt-2 text-lg font-medium">{address.city}</p>
+          </div>
+          {address.state && (
+            <div>
+              <Label className="text-muted-foreground">State</Label>
+              <p className="mt-2 text-lg font-medium">{address.state}</p>
+            </div>
+          )}
+          {address.postal && (
+            <div>
+              <Label className="text-muted-foreground">Postal Code</Label>
+              <p className="mt-2 text-lg font-medium">{address.postal}</p>
+            </div>
+          )}
+          <div>
+            <Label className="text-muted-foreground">Country</Label>
+            <p className="mt-2 text-lg font-medium">{address.country}</p>
+          </div>
         </div>
+      </div>
     )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {submitError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="line1">Address Line 1 *</Label>
+          <Input
+            id="line1"
+            name="line1"
+            value={formData.line1}
+            onChange={handleChange}
+            placeholder="Enter street address"
+            disabled={isSubmitting}
+            className={errors.line1 ? "border-destructive" : ""}
+          />
+          {errors.line1 && <p className="text-sm text-destructive">{errors.line1}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="line2">Address Line 2</Label>
+          <Input
+            id="line2"
+            name="line2"
+            value={formData.line2 || ""}
+            onChange={handleChange}
+            placeholder="Apartment, suite, etc."
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="city">City *</Label>
+          <Input
+            id="city"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            placeholder="Enter city"
+            disabled={isSubmitting}
+            className={errors.city ? "border-destructive" : ""}
+          />
+          {errors.city && <p className="text-sm text-destructive">{errors.city}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="state">State/Province</Label>
+          <Input
+            id="state"
+            name="state"
+            value={formData.state || ""}
+            onChange={handleChange}
+            placeholder="Enter state or province"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="postal">Postal Code</Label>
+          <Input
+            id="postal"
+            name="postal"
+            value={formData.postal || ""}
+            onChange={handleChange}
+            placeholder="Enter postal code"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="country">Country *</Label>
+          <Input
+            id="country"
+            name="country"
+            value={formData.country}
+            onChange={handleChange}
+            placeholder="Enter country"
+            disabled={isSubmitting}
+            className={errors.country ? "border-destructive" : ""}
+          />
+          {errors.country && <p className="text-sm text-destructive">{errors.country}</p>}
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-4">
+        <Button type="submit" disabled={isSubmitting} className="gap-2">
+          {isSubmitting && <Spinner className="h-4 w-4" />}
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
 }

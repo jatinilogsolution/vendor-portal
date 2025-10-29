@@ -20,8 +20,8 @@ export default async function Page({ searchParams }: PageProps) {
 
     if (!token) redirect("/auth/login");
     return (
-         
-            <ResetPasswordForm token={token} />
-        
+
+        <ResetPasswordForm token={token} />
+
     );
 }

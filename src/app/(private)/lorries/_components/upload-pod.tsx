@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Upload, Eye, Replace } from "lucide-react"
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone"
 import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
-import { uploadPodForLr, UploadPodToWMS } from "../_action/pod"
+import { uploadPodForLr } from "../_action/pod"
 import { toast } from "sonner"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 
@@ -38,7 +38,7 @@ type UploadPodProps = {
   whId: string
 }
 
-export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumber, whId }: UploadPodProps) {
+export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumber }: UploadPodProps) {
   const [fileUrl, setFileUrl] = useState<string | null>(initialFileUrl)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -66,13 +66,7 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
       const url = await uploadAttachmentToAzure(fileName, formData)
       setFileUrl(url)
 
-      await UploadPodToWMS({
-        date: new Date(),
-        fileNumber: fileNumber,
-        lrNumber: LrNumber,
-        podUrl: url,
-        whId: whId
-      })
+
 
       const { error } = await uploadPodForLr({
         lrNumber: LrNumber,

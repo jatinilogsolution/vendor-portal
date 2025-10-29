@@ -337,7 +337,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/var/www/vendor-portal/src/generated/prisma",
+      "value": "/Users/jatinsharma/Desktop/vapp/src/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -346,12 +346,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "debian-openssl-3.0.x",
+        "value": "darwin",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/var/www/vendor-portal/prisma/schema.prisma",
+    "sourceFilePath": "/Users/jatinsharma/Desktop/vapp/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

@@ -293,7 +293,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
 
       {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden">
-        <div className={`overflow-auto  max-h-[38rem]`}>
+        <div className={`overflow-auto  max-h-[45rem]`}>
           <Table>
             <TableHeader className="sticky top-0 bg-accent backdrop-blur-sm z-10">
               <TableRow>
