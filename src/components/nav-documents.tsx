@@ -31,7 +31,7 @@ export function NavDocuments({
   items: {
     name: string
     url: string
-    icon: Icon
+    icon: any
   }[]
 }) {
   const { isMobile } = useSidebar()
