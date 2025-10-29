@@ -337,7 +337,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/jatinsharma/Desktop/vapp/src/generated/prisma",
+      "value": "/var/www/vendor-portal/src/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -346,12 +346,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin",
+        "value": "debian-openssl-3.0.x",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/jatinsharma/Desktop/vapp/prisma/schema.prisma",
+    "sourceFilePath": "/var/www/vendor-portal/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -365,7 +365,7 @@ const config = {
     "db"
   ],
   "activeProvider": "sqlserver",
-  "postinstall": true,
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
