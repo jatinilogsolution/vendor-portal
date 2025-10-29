@@ -1,6 +1,6 @@
 "use client"
 
-import { type Icon } from "@tabler/icons-react"
+// import { type Icon } from "@tabler/icons-react"
 
 // import { Button } from "@/components/ui/button"
 import {
@@ -21,7 +21,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: Icon
+    icon?: any
     only?: UserRoleEnum[]
   }[]
 }) {
