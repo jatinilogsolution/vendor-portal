@@ -5,7 +5,7 @@ import { BlobServiceClient, StorageSharedKeyCredential } from "@azure/storage-bl
 // Load from environment variables
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME
 const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY
-
+const container = process.env.AZURE_STORAGE_CONTAINER!
 if (!accountName || !accountKey) {
   throw new Error("Azure Storage account name or key is not configured in environment variables")
 }
@@ -15,7 +15,7 @@ const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountK
 const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential)
 
 // Containers
-const container = "vendorportal"
+// const container = "testvendorportal"
 
 
 export async function uploadAttachmentToAzure(path: string, formData: FormData): Promise<string> {

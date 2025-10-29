@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma" // adjust import path as needed
-import { getAWLWMSDBPOOL } from "@/services/db"
+// import { getAWLWMSDBPOOL } from "@/services/db"
 import { revalidatePath } from "next/cache"
 
 export const uploadPodForLr = async ({
@@ -101,64 +101,56 @@ export const uploadPodForLr = async ({
 
 // }
 
-export const UploadPodToWMS = async ({
-    whId,
-    lrNumber,
-    date,
-    podUrl,
-    fileNumber
-}: {
-    whId: string,
-    lrNumber: string,
-    date: any,
-    podUrl: string,
-    fileNumber: string
-}) => {
-    try {
-        const pool = await getAWLWMSDBPOOL();
-        const request = pool.request();
+// export const UploadPodToWMS = async ({
+//     whId,
+//     lrNumber,
+//     date,
+//     podUrl,
+//     fileNumber
+// }: {
+//     whId: string,
+//     lrNumber: string,
+//     date: any,
+//     podUrl: string,
+//     fileNumber: string
+// }) => {
+//     try {
+//         const pool = await getAWLWMSDBPOOL();
+//         const request = pool.request();
 
-        const cleanWhId = whId.trim();
-        const cleanLrNo = lrNumber.trim();
-        const cleanFileNo = fileNumber?.trim() ?? '';
-        const cleanUrl = podUrl.trim();
-        const cleanDate = new Date(date);
+//         const cleanWhId = whId.trim();
+//         const cleanLrNo = lrNumber.trim();
+//         const cleanFileNo = fileNumber?.trim() ?? '';
+//         const cleanUrl = podUrl.trim();
+//         const cleanDate = new Date(date);
 
-        // Trim + sanitize + proper date
-        request.input("whId", cleanWhId);
-        request.input("lrNumber", cleanLrNo);
-        request.input("date", cleanDate);
-        request.input("fileNumber", cleanFileNo);
-        request.input("podUrl", cleanUrl);
+//         // Trim + sanitize + proper date
+//         request.input("whId", cleanWhId);
+//         request.input("lrNumber", cleanLrNo);
+//         request.input("date", cleanDate);
+//         request.input("fileNumber", cleanFileNo);
+//         request.input("podUrl", cleanUrl);
 
 
-        const query = "INSERT INTO gDrive_Data WITH(ROWLOCK)(tranId,masterFolder,subFolder,fileName,createTime,flag,file_url,docType,WhID,custid,USERNAME)VALUES('','SWIM','POD','',GETDATE(),'Post','','POD','','','API')"
+//         const query = "INSERT INTO gDrive_Data WITH(ROWLOCK)(tranId,masterFolder,subFolder,fileName,createTime,flag,file_url,docType,WhID,custid,USERNAME)VALUES('','SWIM','POD','',GETDATE(),'Post','','POD','','','API')"
 
-    //     const query = `
-    //   UPDATE TBL_LR_SUB WITH(ROWLOCK)
-    //   SET POD_IMAGE=@podUrl, POD_ENTRYON=@date, filename=@fileNumber
-    //   WHERE WH=@whId AND LR_NO=@lrNumber
-    // `;
 
-        const response = await request.query(query);
-        //     console.log(
-        //         "🧩 Final Query Preview:\n",
-        //         `UPDATE TBL_LR_SUB WITH(ROWLOCK)
-        //    SET POD_IMAGE='${cleanUrl}',
-        //        POD_ENTRYON='${cleanDate.toISOString()}',
-        //        filename='${cleanFileNo}'
-        //    WHERE WH='${cleanWhId}'
-        //      AND LR_NO='${cleanLrNo}';`
-        //     );
-        if (response.rowsAffected[0] === 0) {
-            console.warn(`⚠️ No rows updated for WH=${whId}, LR_NO=${lrNumber}`);
-        } else {
-            console.log(`✅ Updated ${response.rowsAffected[0]} row(s)`);
-        }
-    } catch (e) {
-        console.error("Error in UploadPodToWMS", e);
-    }
-};
+//         await request.query(query);
+
+
+//         const { error } = await uploadPodForLr({
+//             lrNumber: lrNumber,
+//             fileNumber: fileNumber,
+//             podLink: podUrl,
+//         })
+         
+        
+
+//         return { error }
+//     } catch (e) {
+//         console.error("Error in UploadPodToWMS", e);
+//     }
+// };
 
 
 

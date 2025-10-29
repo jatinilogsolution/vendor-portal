@@ -35,6 +35,10 @@ const options = {
                     description:
                         "Please verify your email address to complete the registration process.",
                     link: String(link),
+                    user: user.name,
+                    buttonTitle: "Verify Mail"
+
+
                 },
             });
         },
@@ -53,8 +57,10 @@ const options = {
                 to: user.email,
                 subject: "Reset your password",
                 meta: {
-                    description: "Please click the link below to reset your password.",
+                    description: "Please click the button below to reset your password.",
                     link: String(url),
+                    user: user.name,
+                    buttonTitle: "Reset Password"
                 },
             });
         },

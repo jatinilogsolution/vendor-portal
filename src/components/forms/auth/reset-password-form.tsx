@@ -42,6 +42,7 @@ export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
                     setIsPending(false);
                 },
                 onError: (ctx) => {
+                    console.log(ctx.error.message)
                     toast.error(ctx.error.message);
                 },
                 onSuccess: () => {

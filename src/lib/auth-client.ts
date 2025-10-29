@@ -17,19 +17,4 @@ const authClient = createAuthClient({
 
 
 export const { signOut, useSession, forgetPassword, sendVerificationEmail, resetPassword, admin, signUp } = authClient
-
-// export const signIn = async () => {
-//   try {
-
-
-// console.log("hahaha clicked")
-//     const data = await authClient.signIn.social({
-//       provider: "google",
-//     });
-
-//     console.log("Login Sucess", data)
-//   }
-//   catch (er) {
-//     console.log("Failed ot login", er)
-//   }
-// };
+ 
