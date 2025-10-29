@@ -80,7 +80,7 @@ export const CreateNewUserButton = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>Create New User</Button>
+        <Button className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200">Create New User</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>

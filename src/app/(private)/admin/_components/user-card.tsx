@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserRoleEnum } from "@/utils/constant";
 import { Calendar, Shield } from "lucide-react";
+import { CreateNewUserButton } from "./create-new-user";
 
 const getUserInitials = (name: string) => {
     return name
@@ -118,12 +119,14 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
 
                     {/* Right: Action Button */}
                     <div className="flex-shrink-0 w-full lg:w-auto">
-                        <Button
+                        {/* <Button
                             className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200"
                             variant="default"
                         >
                             Create New User
-                        </Button>
+                        </Button> */}
+                        <CreateNewUserButton />
+
                     </div>
                 </div>
             </div>
