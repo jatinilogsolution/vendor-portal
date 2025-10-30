@@ -38,7 +38,7 @@ const page = async () => {
       <div>
 
         <p className="leading-7  mb-2">Your All Pending LR without POD</p>
-        <LorryTable vendorId={vendor?.Vendor?.id} height={38} />
+        <LorryTable vendorId={vendor?.Vendor?.id}  />
       </div>
     )
   }
@@ -49,7 +49,7 @@ const page = async () => {
     <div>
       {/* <h1>Lorry Recipet </h1> */}
       <h2 className=' mb-2'> All Pending LR without POD</h2>
-      <LorryTable height={38} />
+      <LorryTable  />
     </div>
 
   )
