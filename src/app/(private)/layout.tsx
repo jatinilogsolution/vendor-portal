@@ -19,7 +19,7 @@ import {
     SidebarProvider,
 } from "@/components/ui/sidebar"
 import { PropsWithChildren } from "react";
-
+ 
 
 const PrivateLayout = ({ children }: PropsWithChildren) => {
     return (
@@ -37,8 +37,12 @@ const PrivateLayout = ({ children }: PropsWithChildren) => {
 
 
                 <div className=" px-2 md:px-4 py-6">
-                    {children}
-                </div>
+
+             
+                        {children}
+
+                        {/* {children} */}
+                 </div>
 
             </SidebarInset>
         </SidebarProvider>

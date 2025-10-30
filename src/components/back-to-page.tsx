@@ -7,12 +7,14 @@ import { ChevronLeftIcon } from "@heroicons/react/16/solid"
 import { Button } from "@/components/ui/button"
 
 
-export function BackToPage({ title }: { title: string }) {
+export function BackToPage({ title }: { title: string, location?: string }) {
 
     const router = useRouter()
 
     const handleBackButton = () => {
-        router.back()
+router.back()
+        // router.push(location) // go to specific path
+
     }
 
     return (

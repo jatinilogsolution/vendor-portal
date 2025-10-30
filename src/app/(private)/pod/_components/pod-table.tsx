@@ -55,7 +55,7 @@ export function PodTable({ data }: PodTableProps) {
 
   const allGroups = Object.entries(groupedData)
 
- 
+
   const totalPages = Math.ceil(allGroups.length / pageSize)
   const paginatedGroups = allGroups.slice(
     (currentPage - 1) * pageSize,
@@ -83,10 +83,10 @@ export function PodTable({ data }: PodTableProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <InputGroup className="max-w-md flex-1">
+        <InputGroup className=" ">
           <InputGroupAddon>
             <Search className="h-4 w-4 text-muted-foreground" />
           </InputGroupAddon>
@@ -95,19 +95,19 @@ export function PodTable({ data }: PodTableProps) {
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value)
-              setCurrentPage(1) // reset page when searching
+              setCurrentPage(1)
             }}
           />
+          <InputGroupAddon align="inline-end"> {filteredData.length} {filteredData.length === 1 ? "record" : "records"}</InputGroupAddon>
+
         </InputGroup>
-        <Badge variant="secondary" className="whitespace-nowrap px-4 py-2 text-sm">
-          {filteredData.length} {filteredData.length === 1 ? "record" : "records"}
-        </Badge>
+
       </div>
 
-      {/* Accordion Groups */}
+
       {paginatedGroups.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
+          <CardContent className="flex flex-col items-center justify-center py-3">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium text-muted-foreground">No results found</p>
             <p className="text-sm text-muted-foreground mt-1">
@@ -125,7 +125,7 @@ export function PodTable({ data }: PodTableProps) {
             >
               <AccordionTrigger
                 className={cn(
-                  "flex items-center justify-between w-full px-4 py-3 rounded-md bg-card hover:bg-muted/40 transition-colors hover:no-underline"
+                  "flex items-center justify-between w-full px-4 py-2.5 rounded-md bg-card hover:bg-muted/40 transition-colors hover:no-underline"
                 )}
               >
                 <div className="flex items-center justify-between w-full">
@@ -212,30 +212,71 @@ export function PodTable({ data }: PodTableProps) {
         </Accordion>
       )}
 
-      {/* Pagination */}
+
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-between gap-2 mt-4">
+          {/* Previous Button */}
           <Button
             size="sm"
-            variant="outline"
+            variant="link"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
           >
             Previous
           </Button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <Button
-              key={i + 1}
-              size="sm"
-              variant={i + 1 === currentPage ? "default" : "outline"}
-              onClick={() => setCurrentPage(i + 1)}
-            >
-              {i + 1}
-            </Button>
-          ))}
+
+          {/* Page Numbers */}
+          <div className="flex items-center gap-1">
+            {(() => {
+              const pages: (number | string)[] = []
+              const maxVisible = 8
+
+              if (totalPages <= maxVisible) {
+                // Show all if pages <= 8
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                const showLeftDots = currentPage > 4
+                const showRightDots = currentPage < totalPages - 3
+
+                pages.push(1)
+
+                if (showLeftDots) pages.push("...")
+
+                const start = Math.max(2, currentPage - 2)
+                const end = Math.min(totalPages - 1, currentPage + 2)
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(i)
+                }
+
+                if (showRightDots) pages.push("...")
+
+                pages.push(totalPages)
+              }
+
+              return pages.map((p, idx) =>
+                p === "..." ? (
+                  <span key={`dots-${idx}`} className="px-2 ">
+                    ...
+                  </span>
+                ) : (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={p === currentPage ? "default" : "secondary"}
+                    onClick={() => setCurrentPage(p as number)}
+                  >
+                    {p}
+                  </Button>
+                )
+              )
+            })()}
+          </div>
+
+          {/* Next Button */}
           <Button
             size="sm"
-            variant="outline"
+            variant="link"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
           >
@@ -243,6 +284,7 @@ export function PodTable({ data }: PodTableProps) {
           </Button>
         </div>
       )}
+
     </div>
   )
 }

@@ -157,6 +157,8 @@ export const getInvoiceOnlyById = async ({ id }: { id: string }) => {
   }
 }
 
+// const checktDescr
+
 
 export const sendInvoiceById = async ({
   invoiceId,
@@ -178,6 +180,60 @@ export const sendInvoiceById = async ({
   }
 
   try {
+
+    const failedThings = await prisma.invoice.findMany({
+  where: { id: invoiceId },
+  include: { LRRequest: true },
+});
+
+if (!failedThings || failedThings.length === 0) {
+  throw new Error("Invoice not found for the provided invoice ID.");
+}
+
+const invoice = failedThings[0];
+
+// Define required invoice-level fields with friendly names
+const requiredInvoiceFields: Record<string, { value: any; message: string }> = {
+  invoiceNumber: {
+    value: invoice.invoiceNumber,
+    message: "Invoice number is missing. Please add invoice number via 'Upload Invoice'",
+  },
+  billToId: {
+    value: invoice.billToId,
+    message: "Bill To ID is missing. Please link the invoice to a valid Bill To address.",
+  },
+  billTo: {
+    value: invoice.billTo,
+    message: "Bill To details are missing. Please provide billing address information.",
+  },
+  invoiceURI: {
+    value: invoice.invoiceURI,
+    message: "Invoice file link (invoiceURI) is missing. Please upload or generate the invoice document.",
+  },
+};
+
+// Collect missing field messages
+const missingMessages: string[] = [];
+
+for (const { value, message } of Object.values(requiredInvoiceFields)) {
+  if (!value) missingMessages.push(message);
+}
+
+// Check LRRequest for missing priceSettled values
+for (const lr of invoice.LRRequest) {
+  if (!lr.priceSettled) {
+    missingMessages.push(
+      `Price settled amount is missing for LR Number '${lr.LRNumber || lr.id}'. Please update the settled price before proceeding.`
+    );
+  }
+}
+
+// Throw combined error if any issues exist
+if (missingMessages.length > 0) {
+  throw new Error(missingMessages[0]);
+}
+
+    
     await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
@@ -192,7 +248,7 @@ export const sendInvoiceById = async ({
 
     return {
       success: true,
-      message: "Invoice marked as sent successfully",
+      message: `${failedThings[0].invoiceNumber}: Invoice sent successfully`,
     }
   } catch (error: unknown) {
     const errMsg =
@@ -202,6 +258,7 @@ export const sendInvoiceById = async ({
 
     console.error("❌ Error while sending invoice:", errMsg)
 
-    throw new Error("Unable to send invoice. Please try again later.")
+    throw new Error(errMsg)
+    // throw new Error("Unable to send invoice. Please try again later.")
   }
 }

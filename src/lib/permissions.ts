@@ -53,8 +53,4 @@ export const roleVisibility = {
     [UserRoleEnum.BOSS]: [UserRoleEnum.ADMIN, UserRoleEnum.TADMIN, UserRoleEnum.TVENDOR, UserRoleEnum.VENDOR],
 }
 
-// Usage
  
-// Example
-// const tadminVisibleRoles = getVisibleRoles(UserRoleEnum.TADMIN);
-// console.log(tadminVisibleRoles);

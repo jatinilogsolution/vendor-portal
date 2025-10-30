@@ -34,15 +34,8 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
         <div className="space-y-6">
             {/* Back link */}
             <div className=" flex items-center gap-x-10">
-                {/* <Link
-                    href="/lorries"
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                >
-                    <ChevronLeftIcon className="size-4" />
-                    Back to Lorries
-                </Link>   
-                 */}
-                <BackToPage title="Back to Lorries" />
+
+                <BackToPage title="Back to Lorries" location="/lorries" />
                 <Badge variant="default">
                     {(!data[0]?.status || data[0].status === "PENDING")
                         ? "Pending"
@@ -64,7 +57,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         {/* Action Buttons */}
                         {user.role === "TADMIN" && (
                             <div className="self-end">
-                                <UpdateOfferdPrice
+                                <UpdateOfferdPrice 
                                     fileNumber={data[0].fileNumber}
                                     oldPrice={data[0].priceOffered?.toString() || "0"}
                                 />
@@ -77,7 +70,8 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                                     fileNumber={id}
                                     settlePrice={data[0]?.priceSettled?.toString() ?? ""}
                                     vehicle={data[0]?.vehicleNo || ""}
-                                    extraCost={data[0]?.extraCost || 0}
+                                    extraCost={data[0]?.extraCost || null}
+                                    size="default"
                                 />
                             </div>
                         )}

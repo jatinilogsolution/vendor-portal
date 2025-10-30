@@ -1,9 +1,4 @@
-// lib/files.ts
-/**
- * We keep docs & attachments as JSON-stringified arrays in the DB string fields.
- * Each entry shape: { id, name, url, uploadedBy, uploadedAt, type }
- */
-
+ 
 export type DocEntry = {
     id: string;
     name: string;

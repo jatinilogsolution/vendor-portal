@@ -66,7 +66,7 @@ export type EnrichedLRRequest = LRRequest & {
 // Simple in-memory cache
 let cachedData: EnrichedLRRequest[] | null = null
 let cacheTime: number | null = null
-const CACHE_DURATION = 2 * 60 * 1000 // 2 minutes in milliseconds
+const CACHE_DURATION = 2 * 60 * 1000  
 
 export const getAllPodsForAllVendors = async ({
   fromDate,
@@ -78,8 +78,7 @@ export const getAllPodsForAllVendors = async ({
   try {
     const now = Date.now()
     
-    // Return cached data if not expired
-    if (cachedData && cacheTime && now - cacheTime < CACHE_DURATION) {
+     if (cachedData && cacheTime && now - cacheTime < CACHE_DURATION) {
       return cachedData
     }
 
@@ -92,10 +91,12 @@ export const getAllPodsForAllVendors = async ({
     }
 
     const data = await prisma.lRRequest.findMany({
-      where: whereClause,
+      where: {
+        podlink:{not: null}
+      },
       include: {
         tvendor: true,
-        Invoice: true,
+        // Invoice: true,
       },
       orderBy: { outDate: "desc" },
     })
@@ -106,6 +107,8 @@ export const getAllPodsForAllVendors = async ({
         return { ...lr, warehouseName }
       })
     )
+
+    console.log("><><><<<><><><><><><><><>", JSON.stringify(data, null, 2))
 
     // Store in cache
     cachedData = enrichedData

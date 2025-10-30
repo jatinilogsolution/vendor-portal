@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma" // adjust import path as needed
+import { sendEmail } from "@/services/mail"
 // import { getAWLWMSDBPOOL } from "@/services/db"
 import { revalidatePath } from "next/cache"
 
@@ -47,6 +48,10 @@ export const uploadPodForLr = async ({
 
         revalidatePath(`/lorries/${LRData.fileNumber}`)
 
+
+        // sendEmail({
+        //     to:""
+        // })
         return {
             data: LRData.podlink,
             success: true
@@ -65,92 +70,6 @@ export const uploadPodForLr = async ({
     }
 }
 
-// export const UploadPodToWMS = async ({
-//     whId, lrNumber, date, podUrl, fileNumber
-// }: {
-//     whId: string, lrNumber: string,
-//     date: any,
-//     podUrl: string,
-//     fileNumber: string
-// }) => {
-
-
-//     try {
-
-//         const pool = await getAWLWMSDBPOOL()
-//         const request = pool.request()
-//         request.input("whId", whId)
-//         request.input("lrNumber", lrNumber)
-//         request.input("date", date)
-//         request.input("fileNumber", fileNumber)
-//         request.input("podUrl", podUrl)
-//         const query = "UPDATE TBL_LR_SUB WITH(ROWLOCK) SET POD_IMAGE=@podUrl,POD_ENTRYON=@date,filename=@fileNumber WHERE WH=@whId AND LR_NO=@lrNumber"
-
-//         const response = await request.query(query)
-//         console.log(">>>>>>>>>>>>>>>>>>>>>>>>>", response)
-//         console.log(query)
-
-//     } catch (e) {
-//         console.error("Error in UploadPodToWMS", e)
-//     }
-
-
-
-//     // UPDATE TBL_LR_SUB WITH(ROWLOCK) SET POD_IMAGE='',POD_ENTRYON='',filename='' WHERE WH='' AND LR_NO=''
-
-
-// }
-
-// export const UploadPodToWMS = async ({
-//     whId,
-//     lrNumber,
-//     date,
-//     podUrl,
-//     fileNumber
-// }: {
-//     whId: string,
-//     lrNumber: string,
-//     date: any,
-//     podUrl: string,
-//     fileNumber: string
-// }) => {
-//     try {
-//         const pool = await getAWLWMSDBPOOL();
-//         const request = pool.request();
-
-//         const cleanWhId = whId.trim();
-//         const cleanLrNo = lrNumber.trim();
-//         const cleanFileNo = fileNumber?.trim() ?? '';
-//         const cleanUrl = podUrl.trim();
-//         const cleanDate = new Date(date);
-
-//         // Trim + sanitize + proper date
-//         request.input("whId", cleanWhId);
-//         request.input("lrNumber", cleanLrNo);
-//         request.input("date", cleanDate);
-//         request.input("fileNumber", cleanFileNo);
-//         request.input("podUrl", cleanUrl);
-
-
-//         const query = "INSERT INTO gDrive_Data WITH(ROWLOCK)(tranId,masterFolder,subFolder,fileName,createTime,flag,file_url,docType,WhID,custid,USERNAME)VALUES('','SWIM','POD','',GETDATE(),'Post','','POD','','','API')"
-
-
-//         await request.query(query);
-
-
-//         const { error } = await uploadPodForLr({
-//             lrNumber: lrNumber,
-//             fileNumber: fileNumber,
-//             podLink: podUrl,
-//         })
-         
-        
-
-//         return { error }
-//     } catch (e) {
-//         console.error("Error in UploadPodToWMS", e);
-//     }
-// };
 
 
 

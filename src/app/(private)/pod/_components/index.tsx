@@ -74,11 +74,12 @@ const Index = () => {
     params.set("fromDate", fromDate)
     params.set("toDate", toDate)
     router.replace(`?${params.toString()}`, { scroll: false })
-  }, [fromDate, toDate, router, searchParams])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromDate, toDate, router])
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between mb-6">
+    <div className=" ">
+      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between mb-3">
         <div>
           <h1 className="text-2xl font-bold">Proofs From Transporter</h1>
           <p className="text-sm text-muted-foreground">
@@ -87,9 +88,9 @@ const Index = () => {
         </div>
 
         {/* Date Filters */}
-        <div className="flex gap-4 mt-4 sm:mt-0">
+        <div className="flex gap-4  sm:mt-0">
           <div>
-            <label className="block text-sm font-medium text-gray-700">From</label>
+            <label className="block text-sm font-medium text-muted-foreground ">From</label>
             <Input
               type="date"
               value={fromDate}
@@ -98,7 +99,7 @@ const Index = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">To</label>
+            <label className="block text-sm font-medium text-muted-foreground">To</label>
             <Input
               type="date"
               value={toDate}

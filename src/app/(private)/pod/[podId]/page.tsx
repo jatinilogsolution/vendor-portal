@@ -50,7 +50,7 @@ export default async function VendorDetailPage({
             {/* 🔙 Back link + Status */}
             <div className="flex items-center gap-x-10">
                 {/* <BackToProofsLink /> */}
-                <BackToPage title="Back to Proofs" />
+                <BackToPage title="Back to Proofs" location="/pod" />
                 <Badge variant="default">
                     {!lr?.status || lr.status === "PENDING" ? "Pending" : lr.status}
                 </Badge>
