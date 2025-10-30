@@ -17,7 +17,7 @@ export default function Hero() {
           <div className="flex lg:flex-1">
             <a href="#" className="-m-1.5 p-1.5">
               <h2 className="text-xl font-bold">
-                <span className="text-blue-600">Vendor</span> Portal
+                <span className="text-blue-600">Vendor</span> <span className=' text-background'>Portal</span>
               </h2>
             </a>
           </div>

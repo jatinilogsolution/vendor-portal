@@ -3,7 +3,7 @@
 "use client"
 
 import { Invoice } from "../_component/invoice"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { InvoiceAddOnSheet } from "../_component/edit-sheet"
 import { AddLrButtonToInvoice } from "../_component/add-lr-button"
 import { useEffect, useState, useCallback } from "react"
@@ -15,10 +15,21 @@ import { toast } from "sonner"
 import { BackToPage } from "@/components/back-to-page"
 import { Separator } from "@/components/ui/separator"
 import { sendInvoiceById } from "../_action/invoice-list"
+import { useInvoiceStore } from "@/components/modules/invoice-context"
 
 const InvoiceIdPage = () => {
   const params = useParams<{ invoiceId: string }>()
   const invoiceId = params.invoiceId
+  const router = useRouter()
+
+  const {
+    taxRate,
+    subTotal,
+    totalExtra,
+    taxAmount,
+    grandTotal,
+  } = useInvoiceStore()
+
 
   const [error, setError] = useState<string | null>(null)
   const [invoice, setInvoice] = useState<any>()
@@ -53,15 +64,21 @@ const InvoiceIdPage = () => {
 
   const handleSubmit = () => {
 
+    const sendPromise = sendInvoiceById({
+      invoiceId, taxRate,
+      subTotal,
+      totalExtra,
+      taxAmount,
+      grandTotal,
+    })
 
-
-    const sendPromise = sendInvoiceById(invoiceId)
 
     toast.promise(sendPromise, {
       loading: "Sending invoice...",
       success: () => "Invoice sent successfully ✅",
       error: (err) => err.message || "Error sending invoice ❌",
     })
+    router.refresh()
   }
   if (error)
     return (
@@ -92,7 +109,7 @@ const InvoiceIdPage = () => {
 
             <InvoiceAddOnSheet fun={fetchInvoice} invoiceId={invoiceId} />
 
-            <AddLrButtonToInvoice onClose={fetchInvoice} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} />
+            <AddLrButtonToInvoice onClose={()=>router.refresh()} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} />
 
             <InvoiceFileUploadSingle referenceNumber={invoice.refernceNumber} invoiceId={invoice.id} invoiceNumber={invoice.invoiceNumber} initialFile={{
               fileUrl: invoice.invoiceURI,

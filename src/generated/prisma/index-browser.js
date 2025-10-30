@@ -212,6 +212,7 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   subtotal: 'subtotal',
   taxRate: 'taxRate',
   taxAmount: 'taxAmount',
+  totalExtra: 'totalExtra',
   grandTotal: 'grandTotal',
   notes: 'notes',
   hasDiscrepancy: 'hasDiscrepancy',

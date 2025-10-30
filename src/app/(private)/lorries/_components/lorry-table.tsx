@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { LazyDate } from "@/components/lazzy-date"
 import { getAllLRforVendorById } from "../../profile/_action/getVendor"
 import { generateSingleInvoiceFromLorryPage } from "../../invoices/_action/invoice"
- import { useUserCheck } from "@/hooks/useRoleCheck"
+import { useUserCheck } from "@/hooks/useRoleCheck"
 
 interface Lorry {
   LRNumber: string
@@ -177,7 +177,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
     [groupedData]
   )
 
-  const handleGenerateInvoice = useCallback(async () => {
+  const handleGenerateInvoice =  async () => {
     const filesWithoutPods = Object.entries(selectedFilesData)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, lrs]) => lrs.some((lr) => !lr.podLink))
@@ -201,20 +201,20 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
     }))
 
 
-    const { error, reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
+    const { error } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
     if (error) {
       toast.error(error)
     }
-    if (reference.id) {
-      console.log("hha")
-      router.push(`/invoices/${reference?.id}`)
-    } else if (setOpen) {
-      setOpen!()
-    }
+    // if (!refernceNo) {
+
+    //   router.push(`/invoices/${reference?.id}`)
+    // } else  {
+    //   setOpen!()
+    // }
 
     toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
     // console.log("Invoice Data:", invoiceData)
-  }, [selectedFilesData, vendorId])
+  } 
 
   const handleClearDates = useCallback(() => {
     setFromDate("")

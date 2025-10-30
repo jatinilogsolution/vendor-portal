@@ -7470,6 +7470,7 @@ export namespace Prisma {
     subtotal: number | null
     taxRate: number | null
     taxAmount: number | null
+    totalExtra: number | null
     grandTotal: number | null
   }
 
@@ -7477,6 +7478,7 @@ export namespace Prisma {
     subtotal: number | null
     taxRate: number | null
     taxAmount: number | null
+    totalExtra: number | null
     grandTotal: number | null
   }
 
@@ -7493,6 +7495,7 @@ export namespace Prisma {
     subtotal: number | null
     taxRate: number | null
     taxAmount: number | null
+    totalExtra: number | null
     grandTotal: number | null
     notes: string | null
     hasDiscrepancy: boolean | null
@@ -7516,6 +7519,7 @@ export namespace Prisma {
     subtotal: number | null
     taxRate: number | null
     taxAmount: number | null
+    totalExtra: number | null
     grandTotal: number | null
     notes: string | null
     hasDiscrepancy: boolean | null
@@ -7539,6 +7543,7 @@ export namespace Prisma {
     subtotal: number
     taxRate: number
     taxAmount: number
+    totalExtra: number
     grandTotal: number
     notes: number
     hasDiscrepancy: number
@@ -7555,6 +7560,7 @@ export namespace Prisma {
     subtotal?: true
     taxRate?: true
     taxAmount?: true
+    totalExtra?: true
     grandTotal?: true
   }
 
@@ -7562,6 +7568,7 @@ export namespace Prisma {
     subtotal?: true
     taxRate?: true
     taxAmount?: true
+    totalExtra?: true
     grandTotal?: true
   }
 
@@ -7578,6 +7585,7 @@ export namespace Prisma {
     subtotal?: true
     taxRate?: true
     taxAmount?: true
+    totalExtra?: true
     grandTotal?: true
     notes?: true
     hasDiscrepancy?: true
@@ -7601,6 +7609,7 @@ export namespace Prisma {
     subtotal?: true
     taxRate?: true
     taxAmount?: true
+    totalExtra?: true
     grandTotal?: true
     notes?: true
     hasDiscrepancy?: true
@@ -7624,6 +7633,7 @@ export namespace Prisma {
     subtotal?: true
     taxRate?: true
     taxAmount?: true
+    totalExtra?: true
     grandTotal?: true
     notes?: true
     hasDiscrepancy?: true
@@ -7734,6 +7744,7 @@ export namespace Prisma {
     subtotal: number
     taxRate: number
     taxAmount: number
+    totalExtra: number
     grandTotal: number
     notes: string | null
     hasDiscrepancy: boolean
@@ -7776,6 +7787,7 @@ export namespace Prisma {
     subtotal?: boolean
     taxRate?: boolean
     taxAmount?: boolean
+    totalExtra?: boolean
     grandTotal?: boolean
     notes?: boolean
     hasDiscrepancy?: boolean
@@ -7807,6 +7819,7 @@ export namespace Prisma {
     subtotal?: boolean
     taxRate?: boolean
     taxAmount?: boolean
+    totalExtra?: boolean
     grandTotal?: boolean
     notes?: boolean
     hasDiscrepancy?: boolean
@@ -7817,7 +7830,7 @@ export namespace Prisma {
     invoiceURI?: boolean
   }
 
-  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "invoiceNumber" | "refernceNumber" | "invoiceDate" | "vendorId" | "poId" | "status" | "subtotal" | "taxRate" | "taxAmount" | "grandTotal" | "notes" | "hasDiscrepancy" | "discrepancyNotes" | "billTo" | "billToId" | "billToGstin" | "invoiceURI", ExtArgs["result"]["invoice"]>
+  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "updatedAt" | "invoiceNumber" | "refernceNumber" | "invoiceDate" | "vendorId" | "poId" | "status" | "subtotal" | "taxRate" | "taxAmount" | "totalExtra" | "grandTotal" | "notes" | "hasDiscrepancy" | "discrepancyNotes" | "billTo" | "billToId" | "billToGstin" | "invoiceURI", ExtArgs["result"]["invoice"]>
   export type InvoiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     vendor?: boolean | VendorDefaultArgs<ExtArgs>
     purchaseOrder?: boolean | Invoice$purchaseOrderArgs<ExtArgs>
@@ -7849,6 +7862,7 @@ export namespace Prisma {
       subtotal: number
       taxRate: number
       taxAmount: number
+      totalExtra: number
       grandTotal: number
       notes: string | null
       hasDiscrepancy: boolean
@@ -8243,6 +8257,7 @@ export namespace Prisma {
     readonly subtotal: FieldRef<"Invoice", 'Float'>
     readonly taxRate: FieldRef<"Invoice", 'Float'>
     readonly taxAmount: FieldRef<"Invoice", 'Float'>
+    readonly totalExtra: FieldRef<"Invoice", 'Float'>
     readonly grandTotal: FieldRef<"Invoice", 'Float'>
     readonly notes: FieldRef<"Invoice", 'String'>
     readonly hasDiscrepancy: FieldRef<"Invoice", 'Boolean'>
@@ -16796,6 +16811,7 @@ export namespace Prisma {
     subtotal: 'subtotal',
     taxRate: 'taxRate',
     taxAmount: 'taxAmount',
+    totalExtra: 'totalExtra',
     grandTotal: 'grandTotal',
     notes: 'notes',
     hasDiscrepancy: 'hasDiscrepancy',
@@ -17501,6 +17517,7 @@ export namespace Prisma {
     subtotal?: FloatFilter<"Invoice"> | number
     taxRate?: FloatFilter<"Invoice"> | number
     taxAmount?: FloatFilter<"Invoice"> | number
+    totalExtra?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
@@ -17529,6 +17546,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrderInput | SortOrder
     hasDiscrepancy?: SortOrder
@@ -17560,6 +17578,7 @@ export namespace Prisma {
     subtotal?: FloatFilter<"Invoice"> | number
     taxRate?: FloatFilter<"Invoice"> | number
     taxAmount?: FloatFilter<"Invoice"> | number
+    totalExtra?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
@@ -17588,6 +17607,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrderInput | SortOrder
     hasDiscrepancy?: SortOrder
@@ -17619,6 +17639,7 @@ export namespace Prisma {
     subtotal?: FloatWithAggregatesFilter<"Invoice"> | number
     taxRate?: FloatWithAggregatesFilter<"Invoice"> | number
     taxAmount?: FloatWithAggregatesFilter<"Invoice"> | number
+    totalExtra?: FloatWithAggregatesFilter<"Invoice"> | number
     grandTotal?: FloatWithAggregatesFilter<"Invoice"> | number
     notes?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
     hasDiscrepancy?: BoolWithAggregatesFilter<"Invoice"> | boolean
@@ -18868,6 +18889,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -18896,6 +18918,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -18920,6 +18943,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -18948,6 +18972,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -18974,6 +18999,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -18995,6 +19021,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -19018,6 +19045,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -20314,6 +20342,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
     hasDiscrepancy?: SortOrder
@@ -20328,6 +20357,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
   }
 
@@ -20344,6 +20374,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
     hasDiscrepancy?: SortOrder
@@ -20367,6 +20398,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
     notes?: SortOrder
     hasDiscrepancy?: SortOrder
@@ -20381,6 +20413,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     taxRate?: SortOrder
     taxAmount?: SortOrder
+    totalExtra?: SortOrder
     grandTotal?: SortOrder
   }
 
@@ -22189,6 +22222,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -22215,6 +22249,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -22442,6 +22477,7 @@ export namespace Prisma {
     subtotal?: FloatFilter<"Invoice"> | number
     taxRate?: FloatFilter<"Invoice"> | number
     taxAmount?: FloatFilter<"Invoice"> | number
+    totalExtra?: FloatFilter<"Invoice"> | number
     grandTotal?: FloatFilter<"Invoice"> | number
     notes?: StringNullableFilter<"Invoice"> | string | null
     hasDiscrepancy?: BoolFilter<"Invoice"> | boolean
@@ -22682,6 +22718,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -22709,6 +22746,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -22795,6 +22833,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -22822,6 +22861,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -23223,6 +23263,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -23250,6 +23291,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -23289,6 +23331,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -23316,6 +23359,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -23339,6 +23383,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -23366,6 +23411,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -23405,6 +23451,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -23432,6 +23479,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -23570,6 +23618,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -23596,6 +23645,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -24257,6 +24307,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -24385,6 +24436,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -24411,6 +24463,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -24436,6 +24489,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -24804,6 +24858,7 @@ export namespace Prisma {
     subtotal?: number
     taxRate?: number
     taxAmount?: number
+    totalExtra?: number
     grandTotal?: number
     notes?: string | null
     hasDiscrepancy?: boolean
@@ -24858,6 +24913,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -24884,6 +24940,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean
@@ -24909,6 +24966,7 @@ export namespace Prisma {
     subtotal?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     taxAmount?: FloatFieldUpdateOperationsInput | number
+    totalExtra?: FloatFieldUpdateOperationsInput | number
     grandTotal?: FloatFieldUpdateOperationsInput | number
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     hasDiscrepancy?: BoolFieldUpdateOperationsInput | boolean

@@ -24,7 +24,7 @@ export const AddLrButtonToInvoice = ({ refernceNo, vendorId, onClose }: { refern
 
     const handleClose = () => {
         setOpen(false)
-        onClose?.() // trigger parent refresh
+        onClose?.()
     }
     return (
         <Dialog open={open} onOpenChange={setOpen}>

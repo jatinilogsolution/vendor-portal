@@ -50,8 +50,8 @@ export const getInvoices = async ({
     if (search) {
       baseFilter.OR = [
         { invoiceNumber: { contains: search } },
-        { refernceNumber: { contains: search} },
-        { vendor: { name: { contains: search} } },
+        { refernceNumber: { contains: search } },
+        { vendor: { name: { contains: search } } },
       ]
     }
 
@@ -158,15 +158,36 @@ export const getInvoiceOnlyById = async ({ id }: { id: string }) => {
 }
 
 
-export const sendInvoiceById = async (id: string) => {
-  if (!id) {
+export const sendInvoiceById = async ({
+  invoiceId,
+  taxRate,
+  subTotal,
+  totalExtra,
+  taxAmount,
+  grandTotal,
+}: {
+  invoiceId: string,
+  taxRate: number,
+  subTotal: number,
+  totalExtra: number,
+  taxAmount: number,
+  grandTotal: number,
+}) => {
+  if (!invoiceId) {
     throw new Error("Invoice ID is required")
   }
 
   try {
     await prisma.invoice.update({
-      where: { id },
-      data: { status: "SENT" },
+      where: { id: invoiceId },
+      data: {
+        status: "SENT",
+        grandTotal: grandTotal,
+        subtotal: subTotal,
+        taxAmount: taxAmount,
+        taxRate: taxRate,
+        totalExtra: totalExtra
+      },
     })
 
     return {

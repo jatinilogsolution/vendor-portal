@@ -204,7 +204,7 @@ export const InvoiceFileUploadSingle = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Upload className="w-4 h-4 mr-2" /> {uploadedFile?.fileUrl ? "Replace File" : "Upload File"}
+          <Upload className="w-4 h-4 mr-2" /> {uploadedFile?.fileUrl ? "Replace Invoice" : "Upload Invoice"}
         </Button>
       </DialogTrigger>
 
