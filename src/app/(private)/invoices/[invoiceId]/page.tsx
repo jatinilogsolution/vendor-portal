@@ -3,7 +3,7 @@
 "use client"
 
 import { Invoice } from "../_component/invoice"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { InvoiceAddOnSheet } from "../_component/edit-sheet"
 import { AddLrButtonToInvoice } from "../_component/add-lr-button"
 import { useEffect, useState, useCallback } from "react"
@@ -20,7 +20,7 @@ import { useInvoiceStore } from "@/components/modules/invoice-context"
 const InvoiceIdPage = () => {
   const params = useParams<{ invoiceId: string }>()
   const invoiceId = params.invoiceId
-  const router = useRouter()
+  // const router = useRouter()
 
   const {
     taxRate,
@@ -62,23 +62,46 @@ const InvoiceIdPage = () => {
     fetchInvoice()
   }, [invoiceId, fetchInvoice])
 
-  const handleSubmit = () => {
-
-    const sendPromise = sendInvoiceById({
-      invoiceId, taxRate,
-      subTotal,
-      totalExtra,
-      taxAmount,
-      grandTotal,
-    })
+  const handleSubmit = async () => {
 
 
-    toast.promise(sendPromise, {
-      loading: "Sending invoice...",
-      success: () => "Invoice sent successfully ✅",
-      error: (err) => err.message || "Error sending invoice ❌",
-    })
-    router.refresh()
+    try {
+      const sendPromise = await sendInvoiceById({
+        invoiceId, taxRate,
+        subTotal,
+        totalExtra,
+        taxAmount,
+        grandTotal,
+      })
+
+      if (sendPromise.success) {
+        toast.success(sendPromise.message)
+
+        fetchInvoice()
+      }
+
+      // toast.promise(sendPromise, {
+      //   loading: "Sending invoice...",
+      //   success: (ctx) => {
+
+      //     return ctx.message
+      //   },
+      //   finally: () =>
+      //     fetchInvoice()
+
+
+      // error: (err) => {err.message || "Error sending invoice ❌"},
+      // })
+
+    } catch (err) {
+      if (err instanceof Error) {
+        toast.error(err.message)
+      }
+    }
+
+
+
+    // router.refresh()
   }
   if (error)
     return (
@@ -100,7 +123,7 @@ const InvoiceIdPage = () => {
     <div className="relative">
       <div className="flex w-full  items-center justify-between  px-6">
         <h4 className="scroll-m-20 text-xl font-semibold tracking-tight flex gap-x-4 items-center">
-          <BackToPage title="Back to Invoices" /> <span>
+          <BackToPage title="Back to Invoices" location="/invoices" /> <span>
             Booking Cover Note </span>
         </h4>
         {invoice.status !== "SENT" &&
@@ -109,7 +132,7 @@ const InvoiceIdPage = () => {
 
             <InvoiceAddOnSheet fun={fetchInvoice} invoiceId={invoiceId} />
 
-            <AddLrButtonToInvoice onClose={()=>router.refresh()} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} />
+            <AddLrButtonToInvoice onClose={fetchInvoice} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} />
 
             <InvoiceFileUploadSingle referenceNumber={invoice.refernceNumber} invoiceId={invoice.id} invoiceNumber={invoice.invoiceNumber} initialFile={{
               fileUrl: invoice.invoiceURI,

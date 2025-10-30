@@ -34,7 +34,7 @@ interface LorryTableProps {
   pod?: boolean
   refernceNo?: string
   setOpen?: () => void
-  height?: number
+ 
 }
 
 const PAGE_SIZE = 10
@@ -201,16 +201,16 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
     }))
 
 
-    const { error } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
+    const { error,reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
     if (error) {
       toast.error(error)
     }
-    // if (!refernceNo) {
+    if (!refernceNo) {
 
-    //   router.push(`/invoices/${reference?.id}`)
-    // } else  {
-    //   setOpen!()
-    // }
+      router.push(`/invoices/${reference?.id}`)
+    } else  {
+      setOpen!()
+    }
 
     toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
     // console.log("Invoice Data:", invoiceData)
@@ -293,7 +293,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
 
       {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden">
-        <div className={`overflow-auto  max-h-[45rem]`}>
+        <div className={`overflow-auto  max-h-[70vh]`}>
           <Table>
             <TableHeader className="sticky top-0 bg-accent backdrop-blur-sm z-10">
               <TableRow>

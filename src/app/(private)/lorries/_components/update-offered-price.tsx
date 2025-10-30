@@ -90,7 +90,7 @@ const UpdateOfferedPrice = ({ fileNumber, oldPrice }: { fileNumber: string, oldP
     return (
         <form
             onSubmit={handleSubmit}
-            className="flex w-full max-w-sm items-center gap-2"
+            className="flex w-full items-center gap-2"
         >
             <Label className="whitespace-nowrap text-sm font-medium">
                 Price Offered:

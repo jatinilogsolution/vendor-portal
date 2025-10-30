@@ -28,6 +28,8 @@ import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/a
 import { uploadPodForLr } from "../_action/pod"
 import { toast } from "sonner"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import { useSession } from "@/lib/auth-client"
+import { UserRoleEnum } from "@/utils/constant"
 
 type UploadPodProps = {
   LrNumber: string
@@ -45,20 +47,26 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
   const [openDialog, setOpenDialog] = useState(false)
   const [showAlert, setShowAlert] = useState(false)
 
+  const session = useSession()
   const fileName = `pod/${customer}/${LrNumber}-${vendor}`
 
   const handleDrop = (files: File[]) => {
+    setLoading(true)
+
     setFile(files[0] || null)
+    setLoading(false)
+
   }
 
   const handleSubmit = async (formData: FormData) => {
+    setLoading(true)
+
     if (!file) {
       toast.error("Please select a file before uploading")
       return
     }
 
     formData.append("file", file)
-    setLoading(true)
 
     try {
       if (fileUrl) await deleteAttachmentFromAzure(fileUrl)
@@ -128,15 +136,15 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
           </AlertDialogHeader>
           <AlertDialogFooter className="flex justify-end gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleView} className="gap-1 bg-blue-500 hover:bg-blue-600">
+            <AlertDialogAction onClick={handleView} className="gap-1 ">
               <Eye size={16} /> View
             </AlertDialogAction>
-            <AlertDialogAction
+          {session.data?.user.role === UserRoleEnum.TVENDOR  && <AlertDialogAction
               onClick={handleReplace}
               className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-white"
             >
               <Replace size={16} /> Replace
-            </AlertDialogAction>
+            </AlertDialogAction> }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -151,7 +159,11 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
             </DialogDescription>
           </DialogHeader>
 
-          <form action={handleSubmit} className="grid gap-5 mt-2">
+          <form onSubmit={async (e) => {
+            e.preventDefault() // prevent full form reload
+            const formData = new FormData(e.currentTarget)
+            await handleSubmit(formData)
+          }} className="grid gap-5 mt-2">
             <div className="grid gap-2">
               <Label>File</Label>
               <Dropzone

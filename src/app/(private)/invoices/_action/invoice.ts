@@ -98,7 +98,7 @@ export const generateSingleInvoiceFromLorryPage = async (
  
     }
 
-    return { error: null};
+    return { error: null, reference};
   } catch (err) {
     console.error("Error while generating invoice:", err);
     if (err instanceof Error) return { error: err.message };

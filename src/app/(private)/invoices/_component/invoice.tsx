@@ -14,6 +14,7 @@ import { updateTaxRateForInvoice } from "../_action/invoice"
 import { Badge } from "@/components/ui/badge"
 import { useInvoiceStore } from "@/components/modules/invoice-context"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import Link from "next/link"
 
 export const Invoice = ({ data }: { data: any }) => {
   const {
@@ -67,7 +68,13 @@ export const Invoice = ({ data }: { data: any }) => {
                   <tr className="even:bg-gray-50">
                     <td className="  px-4 py-2 font-medium text-gray-700">Invoice Number</td>
                     <td className="  px-4 py-2 text-gray-900">
-                      {data?.invoiceNumber || "NA"}
+                      {(data.invoiceNumber && data.invoiceURI) ? (
+                        <Link href={data?.invoiceURI}> {data?.invoiceNumber || ""}</Link>
+                      )
+                        :
+                        ("NA")
+                      }
+
                     </td>
                   </tr>
                   <tr className="even:bg-gray-50">

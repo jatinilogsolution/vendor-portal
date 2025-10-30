@@ -154,8 +154,7 @@ export const InvoiceFileUploadSingle = ({
   const [loading, setLoading] = useState(false)
   const [invoiceNo, setInvoiceNo] = useState<string | undefined>(invoiceNumber)
 
-  console.log(">>>", uploadedFile)
-  const handleDrop = (files: File[]) => {
+   const handleDrop = (files: File[]) => {
     if (files.length === 0) return
     setFile(files[0])
   }

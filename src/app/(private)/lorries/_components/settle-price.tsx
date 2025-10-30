@@ -25,7 +25,7 @@ interface SettlePriceProps {
     settlePrice?: string | number
     fileNumber: string
     vehicle: string
-    extraCost?: string | number
+    extraCost?: string | number | null
     label?: string
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
     mode?: "edit" | "view" // default is edit
@@ -135,8 +135,8 @@ export const SettlePrice = ({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {mode === "edit" ?
-                    <Button variant="default" size={size}>
-                        <Plus /> {label || "Add Cost"}
+                    <Button className=' w-full border bg-primary/10 text-primary min-w-[190px]' variant="secondary" size={size}>
+                        <Plus className=' text-green-500' /> {label || "Add Cost"}
                     </Button>
                     :
                     <Button size={"icon-sm"} variant={"secondary"} >

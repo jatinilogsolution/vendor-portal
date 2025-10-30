@@ -8,7 +8,7 @@ import { ExternalLink, Search } from "lucide-react"
 import { SettlePrice } from "../../lorries/_components/settle-price"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
- import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 
 interface LR {
     id: string
@@ -161,11 +161,11 @@ export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-between items-center mt-4">
+            <div className="flex justify-between items-center mt-4 border border-muted">
                 <Button
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    variant="outline"
+                    variant="link"
                 >
                     Previous
                 </Button>
@@ -175,7 +175,7 @@ export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
                 <Button
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    variant="outline"
+                    variant="link"
                 >
                     Next
                 </Button>

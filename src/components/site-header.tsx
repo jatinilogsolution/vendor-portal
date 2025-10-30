@@ -17,7 +17,6 @@ import { SideBarData } from "@/utils/constant"
 export function SiteHeader(porps: any) {
 
   const path = usePathname()
-  console.log("PathName", path)
 
   const currentNav = SideBarData.navMain.find(item => item.url === path);
 

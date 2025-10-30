@@ -44,8 +44,9 @@ export const AddLrButtonToInvoice = ({ refernceNo, vendorId, onClose }: { refern
                         </DialogDescription>
                     </DialogHeader>
 
-
-                    <LorryTable setOpen={handleClose} pod={true} refernceNo={refernceNo} vendorId={vendorId} height={20} />
+                    <div>
+                        <LorryTable setOpen={handleClose} pod={true} refernceNo={refernceNo} vendorId={vendorId} />
+                    </div>
 
 
                 </DialogContent>

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
  
 const protectedPages = ["/dashboard", "/profile", "/settings", "/admin"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
 
@@ -40,8 +40,7 @@ export async function middleware(req: NextRequest) {
 
  
 export const config = {
-    runtime: "nodejs",
-    matcher: [
-        "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
-    ],
+  matcher: [
+      "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+  ]
 };

@@ -229,10 +229,10 @@ export const CreateNewUserButton = () => {
               />
             )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2 ">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={() => setIsOpen(false)}
                 disabled={isPending}
               >
