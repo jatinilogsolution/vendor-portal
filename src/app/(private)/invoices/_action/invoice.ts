@@ -50,11 +50,11 @@ export const generateSingleInvoiceFromLorryPage = async (
             status: "DRAFT",
           },
         });
-        console.log("1 done" )
+        
 
       }
     } else {
-      // Generate new invoice number
+    
       
       const now = new Date();
       const refNo = `${vendorId.substring(0, 3).toUpperCase()}-${now.getFullYear()}${(
@@ -67,7 +67,7 @@ export const generateSingleInvoiceFromLorryPage = async (
           .toString()
           .padStart(3, "0")}`;
 
-        console.log("2" )
+ 
 
       reference = await prisma.invoice.create({
         data: {
@@ -78,32 +78,27 @@ export const generateSingleInvoiceFromLorryPage = async (
         },
         include: { LRRequest: true },
       });
-        console.log("2 done" )
-
+ 
     }
 
-    // ✅ Filter LRs that are already in this invoice
-    const existingLRNumbers = reference.LRRequest.map((lr: any) => lr.LRNumber);
+     const existingLRNumbers = reference.LRRequest.map((lr: any) => lr.LRNumber);
     const newLRs = data
       .flatMap((file) => file.LRs)
       .filter((lr) => !existingLRNumbers.includes(lr.LRNumber));
 
     if (newLRs.length > 0) {
-      // Update new LRs to attach to this invoice
-      const allLRNumbers = newLRs.map((lr) => lr.LRNumber);
-      console.log("3")
-      await prisma.lRRequest.updateMany({
+       const allLRNumbers = newLRs.map((lr) => lr.LRNumber);
+       await prisma.lRRequest.updateMany({
         where: { LRNumber: { in: allLRNumbers } },
         data: {
           isInvoiced: true,
           invoiceId: reference.id,
         },
       });
-      console.log("3 done")
-
+ 
     }
 
-    return { error: null, reference};
+    return { error: null};
   } catch (err) {
     console.error("Error while generating invoice:", err);
     if (err instanceof Error) return { error: err.message };

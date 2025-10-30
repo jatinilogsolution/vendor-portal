@@ -96,8 +96,8 @@ export default function Index() {
     return (
         <div className="space-y-6 w-full">
             {/* 🔍 Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-                <InputGroup className="w-[77.6%]">
+            <div className="flex md:flex-row flex-col justify-center  items-center gap-3">
+                <InputGroup className="w-full">
                     <InputGroupInput
                         placeholder="Search by Invoice No, Reference No, Vendor Name..."
                         value={search}
@@ -117,10 +117,11 @@ export default function Index() {
                     value={dateRange}
                     onChange={setDateRange}
                     placeholder="Select date range"
-                    className="shadow-none"
+                    className="shadow-none w-full md:w-[250px]"
+
                 />
 
-                <Button onClick={() => fetchInvoices(search, dateRange, 1)} disabled={isPending}>
+                <Button className=" w-full md:w-fit" onClick={() => fetchInvoices(search, dateRange, 1)} disabled={isPending}>
                     {isPending ? <Spinner /> : "Search"}
                 </Button>
             </div>

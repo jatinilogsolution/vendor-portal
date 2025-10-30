@@ -141,6 +141,7 @@ model Invoice {
   subtotal       Float    @default(0)
   taxRate        Float    @default(0)
   taxAmount      Float    @default(0)
+  totalExtra     Float    @default(0)
   grandTotal     Float    @default(0)
   notes          String?
 

@@ -2,7 +2,7 @@
 
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { LRTable } from "./lr-table"
 import { formatAddress, formatCurrency } from "@/utils/calculations"
 import { amountToWords } from "@/utils/amountToWords"
@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { updateTaxRateForInvoice } from "../_action/invoice"
 import { Badge } from "@/components/ui/badge"
 import { useInvoiceStore } from "@/components/modules/invoice-context"
+import { Spinner } from "@/components/ui/shadcn-io/spinner"
 
 export const Invoice = ({ data }: { data: any }) => {
   const {
@@ -27,31 +28,16 @@ export const Invoice = ({ data }: { data: any }) => {
     reset,
   } = useInvoiceStore()
 
- 
 
-  // Initialize store with invoice data
+  const [loader, setLoader] = useState(false)
+
   useEffect(() => {
     setLRItems(data.LRRequest)
     setTaxRate(data.taxRate)
     return () => reset()
   }, [data, setLRItems, setTaxRate, reset])
 
-  const handleTaxUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const input = e.currentTarget.querySelector<HTMLInputElement>(`#${data.id}-tax`)
-    if (!input) return
 
-    const newRate = parseFloat(input.value)
-    if (isNaN(newRate)) return toast.error("Invalid tax rate")
-
-    const { message, sucess } = await updateTaxRateForInvoice(data.id, newRate)
-    if (sucess) {
-      setTaxRate(newRate)
-      toast.success(message)
-    } else {
-      toast.error(message)
-    }
-  }
 
   return (
     <>
@@ -135,56 +121,61 @@ export const Invoice = ({ data }: { data: any }) => {
         <div className="mt-8">
           <LRTable lrs={lrItems as any} status={data.status} />
         </div>
-         <section className="mt-8 flex justify-between items-start">
+        <section className="mt-8 flex justify-between items-start">
           <div className="w-1/2">
             <h4 className="font-semibold text-gray-800 mb-2">Amount in Words</h4>
             <blockquote className="italic text-gray-700 text-md border-l-4 border-gray-300 pl-3">
               {amountToWords(grandTotal)}
             </blockquote>
             {data.status !== "SENT" && <form
-              // onSubmit={async (e) => {
-              //   e.preventDefault()
+              onSubmit={async (e) => {
+                e.preventDefault()
 
-              //   // Get the input value
-              //   const input = e.currentTarget.querySelector<HTMLInputElement>(
-              //     `#${data.id}-target`
-              //   )
-              //   if (!input) return
+                setLoader(true)
+                // Get the input value
+                const input = e.currentTarget.querySelector<HTMLInputElement>(
+                  `#${data.id}-target`
+                )
+                if (!input) return
 
-              //   const newTaxRate = parseFloat(input.value)
-              //   if (isNaN(newTaxRate)) {
-              //     console.error("Invalid tax rate")
-              //     return
-              //   }
+                const newTaxRate = parseFloat(input.value)
+                if (isNaN(newTaxRate)) {
+                  console.error("Invalid tax rate")
+                  return
+                }
 
-              //   const { message, sucess } = await updateTaxRateForInvoice(data.id, newTaxRate)
-              //   if (sucess) {
-              //     // console.log("Tax rate updated successfully")
-              //     setTaxRate(newTaxRate)
-              //     toast.success(message)
-              //   } else {
-              //     // console.error("Failed to update tax rate")
-              //     toast.error(message)
+                const { message, sucess } = await updateTaxRateForInvoice(data.id, newTaxRate)
+                if (sucess) {
+                  setLoader(false)
 
-              //   }
-              // }}
+                  setTaxRate(newTaxRate)
+                  toast.success(message)
+                } else {
+                  setLoader(false)
+                  toast.error(message)
+
+                }
+              }}
 
               className="flex w-full max-w-sm items-center gap-3 mt-6"
 
-              onSubmit={handleTaxUpdate}
+            // onSubmit={handleTaxUpdate}
             >
               <Label htmlFor={`${data.id}-target`} className="font-semibold">
                 Tax (%):
               </Label>
-              <Input
-                className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-20 border bg-transparent t shadow-none focus-visible:border dark:bg-transparent"
-                defaultValue={taxRate}
-                id={`${data.id}-target`}
-                type="number"
-                step="0.01"
-                min={0}
-                max={40}
-              />
+              {loader ? <Spinner /> :
+
+                <Input
+                  className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-20 border bg-transparent t shadow-none focus-visible:border dark:bg-transparent"
+                  defaultValue={taxRate}
+                  id={`${data.id}-target`}
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={40}
+                />}
+
             </form>
             }
           </div>
