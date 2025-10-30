@@ -100,7 +100,7 @@ export async function updateUserProfile(
       },
     })
  
-    revalidateTag(`user-${userId}`)
+    revalidateTag(`user-${userId}`,'max')
 
     return { success: true, user: updatedUser }
   } catch (error) {
@@ -158,7 +158,7 @@ export async function updateVendorProfile(
     // }
 
     // Revalidate cache
-    revalidateTag(`vendor-${vendorId}`)
+    revalidateTag(`vendor-${vendorId}`,"max")
 
     return { success: true, vendor: updatedVendor }
   } catch (error) {
@@ -224,7 +224,7 @@ export async function updateAddress(
     // }
 
     // Revalidate cache
-    revalidateTag(`address-${vendorId}`)
+    revalidateTag(`address-${vendorId}`,"max")
 
     return { success: true, address: updatedAddress }
   } catch (error) {
