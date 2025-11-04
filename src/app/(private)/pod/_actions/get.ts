@@ -1,57 +1,3 @@
-// "use server"
-
-
-// import { BillToAddressByNameId } from "@/actions/wms/warehouse"
-// import { LRRequest, Vendor } from "@/generated/prisma"
-// import { prisma } from "@/lib/prisma"
-// import { cache } from "react"
-
-
-// export type EnrichedLRRequest = LRRequest & {
-//   warehouseName: string, tvendor: Vendor
-// }
-// export const getAllPodsForAllVendors = cache(async ({
-//   fromDate,
-//   toDate,
-// }: {
-//   fromDate?: string
-//   toDate?: string
-// } = {}): Promise<EnrichedLRRequest[]> => {
-//   try {
-//     const whereClause: any = { podlink: { not: null } }
-
-//     // Add date filtering if provided
-//     if (fromDate || toDate) {
-//       whereClause.outDate = {}
-//       if (fromDate) whereClause.outDate.gte = new Date(fromDate)
-//       if (toDate) whereClause.outDate.lte = new Date(toDate)
-//     }
-
-//     const data = await prisma.lRRequest.findMany({
-//       where: whereClause,
-//       include: {
-//         tvendor: true,
-//         Invoice: true,
-//       },
-//       orderBy: { outDate: "desc" },
-//     })
-
-//     // Map with warehouse names
-//     const enrichedData = await Promise.all(
-//       data.map(async (lr) => {
-//         const { warehouseName } = await BillToAddressByNameId(lr.origin || "")
-//         return { ...lr, warehouseName }
-//       })
-//     )
-
-//     return enrichedData
-//   } catch (err) {
-//     console.error("❌ Error fetching PODs with warehouse names:", err)
-//     return []
-//   }
-// })
-
-
 "use server"
 
 import { BillToAddressByNameId } from "@/actions/wms/warehouse"
@@ -108,7 +54,7 @@ export const getAllPodsForAllVendors = async ({
       })
     )
 
-    console.log("><><><<<><><><><><><><><>", JSON.stringify(data, null, 2))
+    // console.log("><><><<<><><><><><><><><>", JSON.stringify(data, null, 2))
 
     // Store in cache
     cachedData = enrichedData

@@ -2,17 +2,18 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserProfileForm } from "./user-profile-form"
 import { VendorProfileForm } from "./vendor-profile-form"
 import { AddressForm } from "./address-form"
 import { ProfileHeader } from "./profile-header"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, X } from "lucide-react"
 import { getUserProfile } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Address, User, Vendor } from "@/generated/prisma"
 import { useSession } from "@/lib/auth-client"
+import { Button } from "@/components/ui/button"
+import { IconEdit } from "@tabler/icons-react"
 
 export function ProfileContent() {
   const { data, isPending } = useSession()
@@ -20,7 +21,7 @@ export function ProfileContent() {
   const [user, setUser] = useState<User | null>(null)
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [address, setAddress] = useState<Address | null | undefined>(null)
-  const [isEditing, setIsEditing] = useState(false)
+  const [editingSection, setEditingSection] = useState<'personal' | 'vendor' | 'address' | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,17 +55,17 @@ export function ProfileContent() {
 
   const handleUserUpdate = (updatedUser: User) => {
     setUser(updatedUser)
-    setIsEditing(false)
+    setEditingSection(null)
   }
 
   const handleVendorUpdate = (updatedVendor: Vendor) => {
     setVendor(updatedVendor)
-    setIsEditing(false)
+    setEditingSection(null)
   }
 
   const handleAddressUpdate = (updatedAddress: Address) => {
     setAddress(updatedAddress)
-    setIsEditing(false)
+    setEditingSection(null)
   }
 
   if (isPending || isLoading) {
@@ -87,71 +88,93 @@ export function ProfileContent() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <ProfileHeader user={user} isEditing={isEditing} onEditToggle={() => setIsEditing(!isEditing)} />
+    <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <ProfileHeader
+        user={user}
 
-      <Tabs defaultValue="personal" className="mt-8">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="personal">Personal Information</TabsTrigger>
-          {vendor && <TabsTrigger value="vendor">Vendor Information</TabsTrigger>}
-          {address && <TabsTrigger value="address">Address</TabsTrigger>}
-        </TabsList>
+      />
 
-        <TabsContent value="personal" className="mt-6">
-          <Card>
-            <CardHeader>
+      <div className="mt-8 space-y-6">
+
+        <Card>
+
+
+          <CardHeader className=" flex items-center justify-between">
+            <div className=" space-y-2">
+
               <CardTitle>Personal Details</CardTitle>
               <CardDescription>Manage your personal information and account settings</CardDescription>
+            </div>
+
+            <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')} className="gap-2">
+              {editingSection === "personal" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+              }
+            </Button>
+
+          </CardHeader>
+          <CardContent>
+            <UserProfileForm
+              user={user}
+              isEditing={editingSection === 'personal'}
+              onUpdate={handleUserUpdate}
+              onCancel={() => setEditingSection(null)}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Vendor Information Card */}
+        {vendor && (
+          <Card>
+            <CardHeader className=" flex items-center justify-between">
+              <div className=" space-y-2">
+
+                <CardTitle>Vendor Information</CardTitle>
+                <CardDescription>Manage your vendor profile and business details</CardDescription>
+              </div>
+
+              <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'vendor' ? null : 'vendor')} className="gap-2">
+                {editingSection === "vendor" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+                }
+              </Button>
+
             </CardHeader>
             <CardContent>
-              <UserProfileForm
-                user={user}
-                isEditing={isEditing}
-                onUpdate={handleUserUpdate}
-                onCancel={() => setIsEditing(false)}
+              <VendorProfileForm
+                vendor={vendor}
+                isEditing={editingSection === 'vendor'}
+                onUpdate={handleVendorUpdate}
+                onCancel={() => setEditingSection(null)}
               />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {vendor && (
-          <TabsContent value="vendor" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Vendor Information</CardTitle>
-                <CardDescription>Manage your vendor profile and business details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VendorProfileForm
-                  vendor={vendor}
-                  isEditing={isEditing}
-                  onUpdate={handleVendorUpdate}
-                  onCancel={() => setIsEditing(false)}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
         )}
 
+        {/* Address Card */}
         {address && (
-          <TabsContent value="address" className="mt-6">
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader className=" flex items-center justify-between">
+              <div className=" space-y-2">
+
                 <CardTitle>Business Address</CardTitle>
                 <CardDescription>Manage your business address and location details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AddressForm
-                  address={address}
-                  isEditing={isEditing}
-                  onUpdate={handleAddressUpdate}
-                  onCancel={() => setIsEditing(false)}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+
+              <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'address' ? null : 'address')} className="gap-2">
+                {editingSection === "address" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+                }
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <AddressForm
+                address={address}
+                isEditing={editingSection === 'address'}
+                onUpdate={handleAddressUpdate}
+                onCancel={() => setEditingSection(null)}
+              />
+            </CardContent>
+          </Card>
         )}
-      </Tabs>
+      </div>
     </div>
   )
 }

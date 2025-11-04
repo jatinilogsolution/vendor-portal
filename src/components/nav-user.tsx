@@ -32,6 +32,7 @@ import React from "react"
 import { signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 type User = {
   id: string;
@@ -69,6 +70,7 @@ export function NavUser({
         onSuccess: () => {
           toast.success("You’ve logged out. See you soon!");
           router.push("/auth/login");
+          // window.location.reload()
         },
       },
     });
@@ -102,7 +104,8 @@ export function NavUser({
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
+            <DropdownMenuLabel className="p-0 font-normal hover:bg-muted">
+              <Link href={"/profile"}  >
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user?.image || ""} alt={user?.name} />
@@ -115,6 +118,8 @@ export function NavUser({
                   </span>
                 </div>
               </div>
+              </Link>
+
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {/* <DropdownMenuGroup>
@@ -132,7 +137,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup> */}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleClick} disabled={isPending} >
+            <DropdownMenuItem onClick={handleClick} disabled={isPending}  >
               {isPending ? <Loader2 className="animate-spin text-red-500" /> : <IconLogout className=" text-red-500" />}
               Log out
             </DropdownMenuItem>

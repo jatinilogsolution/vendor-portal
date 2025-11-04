@@ -32,10 +32,12 @@ export function getGreeting() {
 export const SideBarData = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: IconDashboard, headerTitle: "Dashboard" },
-    { title: "POD", url: "/pod", icon: IconListDetails, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle:"Proof of Deliveries" },
-    { title: "Lorries", url: "/lorries", icon: IconChartBar, headerTitle:"Lorries Reciepts asigned with Vehicle (Without POD)" },
-    { title: "Invoice", url: "/invoices", icon: IconFolder , headerTitle:"Booking Cover Note with Invoices"},
-    { title: "Admin", url: "/admin", icon: IconUsers, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Admin Control"},
+    { title: "POD", url: "/pod", icon: IconListDetails, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Proof of Deliveries" },
+    { title: "Lorries", url: "/lorries", icon: IconChartBar, headerTitle: "Lorries Reciepts asigned with Vehicle (Without POD)" },
+    { title: "Invoice", url: "/invoices", icon: IconFolder, headerTitle: "Booking Cover Note with Invoices" },
+    { title: "Admin", url: "/admin", icon: IconUsers, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Admin Control" },
+    { title: "Profile", url: "/profile", icon: IconUsers, headerTitle: "Admin Control", hidden: true },
+
   ],
   navSecondary: [
     { title: "Settings", url: "#", icon: IconSettings },

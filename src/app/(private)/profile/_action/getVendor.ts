@@ -93,7 +93,7 @@ export const getAllLRforVendorById = async ({
       filters.outDate = { lte: new Date(toDate) }
     }
 
-    // 🔍 Search filter
+ 
     if (search?.trim()) {
       const searchTerm = search.trim()
       filters.AND = [
@@ -101,6 +101,7 @@ export const getAllLRforVendorById = async ({
           OR: [
             { LRNumber: { contains: searchTerm } },
             { vehicleNo: { contains: searchTerm } },
+            { vehicleType: { contains: searchTerm } },
             { origin: { contains: searchTerm } },
             { destination: { contains: searchTerm } },
             {

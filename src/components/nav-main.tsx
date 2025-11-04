@@ -23,6 +23,7 @@ export function NavMain({
     url: string
     icon?: any
     only?: UserRoleEnum[]
+    hidden?: boolean
   }[]
 }) {
 
@@ -55,7 +56,7 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => {
             // If `only` exists, check if the user's role is included
-            if (item.only && !item.only.includes(session.data?.user.role as UserRoleEnum)) {
+            if (item.only && !item.only.includes(session.data?.user.role as UserRoleEnum) && !item.hidden) {
               return null; // skip this item
             }
 

@@ -6,7 +6,7 @@ import { Invoice } from "../_component/invoice"
 import { useParams } from "next/navigation"
 import { InvoiceAddOnSheet } from "../_component/edit-sheet"
 import { AddLrButtonToInvoice } from "../_component/add-lr-button"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, Activity } from "react"
 import { ErrorCard } from "@/components/error"
 import ScreenSkeleton from "@/components/modules/screen-skeleton"
 import { Button } from "@/components/ui/button"
@@ -16,11 +16,28 @@ import { BackToPage } from "@/components/back-to-page"
 import { Separator } from "@/components/ui/separator"
 import { sendInvoiceById } from "../_action/invoice-list"
 import { useInvoiceStore } from "@/components/modules/invoice-context"
+import Link from "next/link"
+import { IconChartColumn } from "@tabler/icons-react"
+import { UserRoleEnum } from "@/utils/constant"
+import { useSession } from "@/lib/auth-client"
 
 const InvoiceIdPage = () => {
   const params = useParams<{ invoiceId: string }>()
   const invoiceId = params.invoiceId
-  // const router = useRouter()
+
+  const session = useSession()
+
+
+  useEffect(() => {
+    if (!session.data) {
+      session.refetch()
+    }
+  }, [])
+  const role = session.data?.user.role;
+const isAuthorized =
+  role !== undefined &&
+  role !== null &&
+  [UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(role as UserRoleEnum);
 
   const {
     taxRate,
@@ -80,18 +97,6 @@ const InvoiceIdPage = () => {
         fetchInvoice()
       }
 
-      // toast.promise(sendPromise, {
-      //   loading: "Sending invoice...",
-      //   success: (ctx) => {
-
-      //     return ctx.message
-      //   },
-      //   finally: () =>
-      //     fetchInvoice()
-
-
-      // error: (err) => {err.message || "Error sending invoice ❌"},
-      // })
 
     } catch (err) {
       if (err instanceof Error) {
@@ -101,7 +106,6 @@ const InvoiceIdPage = () => {
 
 
 
-    // router.refresh()
   }
   if (error)
     return (
@@ -126,23 +130,31 @@ const InvoiceIdPage = () => {
           <BackToPage title="Back to Invoices" location="/invoices" /> <span>
             Booking Cover Note </span>
         </h4>
-        {invoice.status !== "SENT" &&
-
+        <Activity mode={invoice.status === "DRAFT" ? "visible" : "hidden"}>
           <div className=" flex justify-end gap-6 items-center">
-
             <InvoiceAddOnSheet fun={fetchInvoice} invoiceId={invoiceId} />
-
             <AddLrButtonToInvoice onClose={fetchInvoice} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} />
-
             <InvoiceFileUploadSingle referenceNumber={invoice.refernceNumber} invoiceId={invoice.id} invoiceNumber={invoice.invoiceNumber} initialFile={{
               fileUrl: invoice.invoiceURI,
               id: "1",
               name: "Invoice"
             }} />
-
             <Button onClick={handleSubmit}>Send Invoice</Button>
           </div>
-        }
+        </Activity>
+        {/* {invoice.status === "DRAFT" &&
+
+        
+        } */}
+        <Activity mode={(invoice.status === "SENT" && isAuthorized) ? "visible" : "hidden"}>
+          <Button variant={"link"} className=" bg-muted">
+
+            <Link href={`/invoices/${invoiceId}/compare`} className=" flex items-center justify-center gap-x-2" >
+              <IconChartColumn className="w-4 h-4" />  Compare
+            </Link>
+          </Button>
+
+        </Activity>
       </div>
 
       <Separator className="mt-3" />

@@ -16,5 +16,5 @@ const authClient = createAuthClient({
 })
 
 
-export const { signOut, useSession, forgetPassword, sendVerificationEmail, resetPassword, admin, signUp } = authClient
+export const { signOut, useSession, forgetPassword, sendVerificationEmail, resetPassword, admin, signUp, verifyEmail,  } = authClient
  

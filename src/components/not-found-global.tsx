@@ -39,7 +39,7 @@ export default function GlobalNotFound() {
                                 
                                 </Link> */}
                                 <ArrowLeft className="w-4 h-4" />
-                                Back to Home
+                                Go Back
                             </Button>
                         </div>
 

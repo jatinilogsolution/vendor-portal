@@ -3,8 +3,9 @@
 import { getCustomSession } from "@/actions/auth.action"
 import type { Invoice } from "@/generated/prisma"
 import { signOut } from "@/lib/auth-client"
-import { prisma } from "@/lib/prisma" // adjust path
+import { prisma } from "@/lib/prisma" 
 import { UserRoleEnum } from "@/utils/constant"
+import { redirect } from "next/navigation"
 
 
 export type InvoiceWithVendor = Invoice & { vendor: { name: string } }
@@ -36,6 +37,7 @@ export const getInvoices = async ({
 
     if (!session) {
       await signOut()
+      redirect("/")
       return { success: false, message: "Session expired. Please sign in again." }
     }
 

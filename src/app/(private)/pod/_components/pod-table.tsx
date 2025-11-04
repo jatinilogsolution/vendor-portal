@@ -41,7 +41,8 @@ export function PodTable({ data }: PodTableProps) {
       item.fileNumber.toLowerCase().includes(searchLower) ||
       item.vehicleNo?.toLowerCase().includes(searchLower) ||
       item.origin?.toLowerCase().includes(searchLower) ||
-      item.destination?.toLowerCase().includes(searchLower)
+      item.destination?.toLowerCase().includes(searchLower)||
+      item.status?.toLocaleLowerCase().includes(searchLower)
     )
   })
 

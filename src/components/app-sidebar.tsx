@@ -26,7 +26,6 @@ import Link from "next/link"
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session, isPending, refetch } = useSession()
 
-  console.log("data",session)
 
   React.useEffect(() => {
     refetch()
@@ -41,8 +40,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/dashboard">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Vendor Portal</span>
+                <h2 className="text-xl text-center font-bold w-full">
+                  <span className="text-blue-600">Vendor</span> <span className=' text-foreground'>Portal</span>
+                </h2>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -15,13 +15,13 @@ export default function Page() {
           Your dashboard will be ready shortly!
         </h2>
         <p className="  text-center leading-7 [&:not(:first-child)]:mt-6">
-          Preparing your dashboard and loading the latest data…
-        </p>
 
-        <div className=" flex items-center justify-center">
+          Comming soon...        </p>
+
+        {/* <div className=" flex items-center justify-center">
           <Spinner variant="bars" />
 
-        </div>
+        </div> */}
       </div>
     </div>
 
