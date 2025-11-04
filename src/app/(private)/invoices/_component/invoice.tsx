@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { useInvoiceStore } from "@/components/modules/invoice-context"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import Link from "next/link"
+import { IconLink } from "@tabler/icons-react"
+import { Link2 } from "lucide-react"
 
 export const Invoice = ({ data }: { data: any }) => {
   const {
@@ -42,7 +44,7 @@ export const Invoice = ({ data }: { data: any }) => {
 
   return (
     <>
-      <div className="p-8 mt-6 rounded-lg max-w-5xl mx-auto border border-gray-200 print:shadow-none print:border-0 print:p-0">
+      <div className="p-8 mt-6 rounded-lg max-w-9xl mx-auto border border-gray-200 print:shadow-none print:border-0 print:p-0">
         {/* HEADER */}
         <header className="flex items-center justify-between border-b pb-4">
           <div>
@@ -69,7 +71,8 @@ export const Invoice = ({ data }: { data: any }) => {
                     <td className="  px-4 py-2 font-medium text-gray-700">Invoice Number</td>
                     <td className="  px-4 py-2 text-gray-900">
                       {(data.invoiceNumber && data.invoiceURI) ? (
-                        <Link href={data?.invoiceURI}> {data?.invoiceNumber || ""}</Link>
+                        <Link target="_blank" href={data?.invoiceURI} className=" flex items-center gap-x-6"><span>
+                      {data?.invoiceNumber || ""}     </span> <Link2 className=" w-4 h-4 rotate-125 text-primary" /> </Link>
                       )
                         :
                         ("NA")
@@ -211,7 +214,7 @@ export const Invoice = ({ data }: { data: any }) => {
         </section>
         {/* FOOTER */}
         <footer className="mt-10 border-t pt-4 text-sm text-gray-500 text-center">
-          <p>This is a computer-generated invoice and does not require a physical signature.</p>
+          <p>This is a computer-generated Booking Cover Note and does not require a physical signature.</p>
           <p>Thank you for your business!</p>
         </footer>
 

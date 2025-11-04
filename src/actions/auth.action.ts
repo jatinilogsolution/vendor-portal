@@ -8,6 +8,8 @@ import { LoginSchema, RegisterSchema, ChangePasswordPayload } from "@/validation
 import { UserRoleEnum } from "@/utils/constant"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { sendEmail } from "@/services/mail"
+import { sendEmailAction } from "./email/send-email.action"
 
 
 
@@ -38,7 +40,7 @@ export async function signInEmailAction(data: LoginSchema) {
       body: { email, password },
     })
 
-    
+
 
     return { error: null }
   } catch (err) {
@@ -68,7 +70,7 @@ export async function signUpEmailAction(data: RegisterSchema) {
 
   try {
 
-   await auth.api.createUser({
+  const newUser =   await auth.api.createUser({
       body: {
         email: email,
         password: password,
@@ -80,6 +82,24 @@ export async function signUpEmailAction(data: RegisterSchema) {
       },
     });
 
+    await auth.api.sendVerificationEmail({
+      body:{
+        email: newUser.user.email,
+        callbackURL: "/auth/verify",
+      }
+    })
+
+    // await sendEmailAction({
+    //   to: email,
+    //   subject: "Verify your email address",
+    //   meta: {
+    //     description:
+    //       "Please verify your email address to complete the registration process.",
+    //     link: String(link),
+    //     user: user.name,
+    //     buttonTitle: "Verify Mail"
+    //   },
+    // });
     revalidatePath("/admin")
 
 
@@ -123,7 +143,7 @@ export async function changePasswordAction(data: ChangePasswordPayload) {
 }
 
 
- 
+
 
 
 export const getAllVendorForCreatingNewVendor = async () => {
@@ -147,7 +167,7 @@ export const getAllVendorForCreatingNewVendor = async () => {
     if (e instanceof Error) {
       return { error: e.message }
     }
-    return {error:"Something went wrong"}
+    return { error: "Something went wrong" }
   }
 }
 

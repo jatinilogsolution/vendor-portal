@@ -12,6 +12,7 @@ import UpdateOfferdPrice from "../_components/update-offered-price"
 import { Label } from "@/components/ui/label"
 import { IndianRupee } from "lucide-react"
 import { BackToPage } from "@/components/back-to-page"
+import { UserRoleEnum } from "@/utils/constant"
 
 
 export default async function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,7 +56,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         </h2>
 
                         {/* Action Buttons */}
-                        {user.role === "TADMIN" && (
+                        {(user.role === UserRoleEnum.TADMIN || user.role === UserRoleEnum.BOSS) && (
                             <div className="self-end">
                                 <UpdateOfferdPrice 
                                     fileNumber={data[0].fileNumber}

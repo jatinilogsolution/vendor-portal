@@ -2,6 +2,7 @@
 
 import { Address, User, Vendor } from "@/generated/prisma"
 import { prisma } from "@/lib/prisma"
+import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
 import { revalidateTag } from "next/cache"
 
 // Types matching your Prisma schema
@@ -230,5 +231,44 @@ export async function updateAddress(
   } catch (error) {
     console.error("[v0] Error updating address:", error)
     return { success: false, error: "Failed to update address" }
+  }
+}
+
+
+
+
+
+ 
+  
+export async function uploadUserImage(formData: FormData) {
+  try {
+    const userId = formData.get("userId") as string
+    const file = formData.get("file") as File
+
+    if (!file || !userId) {
+      return { success: false, error: "Missing file or userId" }
+    }
+
+    // Fetch old image URL to delete later
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const oldImage = user?.image
+
+    // Upload new file to Azure
+    const path = `profile-images/${userId}/${file.name}`
+    const url = await uploadAttachmentToAzure(path, formData)
+
+    // Update in DB
+    await prisma.user.update({
+      where: { id: userId },
+      data: { image: url },
+    })
+
+    // Delete old one (if exists)
+    if (oldImage) await deleteAttachmentFromAzure(oldImage)
+
+    return { success: true, url }
+  } catch (err: any) {
+    console.error("Upload error:", err)
+    return { success: false, error: err.message }
   }
 }

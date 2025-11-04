@@ -25,14 +25,15 @@ import { cn } from "@/lib/utils"
 
 import { getAllVendorForCreatingNewVendor, signUpEmailAction } from "@/actions/auth.action"
 import { registerSchema, RegisterSchema } from "@/validations/auth"
-import { UserRole } from "@/utils/constant"
+import { UserRole, UserRoleEnum } from "@/utils/constant"
+import { useSession } from "@/lib/auth-client"
 
 export const CreateNewUserButton = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [vendors, setVendors] = useState<{ name: string; id: string }[]>([])
   const [comboboxOpen, setComboboxOpen] = useState(false)
-
+  const { data } = useSession()
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -67,6 +68,7 @@ export const CreateNewUserButton = () => {
         if (error) {
           toast.error(error)
         } else {
+          
           toast.success("User registered successfully! Please verify the email.")
           form.reset()
           setIsOpen(false)
@@ -151,11 +153,23 @@ export const CreateNewUserButton = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {UserRole.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {role}
-                        </SelectItem>
-                      ))}
+                      {data?.user.role === UserRoleEnum.ADMIN && (
+                        <SelectItem value={UserRoleEnum.VENDOR}>VENDOR</SelectItem>
+                      )}
+
+                      {data?.user.role === UserRoleEnum.TADMIN && (
+                        <SelectItem value={UserRoleEnum.TVENDOR}>TVENDOR</SelectItem>
+                      )}
+
+                      {(data?.user.role === UserRoleEnum.BOSS) && (
+                        <>
+                          {UserRole.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {role}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -178,7 +192,7 @@ export const CreateNewUserButton = () => {
                             role="combobox"
                             aria-expanded={comboboxOpen}
                             className={cn(
-                              "w-full  justify-between", 
+                              "w-full  justify-between",
                               !field.value && "text-muted-foreground"
                             )}
                           >

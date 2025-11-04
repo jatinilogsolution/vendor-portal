@@ -15,22 +15,24 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SideBarData } from "@/utils/constant"
 import { useRouter } from "next/navigation"
-import { signOut } from "@/lib/auth-client"
+import { signOut, useSession } from "@/lib/auth-client"
 import React from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
-import { IconLogout } from "@tabler/icons-react"
-export function SiteHeader(porps: any) {
+export function SiteHeader() {
 
+
+  const { data, isPending: loading } = useSession()
   const path = usePathname()
+
   const router = useRouter();
 
   const currentNav = SideBarData.navMain.find(item => item.url === path);
 
-  // const pathname = usePathname()
 
 
-  const [isPending, setIsPending] = React.useState(false);
+
+  const [isPending, setIsPending] = React.useState(loading);
   async function handleClick() {
     await signOut({
       fetchOptions: {
@@ -46,10 +48,14 @@ export function SiteHeader(porps: any) {
         onSuccess: () => {
           toast.success("You’ve logged out. See you soon!");
           router.push("/auth/login");
+          // window.location.reload()
+
         },
       },
     });
   }
+
+  // console.log("sdfgfdsdfds",porps.user)
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -58,14 +64,17 @@ export function SiteHeader(porps: any) {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
+        <p className=" text-red-600 text-3xl">
+
+        </p>
+
         <h1 className="text-base font-medium">{currentNav?.headerTitle || "Page"}</h1>
         <div className="ml-auto flex items-center gap-2">
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button size={"icon"} variant={"ghost"}>
 
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={porps.user?.image || ""} alt={porps.user?.name} />
+                <AvatarImage src={data?.user?.image || ""} alt={data?.user?.name} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
             </Button></DropdownMenuTrigger>
@@ -74,9 +83,9 @@ export function SiteHeader(porps: any) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild ><Link href={"/profile"}>Profile</Link></DropdownMenuItem>
 
-             
-              <DropdownMenuItem onClick={handleClick} className=" text-red-500">  {isPending && <Loader2 className="animate-spin text-red-500" /> }
-                            Log out</DropdownMenuItem>
+
+              <DropdownMenuItem onClick={handleClick} className=" text-red-500">  {isPending && <Loader2 className="animate-spin text-red-500" />}
+                Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

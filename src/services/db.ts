@@ -1,6 +1,6 @@
 import { ConnectionPool } from "mssql";
 
-const config1 = {
+const config = {
   user: process.env.DB_USER_NAME || "app_dbadmin",
   password: process.env.DB_PASSWORD || "#@)#n%^$4?#?$",
   server: process.env.DB_HOST || "182.76.62.178",
@@ -17,15 +17,49 @@ const config1 = {
   },
 };
 
-let pool1: ConnectionPool | null = null;
+// Global singleton promise
+const globalForMssql = globalThis as unknown as {
+  mssqlPoolPromise: Promise<ConnectionPool> | null;
+};
+
+let poolPromise: Promise<ConnectionPool> | null = globalForMssql.mssqlPoolPromise;
 
 export const getAWLWMSDBPOOL = async (): Promise<ConnectionPool> => {
-  if (pool1) {
-    return pool1;
+  if (poolPromise) {
+    try {
+      const pool = await poolPromise;
+      if (pool.connected) {
+        return pool;
+      }
+      console.warn("⚠️ MSSQL pool disconnected. Reconnecting...");
+    } catch (err) {
+      console.warn("⚠️ MSSQL pool error. Reconnecting...");
+    }
   }
 
-  pool1 = new ConnectionPool(config1);
-  await pool1.connect();
+  // Create and cache new connection
+  const newPool = new ConnectionPool(config);
 
-  return pool1;
+  poolPromise = newPool.connect()
+    .then((pool) => {
+      console.log("✅ MSSQL Pool connected successfully");
+
+      // Listen for errors
+      pool.on("error", (err) => {
+        console.error("❌ MSSQL Pool Error:", err);
+        globalForMssql.mssqlPoolPromise = null; // Reset on fatal error
+      });
+
+      return pool;
+    })
+    .catch((err) => {
+      console.error("❌ Failed to connect MSSQL pool:", err);
+      globalForMssql.mssqlPoolPromise = null;
+      throw err;
+    });
+
+  // Cache globally
+  globalForMssql.mssqlPoolPromise = poolPromise;
+
+  return poolPromise;
 };

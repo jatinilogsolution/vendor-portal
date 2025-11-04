@@ -34,7 +34,7 @@ interface LorryTableProps {
   pod?: boolean
   refernceNo?: string
   setOpen?: () => void
- 
+
 }
 
 const PAGE_SIZE = 10
@@ -177,7 +177,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
     [groupedData]
   )
 
-  const handleGenerateInvoice =  async () => {
+  const handleGenerateInvoice = async () => {
     const filesWithoutPods = Object.entries(selectedFilesData)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, lrs]) => lrs.some((lr) => !lr.podLink))
@@ -201,20 +201,20 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
     }))
 
 
-    const { error,reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
+    const { error, reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
     if (error) {
       toast.error(error)
     }
     if (!refernceNo) {
 
       router.push(`/invoices/${reference?.id}`)
-    } else  {
+    } else {
       setOpen!()
     }
 
     toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
     // console.log("Invoice Data:", invoiceData)
-  } 
+  }
 
   const handleClearDates = useCallback(() => {
     setFromDate("")
@@ -300,7 +300,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                 <TableHead className="w-12"><span className="sr-only">Select</span></TableHead>
                 <TableHead className="font-semibold">LR Number</TableHead>
                 <TableHead className="font-semibold">Vendor</TableHead>
-                <TableHead className="font-semibold">Date</TableHead>
+                {/* <TableHead className="font-semibold">Date</TableHead> */}
                 <TableHead className="font-semibold">Origin</TableHead>
                 <TableHead className="font-semibold">Destination</TableHead>
                 <TableHead className="font-semibold text-center">POD</TableHead>
@@ -324,24 +324,30 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                             onCheckedChange={() => toggleFileSelection(fileNo)}
                           />
                         </TableCell>
-                        <TableCell colSpan={6} className="font-semibold py-3">
-                          <div className="flex items-center gap-4 flex-wrap">
-                            <div className="flex items-center gap-2">
+                        <TableCell colSpan={6} className="font-semibold py-1">
+                          <div className="flex items-center justify-between gap-4 flex-wrap">
+                            {/* <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4 text-muted-foreground" />
                               <span>File: {fileNo}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground font-normal">
-                              <span>Vehicle: {records[0].vehicleNo}</span>
-                              <span className="text-xs px-2 py-0.5 bg-background rounded-md">{records[0].vehicleType}</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground font-normal">
-                              {records.length} LR{records.length > 1 ? "s" : ""}
-                            </span>
-                            {hasMissingPods && (
-                              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
-                                Missing POD
+                            </div> */}
+
+                            <p className=" text-muted-foreground"> Date: <LazyDate date={records[0].outDate} /></p>
+                            <div className=" flex items-center  gap-4 flex-wrap mr-10">
+
+                              <div className="flex items-center gap-2 text-muted-foreground font-normal">
+                                <span>Vehicle: {records[0].vehicleNo}</span>
+                                <span className="text-xs px-2 py-0.5 bg-background rounded-md">{records[0].vehicleType}</span>
+                              </div>
+                              <span className="text-sm text-muted-foreground font-normal">
+                                {records.length} LR{records.length > 1 ? "s" : ""}
                               </span>
-                            )}
+                              {hasMissingPods && (
+                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
+                                  Missing POD
+                                </span>
+                              )}
+                            </div>
+
                           </div>
                         </TableCell>
                       </TableRow>
@@ -359,7 +365,6 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                           <TableCell></TableCell>
                           <TableCell className="font-medium">{lr.LRNumber}</TableCell>
                           <TableCell>{lr.tvendorName}</TableCell>
-                          <TableCell><LazyDate date={lr.outDate} /></TableCell>
                           <TableCell>{lr.origin}</TableCell>
                           <TableCell>{lr.destination}</TableCell>
                           <TableCell className="text-center">

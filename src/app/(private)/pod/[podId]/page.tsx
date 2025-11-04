@@ -13,6 +13,8 @@ import { getCustomSession } from "@/actions/auth.action"
 import { signOut } from "@/lib/auth-client"
 import { redirect } from "next/navigation"
 import { BackToPage } from "../../../../components/back-to-page"
+import { IconFolderSymlink } from "@tabler/icons-react"
+import { IconReceiptRupeeFilled } from "@tabler/icons-react"
 
 export default async function VendorDetailPage({
     params,
@@ -28,9 +30,9 @@ export default async function VendorDetailPage({
         redirect("/")
     }
 
- if (user.role !== "TADMIN" && user.role !== "BOSS") {
-  redirect("/dashboard")
-}
+    if (user.role !== "TADMIN" && user.role !== "BOSS") {
+        redirect("/dashboard")
+    }
     const { data, error } = await getLRInfo(filenumber)
     if (error || !data) {
         return (
@@ -51,20 +53,45 @@ export default async function VendorDetailPage({
             <div className="flex items-center gap-x-10">
                 {/* <BackToProofsLink /> */}
                 <BackToPage title="Back to Proofs" location="/pod" />
-                <Badge variant="default">
-                    {!lr?.status || lr.status === "PENDING" ? "Pending" : lr.status}
-                </Badge>
+
+                <div className="flex items-center justify-start gap-4">
+                    <div className="flex flex-col items-center">
+                        {/* <label className="text-sm text-gray-500">Status</label> */}
+                        <Badge variant="default">
+                            {!lr?.status || lr.status === "PENDING" ? "Pending" : lr.status}
+                        </Badge>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                        {/* <label className="text-sm text-gray-500">Reference Number</label> */}
+                        <Badge variant="outline" className=" border border-primary">
+                            <IconFolderSymlink className="text-primary" />
+                            {lr?.Invoice?.refernceNumber ? lr?.Invoice?.refernceNumber : "BCN Not Generated"}
+                        </Badge>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                        {/* <label className="text-sm text-gray-500">Invoice Number</label> */}
+                        <Badge variant="outline">
+                            <IconReceiptRupeeFilled className="text-primary" />    {lr?.Invoice?.invoiceNumber ? lr?.Invoice?.invoiceNumber : "Not Invoice Yet"}
+                        </Badge>
+                    </div>
+                </div>
             </div>
+
 
             {/* 🧾 File Header */}
             <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                     {/* File Details */}
-                    <div className="flex flex-col items-start space-y-3">
+                    <div className="flex flex-col justify-start space-y-3 md:pl-8">
                         <h2 className="font-semibold tracking-tight">
-                            <span className="font-medium text-gray-700">File:</span>
-                            <span className="text-blue-500 text-lg"> #{lr?.fileNumber}</span>
+                            <span className="font-medium ">File:</span>
+                            <span className=" text-primary text-md"> #{lr?.fileNumber}</span>
+
                         </h2>
+
+
 
                         {/* Update Price Button */}
                         {user.role === "TADMIN" && (
@@ -78,9 +105,9 @@ export default async function VendorDetailPage({
                     </div>
 
                     {/* Price & Date Info */}
-                    <div className="flex flex-col items-start justify-center gap-2 mr-10 text-sm text-gray-700">
+                    <div className="flex flex-col items-start justify-center gap-2 mr-10 text-sm ">
                         <div className="flex items-center gap-2">
-                            <Label className="font-semibold text-gray-800">Date of Entry:</Label>
+                            <Label className="font-semibold ">Date of Entry:</Label>
                             <span className="font-medium">
                                 {lr.outDate
                                     ? new Date(lr.outDate).toISOString().split("T")[0]
@@ -89,7 +116,7 @@ export default async function VendorDetailPage({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Label className="font-semibold text-gray-800">Cost:</Label>
+                            <Label className="font-semibold ">Cost:</Label>
                             <div className="flex items-center gap-1 text-green-600 font-medium">
                                 <IndianRupee className="w-3.5 h-3.5" />
                                 {lr.priceSettled ?? "—"}
@@ -97,7 +124,7 @@ export default async function VendorDetailPage({
                         </div>
 
                         <div className="flex items-center gap-2 text-green-600 font-semibold">
-                            <Label className="font-semibold text-gray-800">Extra Addon:</Label>
+                            <Label className="font-semibold text-foreground ">Extra Addon:</Label>
                             <IndianRupee className="w-3.5 h-3.5" />
                             ₹ {lr.extraCost ?? "—"}
                             <div className="self-end">

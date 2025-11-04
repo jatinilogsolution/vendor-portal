@@ -27,7 +27,7 @@ export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: 
   const [open, setOpen] = useState(false)
   const [data, setData] = useState<Invoice | null>(null)
   const [value, setValue] = useState<string>("")
-  const [additions, setAdditions] = useState<BillingAddition[]>([])
+  // const [additions, setAdditions] = useState<BillingAddition[]>([])
   useEffect(() => {
     const fetchInvoice = async () => {
       const { data, error } = await getInvoiceOnlyById({ id: invoiceId })
@@ -44,7 +44,7 @@ export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: 
     console.log("form")
     startTransition(async () => {
       const res = await updateBillToAddress(invoiceId, value)
-      console.log("[v0] Billing additions to save:", additions)
+      // console.log("[v0] Billing additions to save:", additions)
       if (!("error" in res)) {
         setData(res) // update local state with new invoice data
         setOpen(false) // close sheet on success
@@ -78,10 +78,10 @@ export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: 
               <WarehouseSelector value={value} setValue={setValue} />
             </div>
 
-            <div className="grid gap-3">
+            {/* <div className="grid gap-3">
               <Label htmlFor="billing-additions">Billing Additions</Label>
               <BillingAdditions value={additions} onChange={setAdditions} />
-            </div>
+            </div> */}
           </div>
 
           <SheetFooter className="flex justify-between">

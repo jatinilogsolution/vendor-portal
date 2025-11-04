@@ -22,6 +22,7 @@ export const getLRInfo = cache(async (fileNumber: string) => {
             },
           },
         },
+        Invoice: true
       },
     })
 

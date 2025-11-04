@@ -20,7 +20,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     return (
 
       <div className=' flex justify-center  h-72  items-center'>
-
         <ErrorCard
           title="Page Not Found"
           message={error ?? "Something went wrong fetching Profile."} />
@@ -32,8 +31,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   return (
     <>
       <div className="max-lg:hidden">
-        <Link href="/admin" className="inline-flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400">
-          <ChevronLeftIcon className="size-4 fill-zinc-400 dark:fill-zinc-500" />
+        <Link href="/admin" className="inline-flex items-center gap-2 text-sm/6    ">
+          <ChevronLeftIcon className="size-4 " />
           Admin
         </Link>
       </div>
@@ -47,7 +46,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <h1>{data?.Vendor?.name}</h1>
               <Badge color={data?.role === 'TVENDOR' ? 'lime' : 'zinc'}>{data?.role}</Badge>
             </div>
-            <span className="mt-2 text-sm text-zinc-400 space-y-1">
+            <span className="mt-2 text-sm   space-y-1">
               {data?.Vendor?.Address?.map((address: any) => (
                 <div key={address?.id}>
                   {address.line1 && <p>{address.line1}</p>}
