@@ -37,7 +37,7 @@ export const AddLrButtonToInvoice = ({ refernceNo, vendorId, onClose }: { refern
 
                 >
                     <DialogHeader>
-                        <DialogTitle>Add More Transections</DialogTitle>
+                        <DialogTitle>Add More Transaction</DialogTitle>
                         <DialogDescription>
                             Make changes to Invoice here. Click save when you&apos;re
                             done.

@@ -135,11 +135,11 @@ export const SettlePrice = ({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {mode === "edit" ?
-                    <Button className=' w-full border bg-primary/10 text-primary min-w-[190px]' variant="secondary" size={size}>
+                    <Button className=' w-full max-w-32 ' variant="secondary" size={size}>
                         <Plus className=' text-green-500' /> {label || "Add Cost"}
                     </Button>
                     :
-                    <Button size={"icon-sm"} variant={"secondary"} >
+                    <Button size={"icon-sm"} variant={"default"} >
                         <Link className=' text-blue-500' />
                     </Button>
                 }

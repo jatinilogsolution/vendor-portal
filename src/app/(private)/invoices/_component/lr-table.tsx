@@ -9,6 +9,8 @@ import { SettlePrice } from "../../lorries/_components/settle-price"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { useSession } from "@/lib/auth-client"
+import { UserRoleEnum } from "@/utils/constant"
 
 interface LR {
     id: string
@@ -31,10 +33,10 @@ interface LRTableProps {
     pageSize?: number
 }
 
-export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
+export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
     const [page, setPage] = useState(1)
     const [search, setSearch] = useState("")
-
+    const session = useSession()
     const filteredLRs = useMemo(() => {
         if (!search.trim()) return lrs
         const q = search.toLowerCase()
@@ -55,8 +57,8 @@ export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
 
     const groupedByVehicle = useMemo(() => {
         return paginatedLRs.reduce((acc, lr) => {
-            if (!acc[lr.vehicleNo]) acc[lr.vehicleNo] = []
-            acc[lr.vehicleNo].push(lr)
+            if (!acc[lr.fileNumber]) acc[lr.fileNumber] = []
+            acc[lr.fileNumber].push(lr)
             return acc
         }, {} as Record<string, LR[]>)
     }, [paginatedLRs])
@@ -99,12 +101,12 @@ export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
                     </TableHeader>
 
                     <TableBody>
-                        {Object.entries(groupedByVehicle).map(([vehicleNo, vehicleLRs]) => (
-                            <React.Fragment key={vehicleNo}>
+                        {Object.entries(groupedByVehicle).map(([fileNumber, vehicleLRs]) => (
+                            <React.Fragment key={fileNumber}>
                                 <TableRow className="bg-gray-50 rounded-md">
                                     <TableCell colSpan={3} className="py-2 font-semibold">
                                         <div className="flex items-center gap-2">
-                                            <Badge className="bg-gray-100 text-gray-700">{vehicleNo}</Badge>
+                                            <Badge className="bg-gray-100 text-gray-700">{vehicleLRs[0].vehicleNo}</Badge>
                                             <Badge variant="secondary">{vehicleLRs[0].vehicleType}</Badge>
                                             <Badge variant="secondary">
                                                 {new Date(vehicleLRs[0].outDate).toLocaleDateString()}
@@ -123,7 +125,19 @@ export const LRTable = ({ lrs, status, pageSize = 5 }: LRTableProps) => {
                                                 size="sm"
                                                 label="Cost"
                                                 fileNumber={vehicleLRs[0].fileNumber}
-                                                vehicle={vehicleNo}
+                                                vehicle={vehicleLRs[0].vehicleNo}
+                                                extraCost={vehicleLRs[0].extraCost || ""}
+                                                settlePrice={vehicleLRs[0].priceSettled || ""}
+                                            />
+                                        </TableCell>
+                                    )}
+                                    {(status === "SENT" || session.data?.user.role === UserRoleEnum.TVENDOR) && (
+                                        <TableCell className="text-center">
+                                            <SettlePrice
+                                                size="sm"
+                                                label="Cost"
+                                                fileNumber={vehicleLRs[0].fileNumber}
+                                                vehicle={vehicleLRs[0].vehicleNo}
                                                 extraCost={vehicleLRs[0].extraCost || ""}
                                                 settlePrice={vehicleLRs[0].priceSettled || ""}
                                             />

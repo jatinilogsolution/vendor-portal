@@ -16,7 +16,7 @@ export default function Page() {
         </h2>
         <p className="  text-center leading-7 [&:not(:first-child)]:mt-6">
 
-          Comming soon...        </p>
+          Coming soon...        </p>
 
         {/* <div className=" flex items-center justify-center">
           <Spinner variant="bars" />
