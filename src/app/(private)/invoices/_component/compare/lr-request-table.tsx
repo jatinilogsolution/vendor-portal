@@ -156,8 +156,8 @@ export const LRRequestsTable = ({ requests }: { requests: DataType }) => {
               <TableHead className="text-xs font-semibold h-10 w-12"></TableHead>
               <TableHead className="text-xs font-semibold h-10">File No.</TableHead>
               <TableHead className="text-xs font-semibold h-10">LR Count</TableHead>
-              <TableHead className="text-xs font-semibold h-10 text-right">Offered</TableHead>
-              <TableHead className="text-xs font-semibold h-10 text-right">Settled</TableHead>
+              <TableHead className="text-xs font-semibold h-10 text-right">AWL Cost</TableHead>
+              <TableHead className="text-xs font-semibold h-10 text-right">Vendor Cost</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">Extra</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">Variance</TableHead>
             </TableRow>

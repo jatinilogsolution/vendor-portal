@@ -137,7 +137,7 @@ const options = {
     advanced: {
         database: {
             generateId: false
-        }
+        },
     },
 
 

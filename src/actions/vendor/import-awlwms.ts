@@ -105,11 +105,11 @@ export async function LRIMPORT() {
     const day = String(secondLastDay.getDate()).padStart(2, "0");
 
     const formattedDate = `${year}-${month}-${day}`;
+    // ${formattedDate}
 
-
-    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='${formattedDate}' 
-         and OutLRNo not in (select distinct tranId from NEWAWLDB.dbo.gDrive_Data  with(nolock)  where subFolder='pod'  ) and OutTransportBy='AWL' 
-         and isnull(OutGPNo,'')<>''  and  OutVehType not in ('COURIER')`;
+    // and OutLRNo not in (select distinct tranId from NEWAWLDB.dbo.gDrive_Data  with(nolock)  where subFolder='pod'  )
+    // OutVehType not in ('COURIER')
+    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='${formattedDate}'  and OutTransportBy='AWL' and isnull(OutGPNo,'')<>'' `;
 
     const response = await request.query(query);
     const records = response.recordset;
@@ -152,6 +152,85 @@ export async function LRIMPORT() {
               fileNumber: r.FileNo,
             },
           });
+        }
+      } catch (err) {
+        console.error("❌ Failed LR record:", {
+          LRNumber: r.OutLRNo,
+          tvendorId: r.OutTPT,
+          City: r.City,
+          WH: r.WH,
+        });
+        console.error("Prisma error:", err);
+      }
+    }
+
+
+    return { total: records.length }
+
+    console.log("✅ Lorry Receipt seed completed!");
+  } catch (e) {
+    console.error("❌ Error seeding Lorry Receipts:", e);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+
+
+
+
+
+
+
+export async function PODIMPORT() {
+  try {
+    let countupdated = 0;
+    let countNotfoun = 0;
+
+    const pool = await getAWLWMSDBPOOL();
+    const request = pool.request();
+    const today = new Date();
+
+    // Get the second last day (2 days before today)
+    const secondLastDay = new Date();
+    secondLastDay.setDate(today.getDate() - 2);
+
+    // Format as YYYY-MM-DD
+    const year = secondLastDay.getFullYear();
+    const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");
+    const day = String(secondLastDay.getDate()).padStart(2, "0");
+
+    const formattedDate = `${year}-${month}-${day}`;
+
+    const query = `SELECT distinct  tranId AS OUTLRNO,file_url,custid FROM gDrive_Data with(nolock) WHERE tranId<>'' AND CONVERT(DATE,createTime)>'2025-05-31' AND subFolder='POD' AND docType='POD'`;
+
+    const response = await request.query(query);
+    const records = response.recordset;
+
+    // console.log(`Found ${records.length} lorry receipts, : `, JSON.stringify(records[0]));
+
+
+
+    for (const r of records) {
+      try {
+        const existing = await prisma.lRRequest.findUnique({
+          where: { LRNumber: r.OUTLRNO },
+        });
+
+        if (existing) {
+          await prisma.lRRequest.update({
+            where: { LRNumber: r.OUTLRNO },
+            data: {
+              podlink: r.file_url
+            },
+          });
+
+          countupdated++;
+          console.log(countNotfoun)
+
+        } else {
+          countNotfoun++;
+          console.warn(countNotfoun)
         }
       } catch (err) {
         console.error("❌ Failed LR record:", {
