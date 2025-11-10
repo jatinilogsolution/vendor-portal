@@ -1,74 +1,44 @@
- 
-
 import { getCustomSession } from "@/actions/auth.action"
-import { UserRoleEnum } from "@/utils/constant"
-import { redirect } from "next/navigation"
-import { UserList } from "./_components/user-list"
-import { UserSearch } from "./_components/user-search"
-import { Suspense } from "react"
-import { Spinner } from "@/components/ui/shadcn-io/spinner"
- 
-import UserProfileCard from "./_components/user-card"
+import { getUsers } from "./_actions"
+import UserFilters from "./_components/user-filter"
+import UserTable from "./_components/user-table"
+import { signOut } from "@/lib/auth-client"
+import { forbidden } from "next/navigation"
+import UserProfileCard from "./_components/current-user-card"
+import { CreateNewUserButton } from "./_components/create-new-user"
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}) {
-  const { user } = await getCustomSession()
 
-  if (![UserRoleEnum.BOSS, UserRoleEnum.ADMIN, UserRoleEnum.TADMIN].includes(user.role as UserRoleEnum)) {
-    redirect("/dashboard")
+
+
+export default async function UsersPage() {
+  const { session, user } = await getCustomSession()
+
+  if (!session) {
+    await signOut()
+    return forbidden()
   }
-
-  const searchParam = await searchParams
-  const page = searchParam?.page ? Number(searchParam.page) : 1
-  const name = typeof searchParam?.name === "string" ? searchParam.name : ""
-
-
+  const users = await getUsers(user.role!)
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center h-dvh">
-          <Spinner />
-        </div>
-      }
-    >
-      <div className="  py-6 space-y-8">
-        <UserProfileCard user={user as any} />
+    <div className="p-6 space-y-6">
+      {/* <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Users</h1>
+        {(user.role! === "ADMIN" ||
+          user.role! === "TADMIN" ||
+          user.role! === "BOSS") && (
+            <CreateNewUserButton />
+          )}
+      </div> */}
+      <UserProfileCard user={user} />
 
- 
-   
-   <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 py-6">
-        <div className="space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-            All Users
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage users, search, and create new accounts
-          </p>
-        </div>
-        <div className="w-full lg:max-w-md">
-          <UserSearch />
-        </div>
-      </div>
+      <UserFilters
+        onSearch={async (search) => {
+          "use server"
+          await getUsers(user.role!, search)
+        }}
+      />
 
-      {/* User List Section */}
-      <div className="mt-4">
-        <UserList
-          page={page}
-          name={name}
-          user={{
-            id: user.id,
-                role: user.role as UserRoleEnum,
-          }}
-        />
-      </div>
+      <UserTable users={users as any} />
     </div>
-      </div>
-    </Suspense>
   )
 }

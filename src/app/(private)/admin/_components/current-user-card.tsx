@@ -1,9 +1,9 @@
+
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
 import { UserRoleEnum } from "@/utils/constant";
-import { Calendar, Shield } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { CreateNewUserButton } from "./create-new-user";
+import UserRoleBadge from "./user-badge";
 
 const getUserInitials = (name: string) => {
     return name
@@ -49,12 +49,13 @@ const formatDate = (date: string | Date) => {
 
 interface UserProfileCardProps {
     user: {
+        id: string;
         name: string;
         email: string;
-        role: string;
-        image?: string;
-        createdAt: string | Date;
-        vendorId?: string;
+        image: string | null | undefined;
+        createdAt: Date;
+        role: string | null | undefined;
+        vendorId: string | null | undefined;
     };
 }
 
@@ -63,42 +64,36 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
         <div className="w-full   ">
             <div className="bg-card/80 border border-border/90    p-5 sm:p-6 lg:p-8 transition-all duration-300 ">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    {/* Left: Avatar + Info */}
                     <div className="flex items-start gap-4 w-full">
-                       
-                       <div className=" flex items-center flex-col justify-center gap-y-4">
-                        <Avatar className="w-16 h-16 sm:w-20 sm:h-20 ring-2 ring-border/30">
-                            <AvatarImage src={user.image} alt={user.name} className="object-cover" />
-                            <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                                {getUserInitials(user.name)}
-                            </AvatarFallback>
-                        </Avatar>
-                         <Badge
-                                    variant={getRoleBadgeVariant(user.role as UserRoleEnum)}
-                                    className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium"
-                                    aria-label={`Role: ${user.role}`}
-                                >
-                                    <Shield className="w-3.5 h-3.5" />
-                                    <span>{user.role}</span>
-                                </Badge>
- </div>
-                        <div className="flex-1 min-w-0">
-                            {/* Name + Role */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                <h2 className="text-2xl sm:text-3xl font-bold text-foreground truncate flex flex-wrap">
-                                    <span>{getGreeting()}</span>, <span className="text-primary">{user.name}</span>
-                                </h2>
-                                <Badge
-                                    variant={getRoleBadgeVariant(user.role as UserRoleEnum)}
-                                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium"
-                                    aria-label={`Role: ${user.role}`}
-                                >
-                                    <Shield className="w-3.5 h-3.5" />
-                                    <span>{user.role}</span>
-                                </Badge>
+
+                        <div className=" flex items-center flex-col justify-center gap-y-4">
+                            <Avatar className="w-16 h-16 sm:w-20 sm:h-20 ring-2 ring-border/30">
+                                <AvatarImage src={user.image!} alt={user.name} className="object-cover" />
+                                <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                                    {getUserInitials(user.name)}
+                                </AvatarFallback>
+                            </Avatar>
+
+                            <div
+                                className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium"
+
+                            >
+                                <UserRoleBadge role={user.role!} />
+
                             </div>
 
-                            {/* Meta: Email, Joined Date, Vendor ID */}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                <h2 className="text-2xl sm:text-3xl font-bold text-foreground truncate flex flex-wrap gap-0 md:gap-1">
+                                    <span>{getGreeting()},</span><span className="text-primary">{user.name}</span>
+                                </h2>
+                                <div
+                                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium"
+                                >
+                                    <UserRoleBadge role={user.role!} />
+                                </div>
+                            </div>
                             <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                                 <p className="truncate">
                                     <span className="sr-only">Email: </span>
@@ -116,17 +111,8 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Right: Action Button */}
                     <div className="flex-shrink-0 w-full lg:w-auto">
-                        {/* <Button
-                            className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200"
-                            variant="default"
-                        >
-                            Create New User
-                        </Button> */}
                         <CreateNewUserButton />
-
                     </div>
                 </div>
             </div>

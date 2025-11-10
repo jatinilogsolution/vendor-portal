@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -12,50 +13,43 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { SideBarData } from "@/utils/constant"
-import { useRouter } from "next/navigation"
 import { signOut, useSession } from "@/lib/auth-client"
 import React from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+
 export function SiteHeader() {
-
-
-  const { data, isPending: loading } = useSession()
+  const { data, } = useSession()
   const path = usePathname()
+  const router = useRouter()
+  const currentNav = SideBarData.navMain.find((item) => item.url === path)
 
-  const router = useRouter();
+  const [isPending, setIsPending] = React.useState(false)
 
-  const currentNav = SideBarData.navMain.find(item => item.url === path);
-
-
-
-
-  const [isPending, setIsPending] = React.useState(loading);
   async function handleClick() {
-    await signOut({
-      fetchOptions: {
-        onRequest: () => {
-          setIsPending(true);
-        },
-        onResponse: () => {
-          setIsPending(false);
-        },
-        onError: (ctx) => {
-          toast.error(ctx.error.message);
-        },
-        onSuccess: () => {
-          toast.success("You’ve logged out. See you soon!");
-          router.push("/auth/login");
-          // window.location.reload()
+    try {
+      setIsPending(true)
 
+      // signOut may or may not trigger fetchOptions callbacks, so wrap in try/finally
+      await signOut({
+        fetchOptions: {
+          onError: (ctx) =>{ toast.error(ctx.error.message)},
+          onSuccess: () => {
+            toast.success("You’ve logged out. See you soon!")
+            router.push("/auth/login")
+          },
         },
-      },
-    });
+      })
+    } catch (err: any) {
+      toast.error(err?.message || "Something went wrong while logging out.")
+    } finally {
+      // ✅ This always runs, no matter what.
+      setIsPending(false)
+    }
   }
 
-  // console.log("sdfgfdsdfds",porps.user)
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -64,28 +58,47 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <p className=" text-red-600 text-3xl">
 
-        </p>
+        <h1 className="text-base font-medium">
+          {currentNav?.headerTitle || "Page"}
+        </h1>
 
-        <h1 className="text-base font-medium">{currentNav?.headerTitle || "Page"}</h1>
         <div className="ml-auto flex items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button size={"icon"} variant={"ghost"}>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={data?.user?.image || ""} alt={data?.user?.name} />
+                  <AvatarFallback className="rounded-lg">
+                    {data?.user?.name?.[0] ?? "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
 
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={data?.user?.image || ""} alt={data?.user?.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-              </Avatar>
-            </Button></DropdownMenuTrigger>
-            <DropdownMenuContent className=" mr-8 w-[180px]">
-              <DropdownMenuLabel className=" bg-foreground/10">My Account</DropdownMenuLabel>
+            <DropdownMenuContent className="mr-8 w-[180px]">
+              <DropdownMenuLabel className="bg-foreground/10">
+                My Account
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild ><Link href={"/profile"}>Profile</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">Profile</Link>
+              </DropdownMenuItem>
 
-
-              <DropdownMenuItem onClick={handleClick} className=" text-red-500">  {isPending && <Loader2 className="animate-spin text-red-500" />}
-                Log out</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleClick}
+                disabled={isPending}
+                className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-red-500" />
+                    Logging out...
+                  </>
+                ) : (
+                  "Log out"
+                )}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

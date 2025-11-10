@@ -7,6 +7,9 @@ import { redirect } from 'next/navigation'
 import { signOut } from '@/lib/auth-client'
 import { UserRoleEnum } from '@/utils/constant'
 import { prisma } from '@/lib/prisma'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { IconUpload } from '@tabler/icons-react'
 
 const page = async () => {
 
@@ -37,8 +40,15 @@ const page = async () => {
     return (
       <div>
 
-        <p className="leading-7  mb-2">Your All Pending LR without POD</p>
-        <LorryTable vendorId={vendor?.Vendor?.id}  />
+
+        <div className=' flex items-center justify-between mb-2'>
+
+          <h2 className=' mb-2 font-medium text-md'> All Pending LR without POD</h2>
+          <Button variant={"secondary"} asChild>
+            <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
+          </Button>
+        </div>
+        <LorryTable vendorId={vendor?.Vendor?.id} />
       </div>
     )
   }
@@ -48,8 +58,15 @@ const page = async () => {
 
     <div>
       {/* <h1>Lorry Recipet </h1> */}
-      <h2 className=' mb-2'> All Pending LR without POD</h2>
-      <LorryTable  />
+      <div className=' flex items-center justify-between mb-2'>
+
+        <h2 className=' mb-2 font-medium text-md'> All Pending LR without POD</h2>
+        <Button variant={"secondary"} asChild>
+          <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
+        </Button>
+      </div>
+
+      <LorryTable />
     </div>
 
   )

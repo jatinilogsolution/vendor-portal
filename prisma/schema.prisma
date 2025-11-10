@@ -43,12 +43,11 @@ model Vendor {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  name         String
-  contactEmail String?
-  contactPhone String?
-  gstNumber    String?
-  panNumber    String?
-
+  name             String
+  contactEmail     String?
+  contactPhone     String?
+  gstNumber        String?
+  panNumber        String?
   profileCompleted Boolean @default(false)
   taxId            String?
   paymentTerms     String?
@@ -112,19 +111,53 @@ model LRRequest {
   origin       String?
   destination  String?
   outDate      DateTime
-  status       String? @default("PENDING") // WRONG, VERIFIED
-  priceOffered Float?
-  priceSettled Float?
-  extraCost    Float?
-  fileNumber   String
-  remark       String?
-  isInvoiced   Boolean  @default(false)
+  status       String?  @default("PENDING") // WRONG, VERIFIED
+
+  // pricing 
+  priceOffered  Float?
+  lrPrice       Float?
+  modifiedPrice Float?
+  priceSettled  Float?
+  extraCost     Float?
+  fileNumber    String
+  remark        String?
+  isInvoiced    Boolean @default(false)
 
   podlink   String?
   tvendorId String
   tvendor   Vendor   @relation(fields: [tvendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
   invoiceId String?
   Invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  annexureId String?
+  Annexure   Annexure? @relation(fields: [annexureId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  groupId String?
+  group       AnnexureFileGroup? @relation(fields: [groupId], references: [id])
+}
+
+  model Annexure {
+  id        String              @id @default(uuid())
+  name      String
+  fromDate  DateTime
+  toDate    DateTime
+  LRRequest LRRequest[]
+  groups    AnnexureFileGroup[]
+}
+
+model AnnexureFileGroup {
+  id         String   @id @default(uuid())
+  annexureId String
+  fileNumber String
+  totalPrice Float?
+  extraCost  Float?
+  remark     String?
+  status     String?  @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  Annexure Annexure    @relation(fields: [annexureId], references: [id])
+  LRs      LRRequest[]
 }
 
 model Invoice {
@@ -141,7 +174,7 @@ model Invoice {
   subtotal       Float    @default(0)
   taxRate        Float    @default(0)
   taxAmount      Float    @default(0)
-  totalExtra      Float    @default(0)
+  totalExtra     Float    @default(0)
   grandTotal     Float    @default(0)
   notes          String?
 

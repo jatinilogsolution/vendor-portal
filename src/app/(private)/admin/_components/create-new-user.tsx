@@ -27,6 +27,7 @@ import { getAllVendorForCreatingNewVendor, signUpEmailAction } from "@/actions/a
 import { registerSchema, RegisterSchema } from "@/validations/auth"
 import { UserRole, UserRoleEnum } from "@/utils/constant"
 import { useSession } from "@/lib/auth-client"
+import { IconUserPlus } from "@tabler/icons-react"
 
 export const CreateNewUserButton = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -82,7 +83,7 @@ export const CreateNewUserButton = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200">Create New User</Button>
+        <Button className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200"><IconUserPlus />Add User</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
