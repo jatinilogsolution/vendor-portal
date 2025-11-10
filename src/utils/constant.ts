@@ -37,6 +37,8 @@ export const SideBarData = {
     { title: "Invoice", url: "/invoices", icon: IconFolder, headerTitle: "Booking Cover Note with Invoices" },
     { title: "Admin", url: "/admin", icon: IconUsers, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Admin Control" },
     { title: "Profile", url: "/profile", icon: IconUsers, headerTitle: "Admin Control", hidden: true },
+    { title: "Annexure", url: "/lorries/annexure", icon: IconUsers, headerTitle: "BCN / Annexure", hidden: true },
+
 
   ],
   navSecondary: [

@@ -2,10 +2,16 @@
 import { prisma } from "@/lib/prisma";
 import { getAWLWMSDBPOOL } from "@/services/db";
 
-
-export async function mainDDDD() {
+export async function vendorImport() {
   try {
-    // ✅ Fetch vendors from SQL Server
+    const today = new Date();
+
+    const fiveDaysAgo = new Date();
+    fiveDaysAgo.setDate(today.getDate() - 5);
+
+    const todayStr = today.toISOString().split('T')[0];
+    const fiveDaysAgoStr = fiveDaysAgo.toISOString().split('T')[0];
+
     const pool = await getAWLWMSDBPOOL();
     const request = pool.request();
 
@@ -19,20 +25,22 @@ export async function mainDDDD() {
         Tpin, 
         Tcontactperson, 
         Tcontactno, 
-        Temail  
+        Temail, 
+        Tdoe  
       FROM tbl_transporter 
-      WHERE Tactive='1'
+      WHERE Tactive='1' 
+        AND Tdoe >= '2025-10-15' AND Tdoe <= '${todayStr}'
     `;
-
+// ${fiveDaysAgoStr}
+    
     const response = await request.query(query);
     const vendors = response.recordset;
 
-    console.log(`Found ${vendors.length} transport vendors`);
+ 
 
-    for (const v of vendors) {
-      // ✅ Create Vendor with Address in Prisma
+     for (const v of vendors) {
       await prisma.vendor.upsert({
-        where: { id: v.Tid.toString() }, // use Tid as stable unique id
+        where: { id: v.Tid.toString() }, 
         update: {
           name: v.Tname,
           contactEmail: v.temail,
@@ -77,14 +85,17 @@ export async function mainDDDD() {
       });
     }
 
+
+
     console.log("✅ Vendor seed completed!");
+
+    return vendors.length
   } catch (e) {
     console.error("❌ Error in seeding vendors: ", e);
   } finally {
     await prisma.$disconnect();
   }
 }
-
 
 
 
@@ -109,7 +120,7 @@ export async function LRIMPORT() {
 
     // and OutLRNo not in (select distinct tranId from NEWAWLDB.dbo.gDrive_Data  with(nolock)  where subFolder='pod'  )
     // OutVehType not in ('COURIER')
-    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='${formattedDate}'  and OutTransportBy='AWL' and isnull(OutGPNo,'')<>'' `;
+    const query = `select distinct  OutLRNo, City  , OutTPT , WH ,OutLRDate,OutVehType ,OutVehNo,PartyName ,FileNo from NEWAWLDB.dbo.tbl_MDN with(nolock) where CustID not in ('sberlc01') and  OutLRDate>='2025-05-31'  and OutTransportBy='AWL' and isnull(OutGPNo,'')<>'' `;
 
     const response = await request.query(query);
     const records = response.recordset;

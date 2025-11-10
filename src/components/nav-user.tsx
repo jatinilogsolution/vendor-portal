@@ -1,79 +1,76 @@
 "use client"
 
+import React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { signOut } from "@/lib/auth-client"
+
 import {
- 
   IconDotsVertical,
   IconLogout,
- 
 } from "@tabler/icons-react"
+
+import { Loader2 } from "lucide-react"
 
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
- 
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import {  useRouter } from "next/navigation"
-import React from "react"
-import { signOut } from "@/lib/auth-client"
-import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import Link from "next/link"
 
 type User = {
-  id: string;
-  name: string;
-  email: string;
-  image: string | null | undefined;
-  createdAt: Date;
-  role: string | null | undefined;
-  vendorId: string | null | undefined;
+  id: string
+  name: string
+  email: string
+  image: string | null | undefined
+  createdAt: Date
+  role: string | null | undefined
+  vendorId: string | null | undefined
 }
 
-export function NavUser({
-  user
-}: { user: User }) {
+export function NavUser({ user }: { user: User }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const [isPending, setIsPending] = React.useState(false)
 
-
-  const router = useRouter();
-  // const pathname = usePathname()
-
-
-  const [isPending, setIsPending] = React.useState(false);
   async function handleClick() {
-    await signOut({
-      fetchOptions: {
-        onRequest: () => {
-          setIsPending(true);
+    setIsPending(true)
+    
+    try {
+      await signOut({
+        fetchOptions: {
+          onError: (ctx) => {
+            toast.error(ctx.error.message ?? "Failed to log out")
+            setIsPending(false)
+          },
+          onSuccess: () => {
+            toast.success("You've logged out. See you soon!")
+            router.push("/auth/login")
+            // Keep isPending true during redirect to prevent double-clicks
+          },
         },
-        onResponse: () => {
-          setIsPending(false);
-        },
-        onError: (ctx) => {
-          toast.error(ctx.error.message);
-        },
-        onSuccess: () => {
-          toast.success("You’ve logged out. See you soon!");
-          router.push("/auth/login");
-          // window.location.reload()
-        },
-      },
-    });
+      })
+    } catch (error) {
+      toast.error("An unexpected error occurred")
+      setIsPending(false)
+    }
   }
 
   return (
@@ -87,7 +84,9 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage src={user?.image ?? ""} alt={user?.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user?.name?.[0] ?? "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user?.name}</span>
@@ -98,18 +97,23 @@ export function NavUser({
               <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal hover:bg-muted">
-              <Link href={"/profile"}  >
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <DropdownMenuLabel className="p-0 font-normal">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-1 py-1.5 hover:bg-muted rounded-md transition-colors"
+              >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user?.image || ""} alt={user?.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user?.name?.[0] ?? "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user?.name}</span>
@@ -117,29 +121,24 @@ export function NavUser({
                     {user?.email}
                   </span>
                 </div>
-              </div>
               </Link>
-
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
-            {/* <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup> */}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleClick} disabled={isPending}  >
-              {isPending ? <Loader2 className="animate-spin text-red-500" /> : <IconLogout className=" text-red-500" />}
-              Log out
+
+            <DropdownMenuItem
+              onClick={handleClick}
+              disabled={isPending}
+              className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconLogout className="h-4 w-4" />
+                )}
+                <span>{isPending ? "Logging out..." : "Log out"}</span>
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
