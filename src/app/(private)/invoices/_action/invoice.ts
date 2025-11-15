@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getAWLWMSDBPOOLFINS } from "@/services/db";
 
 interface LR {
   LRNumber: string;
@@ -27,7 +28,7 @@ export const generateSingleInvoiceFromLorryPage = async (
     // Get vendorId from first LR
     const firstLR = data[0].LRs[0];
 
-     const vendorId = firstLR?.vendorId;
+    const vendorId = firstLR?.vendorId;
     if (!vendorId) throw new Error("Vendor ID is missing for invoice");
 
     let reference: any;
@@ -40,7 +41,7 @@ export const generateSingleInvoiceFromLorryPage = async (
       });
 
       if (!reference) {
-        console.log("1" )
+        console.log("1")
         // Invoice does not exist → create new
         reference = await prisma.invoice.create({
           data: {
@@ -50,12 +51,12 @@ export const generateSingleInvoiceFromLorryPage = async (
             status: "DRAFT",
           },
         });
-        
+
 
       }
     } else {
-    
-      
+
+
       const now = new Date();
       const refNo = `${vendorId.substring(0, 3).toUpperCase()}-${now.getFullYear()}${(
         now.getMonth() + 1
@@ -67,7 +68,7 @@ export const generateSingleInvoiceFromLorryPage = async (
           .toString()
           .padStart(3, "0")}`;
 
- 
+
 
       reference = await prisma.invoice.create({
         data: {
@@ -78,27 +79,27 @@ export const generateSingleInvoiceFromLorryPage = async (
         },
         include: { LRRequest: true },
       });
- 
+
     }
 
-     const existingLRNumbers = reference.LRRequest.map((lr: any) => lr.LRNumber);
+    const existingLRNumbers = reference.LRRequest.map((lr: any) => lr.LRNumber);
     const newLRs = data
       .flatMap((file) => file.LRs)
       .filter((lr) => !existingLRNumbers.includes(lr.LRNumber));
 
     if (newLRs.length > 0) {
-       const allLRNumbers = newLRs.map((lr) => lr.LRNumber);
-       await prisma.lRRequest.updateMany({
+      const allLRNumbers = newLRs.map((lr) => lr.LRNumber);
+      await prisma.lRRequest.updateMany({
         where: { LRNumber: { in: allLRNumbers } },
         data: {
           isInvoiced: true,
           invoiceId: reference.id,
         },
       });
- 
+
     }
 
-    return { error: null, reference};
+    return { error: null, reference };
   } catch (err) {
     console.error("Error while generating invoice:", err);
     if (err instanceof Error) return { error: err.message };
@@ -149,15 +150,15 @@ export const updateTaxRateForInvoice = async (invoiceId: string, taxRate: number
         taxRate: taxRate
       }
     })
-    return {sucess: true, message: "Tax rate updated"}
-  }catch(e){
+    return { sucess: true, message: "Tax rate updated" }
+  } catch (e) {
     console.log("Error in updateTaxRateForInvoice", e)
-    return {sucess: false, message: "Failed updated tax rate"}
+    return { sucess: false, message: "Failed updated tax rate" }
 
   }
 }
 
- export const updateInvoiceNumberForInvoice = async (
+export const updateInvoiceNumberForInvoice = async (
   invoiceId: string,
   invoiceNumber: string,
   vendorId: string
@@ -188,3 +189,6 @@ export const updateTaxRateForInvoice = async (invoiceId: string, taxRate: number
     return { sucess: false, message: "Failed to update Invoice Number" };
   }
 };
+
+
+

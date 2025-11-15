@@ -1,56 +1,136 @@
+// // src/app/api/lorries/annexures/[id]/route.ts
 // import { NextResponse } from "next/server";
 // import { prisma } from "@/lib/prisma";
 
-// export async function GET(
-//   request: Request,
-//   { params }: { params: Promise<{ id: string }> }
-// ) {
+// export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
 //   try {
 //     const {id} = await params
 //     const annexure = await prisma.annexure.findUnique({
 //       where: { id: id },
 //       include: {
-//         LRRequest: true,
+//         groups: {
+//           include: {
+//             LRs: {
+//               select: {
+//                 id: true,
+//                 LRNumber: true,
+//                 CustomerName: true,
+//                 vehicleNo: true,
+//                 vehicleType: true,
+//                 origin: true,
+//                 destination: true,
+//                 outDate: true,
+//                 lrPrice: true,
+//                 extraCost: true,
+//                 podlink: true,
+//                 tvendor: {
+//                   select:{
+//                     id: true,
+//                     name: true
+//                   }
+//                 }
+//               },
+//             },
+//           },
+//         },
 //       },
 //     });
-
 //     if (!annexure) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-//     return NextResponse.json({ annexure, lrRequests: annexure.LRRequest });
-//   } catch (error) {
-//     console.error(error);
-//     return NextResponse.json({ error: "Server error" }, { status: 500 });
+//     return NextResponse.json(annexure);
+//   } catch (err: any) {
+//     console.error(err);
+//     return NextResponse.json({ error: "Failed" }, { status: 500 });
 //   }
 // }
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+
+// src/app/api/lorries/annexures/[id]/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { BillToAddressByNameId } from "@/actions/wms/warehouse";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const {id} = await params
+    const { id } = await params;
+
+    // 1️⃣ Fetch annexure with nested LRs
     const annexure = await prisma.annexure.findUnique({
-      where: { id: id },
+      where: { id },
       include: {
-        LRRequest: {
-          orderBy: { createdAt: "desc" },
+        groups: {
           include: {
-            tvendor: { select: { name: true } },
+            LRs: {
+              select: {
+                id: true,
+                LRNumber: true,
+                CustomerName: true,
+                vehicleNo: true,
+                vehicleType: true,
+                origin: true,
+                destination: true,
+                outDate: true,
+                lrPrice: true,
+                extraCost: true,
+                podlink: true,
+                tvendor: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
-    })
+    });
 
-    if (!annexure) return NextResponse.json({ error: "Annexure not found" }, { status: 404 })
+    if (!annexure)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Get documents linked to fileNumbers
-    const fileNos = annexure.LRRequest.map(lr => lr.fileNumber)
-    const docs = await prisma.document.findMany({
-      where: { linkedId: { in: fileNos } },
-    })
+    // 2️⃣ Build cache to avoid duplicate warehouse lookups
+    const warehouseCache: Record<string, string> = {};
 
-    return NextResponse.json({ annexure, documents: docs })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Failed to fetch annexure" }, { status: 500 })
+    // 3️⃣ Enhance *each LR* with resolved warehouse origin name
+    const enhancedGroups = await Promise.all(
+      annexure.groups.map(async (group) => {
+        const enhancedLRs = await Promise.all(
+          group.LRs.map(async (lr) => {
+            const originId = lr.origin;
+
+            if (originId && !warehouseCache[originId]) {
+              try {
+                const { warehouseName } = await BillToAddressByNameId(originId);
+                warehouseCache[originId] = warehouseName || originId;
+              } catch (err) {
+                console.warn(
+                  `Failed to fetch warehouse name for ID: ${originId}`,
+                  err
+                );
+                warehouseCache[originId] = originId;
+              }
+            }
+
+            return {
+              ...lr,
+              origin: warehouseCache[originId!] ?? originId,
+            };
+          })
+        );
+
+        return {
+          ...group,
+          LRs: enhancedLRs,
+        };
+      })
+    );
+
+    // 4️⃣ Return enhanced annexure
+    return NextResponse.json({
+      ...annexure,
+      groups: enhancedGroups,
+    });
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

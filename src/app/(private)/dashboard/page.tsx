@@ -1,3 +1,4 @@
+import { DataTable } from "@/components/data-table";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function Page() {
@@ -14,7 +15,7 @@ export default function Page() {
         <h2 className="scroll-m-20 text-center border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
           Your dashboard will be ready shortly!
         </h2>
-        <p className="  text-center leading-7 [&:not(:first-child)]:mt-6">
+        <p className="  text-center leading-7 not-first:mt-6">
 
           Coming soon...        </p>
 

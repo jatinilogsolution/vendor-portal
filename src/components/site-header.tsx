@@ -19,12 +19,17 @@ import { signOut, useSession } from "@/lib/auth-client"
 import React from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { ModeToggle } from "./modules/theme-toogle"
+import { usePageTitle } from "@/stores/usePageTitle"
 
 export function SiteHeader() {
   const { data, } = useSession()
   const path = usePathname()
   const router = useRouter()
-  const currentNav = SideBarData.navMain.find((item) => item.url === path)
+  const { title } = usePageTitle()
+
+
+  const currentNav = title ? title : SideBarData.navMain.find((item) => item.url === path)?.headerTitle
 
   const [isPending, setIsPending] = React.useState(false)
 
@@ -35,7 +40,7 @@ export function SiteHeader() {
       // signOut may or may not trigger fetchOptions callbacks, so wrap in try/finally
       await signOut({
         fetchOptions: {
-          onError: (ctx) =>{ toast.error(ctx.error.message)},
+          onError: (ctx) => { toast.error(ctx.error.message) },
           onSuccess: () => {
             toast.success("You’ve logged out. See you soon!")
             router.push("/auth/login")
@@ -60,7 +65,7 @@ export function SiteHeader() {
         />
 
         <h1 className="text-base font-medium">
-          {currentNav?.headerTitle || "Page"}
+          {currentNav || "Page"}
         </h1>
 
         <div className="ml-auto flex items-center gap-2">
@@ -76,9 +81,14 @@ export function SiteHeader() {
               </Button>
             </DropdownMenuTrigger>
 
+
             <DropdownMenuContent className="mr-8 w-[180px]">
               <DropdownMenuLabel className="bg-foreground/10">
                 My Account
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel >
+                <ModeToggle />
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

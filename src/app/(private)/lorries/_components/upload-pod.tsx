@@ -115,13 +115,13 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
     <>
       {/* Trigger Button */}
       <Button
-        variant={fileUrl ? "secondary" : "outline"}
+        variant={fileUrl ? "link" : "ghost"}
         size="sm"
         onClick={handleButtonClick}
-        className="gap-2"
+        className="gap-2 text-sm font-mono  "
       >
-        <Upload size={16} />
-        {fileUrl ? "View / Replace" : "Upload POD"}
+        <Upload size={12} />
+        {fileUrl ? "Replace" : "Upload"}
       </Button>
 
       {/* View / Replace Alert */}
@@ -207,3 +207,14 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
     </>
   )
 }
+
+
+// BLR020018162 ///
+
+
+// BLR010020171
+// BLR010020168
+// BLR010020166
+
+// BLR020018170 ///
+// BLR090016601

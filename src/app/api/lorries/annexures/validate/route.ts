@@ -1,75 +1,111 @@
-// app/api/lorries/annexures/validate/route.ts
+
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-/**
- * POST body: { annexureData: Array<object> }
- * - Excel rows parsed on client and sent as annexureData
- * Response: { validationRows: [...], grouped: { fileNumber: [...] }, summary: {...} }
- */
+type IncomingRow = Record<string, any>;
+
+function normalizeRow(r: IncomingRow) {
+  const norm: any = {};
+  for (const k of Object.keys(r)) norm[String(k).trim()] = r[k];
+  norm["LR Number"] = String(norm["LR Number"] ?? norm["LRNumber"] ?? norm["LR"] ?? "").trim();
+  norm["Vendor Freight Cost"] = Number(norm["Vendor Freight Cost"] ?? norm["Freight"] ?? norm["FreightCost"] ?? 0);
+  norm["Extra Cost"] = Number(norm["Extra Cost"] ?? norm["Extra"] ?? norm["extraCost"] ?? 0);
+  norm["Remark"] = String(norm["Remark"] ?? norm["Remarks"] ?? "").trim();
+  norm["fileNumber_sheet"] = String(norm["File Number"] ?? norm["fileNumber"] ?? "").trim() || null;
+  return norm;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rows = Array.isArray(body.annexureData) ? body.annexureData : [];
 
-    if (!rows.length) {
-      return NextResponse.json({ error: "No annexure data received" }, { status: 400 });
-    }
+    if (!rows.length)
+      return NextResponse.json({ error: "No data provided" }, { status: 400 });
 
-    // Normalize keys & values for each row
-    const normalized = rows.map((r:any) => {
-      const out: Record<string, any> = {};
-      for (const k of Object.keys(r)) out[String(k).trim()] = r[k];
-      // unify LR key variants
-      out["LR Number"] = String(out["LR Number"] ?? out["LRNumber"] ?? out["LR"] ?? "").trim();
-      out["Vendor Freight Cost"] = Number(out["Vendor Freight Cost"] ?? out["Freight"] ?? out["FreightCost"] ?? 0);
-      out["Extra Cost"] = Number(out["Extra Cost"] ?? out["Extra"] ?? out["extraCost"] ?? 0);
-      out["Remark"] = String(out["Remark"] ?? out["Remarks"] ?? out["remark"] ?? "").trim();
-      // fileNumber may be present or not in sheet — we'll rely on DB fileNumber if not present
-      out["fileNumber_sheet"] = String(out["File Number"] ?? out["fileNumber"] ?? out["FileNo"] ?? "").trim() || null;
-      return out;
-    });
-
-    // Create list of LR numbers to search in DB (unique)
-    const lrNumbers = Array.from(
+    const normalized = rows.map(normalizeRow);
+    const uploadedLrs = Array.from(
       new Set(normalized.map((r: any) => r["LR Number"]).filter(Boolean))
     );
 
-    // Query DB for LRs
-    const dbLrs = await prisma.lRRequest.findMany({
-      where: { LRNumber: { in: lrNumbers as string[] } },
+    // STEP 1: Fetch all LRRequests matching uploaded LRs
+    const uploadedLrRecords = await prisma.lRRequest.findMany({
+      where: { LRNumber: { in: uploadedLrs as string[] } },
       select: {
         id: true,
         LRNumber: true,
         fileNumber: true,
+        annexureId: true,
         podlink: true,
         lrPrice: true,
         extraCost: true,
         remark: true,
-        invoiceId: true,
-        annexureId: true,
+        vehicleNo: true,
+        vehicleType: true,
+        outDate: true,
+        CustomerName: true,
+        isInvoiced: true,
+        origin: true,
+        tvendor: { select: { name: true, id: true } },
       },
     });
 
-    const dbByLr = new Map(dbLrs.map((d) => [d.LRNumber, d]));
+    const fileNumbersFromUpload = Array.from(
+      new Set(
+        uploadedLrRecords
+          .map((d) => d.fileNumber)
+          .filter(Boolean)
+      )
+    );
 
-    // Build fileNumber set (from DB) to check attachments by fileNumber
-    const fileNumbersFromDb = Array.from(new Set(dbLrs.map((d) => d.fileNumber).filter(Boolean)));
+    // STEP 2: Fetch ALL LRs from those file numbers (including ones not uploaded)
+    const allLrsForFiles = fileNumbersFromUpload.length
+      ? await prisma.lRRequest.findMany({
+        where: { fileNumber: { in: fileNumbersFromUpload } },
+        select: {
+          id: true,
+          LRNumber: true,
+          fileNumber: true,
+          annexureId: true,
+          podlink: true,
+          lrPrice: true,
+          extraCost: true,
+          remark: true,
+          vehicleNo: true,
+          vehicleType: true,
+          outDate: true,
+          CustomerName: true,
+          origin: true,
+          isInvoiced: true,
+          tvendor: { select: { name: true, id: true } },
+        },
+      })
+      : uploadedLrRecords;
 
-    
-    // Fetch documents for fileNumbers and for LRNumbers (some docs may be linked to LR)
+    const allDbByLr = new Map(allLrsForFiles.map((d) => [d.LRNumber, d]));
+
+    // STEP 3: Fetch docs for both fileNumbers and LRNumbers
+    const allLinkedIds = [
+      ...fileNumbersFromUpload,
+      ...Array.from(allDbByLr.keys()),
+    ].filter(Boolean) as string[];
+
     const docs = await prisma.document.findMany({
-      where: {
-        linkedId: { in: [...fileNumbersFromDb, ...lrNumbers].filter(Boolean) as string[] },
-      },
-      select: { id: true, linkedId: true, url: true, label: true, description: true },
+      where: { linkedId: { in: allLinkedIds } },
+      select: { id: true, linkedId: true, url: true, label: true },
     });
     const docsByLinkedId = new Map(docs.map((d) => [d.linkedId, d]));
 
-    // Build validationRows
-    const validationRows: any[] = normalized.map((r: any) => {
+    // STEP 4: Build validationRows including both uploaded & missing ones
+    const seen = new Set<string>();
+    const validationRows: any[] = [];
+
+    // include all uploaded LRs
+    for (const r of normalized) {
       const lrNum = r["LR Number"];
-      const db = dbByLr.get(lrNum) || null;
+      seen.add(lrNum);
+      const db = allDbByLr.get(lrNum);
       const fileNumber = db?.fileNumber ?? r.fileNumber_sheet ?? null;
 
       const row: any = {
@@ -78,39 +114,73 @@ export async function POST(req: NextRequest) {
         freightCost: Number(r["Vendor Freight Cost"] || 0),
         extraCost: Number(r["Extra Cost"] || 0),
         remark: r["Remark"] || "",
-        status: db ? "FOUND" : "NOT_FOUND",
         lrId: db?.id ?? null,
-        podLink: db?.podlink ?? null,
-        invoiceId: db?.invoiceId ?? null,
         annexureId: db?.annexureId ?? null,
-        dbPresent: !!db,
+        vehicleNo: db?.vehicleNo ?? null,
+        vehicleType: db?.vehicleType ?? null,
+        outDate: db?.outDate ? db.outDate.toISOString() : null,
+        podLink: db?.podlink ?? null,
         issues: [] as string[],
         extraCostAttachment: false,
+        status: "NOT_FOUND" as "FOUND" | "ALREADY_LINKED" | "NOT_FOUND" | "ALREADY_INVOICED",
+        customerName: db?.CustomerName ?? null,
+        vendorName: db?.tvendor?.name ?? null,
+        vendorId: db?.tvendor?.id ?? null,
+        origin: db?.origin ?? null,
+        isInvoiced: db?.isInvoiced ?? null,
+
       };
 
-      // validations:
-      if (!db) row.issues.push("LR not present in LRRequest table");
-      // pod
-      if (!db?.podlink) row.issues.push("POD missing");
-      // record has extra cost but check doc presence (doc can be linked to fileNumber or LR)
+      if (!db) {
+        row.issues.push("LR not found in system");
+      } else if (db.annexureId) {
+        row.status = "ALREADY_LINKED";
+        row.issues.push("Already linked to another annexure");
+      } else if (db.isInvoiced) {
+        row.status = "ALREADY_INVOICED";
+        row.issues.push("Already invoiced");
+      } else {
+        row.status = "FOUND";
+        if (!db.podlink) row.issues.push("POD missing");
+      }
+
       if (row.extraCost > 0) {
         const docForFile = fileNumber ? docsByLinkedId.get(fileNumber) : null;
         const docForLr = docsByLinkedId.get(lrNum) ?? null;
-        if (!docForFile && !docForLr) {
-          row.issues.push("Extra cost present but no proof attachment (file or LR)");
-          row.extraCostAttachment = false;
-        } else {
-          row.extraCostAttachment = true;
-        }
+        if (!docForFile && !docForLr) row.issues.push("Extra cost proof missing");
+        else row.extraCostAttachment = true;
       }
 
-      // If LR already linked to another annexure -> flag but still include (we won't auto-update)
-      if (db?.annexureId) row.issues.push("LR already linked to an annexure");
+      validationRows.push(row);
+    }
 
-      return row;
-    });
+    // Include DB-only LRs (not uploaded)
+    for (const db of allLrsForFiles) {
+      if (seen.has(db.LRNumber)) continue;
+      validationRows.push({
+        lrNumber: db.LRNumber,
+        fileNumber: db.fileNumber,
+        freightCost: db.lrPrice ?? 0,
+        extraCost: db.extraCost ?? 0,
+        remark: db.remark ?? "",
+        lrId: db.id,
+        annexureId: db.annexureId,
+        vehicleNo: db.vehicleNo,
+        vehicleType: db.vehicleType,
+        outDate: db.outDate ? db.outDate.toISOString() : null,
+        podLink: db.podlink,
+        issues: ["LR from this file not included in upload"],
+        extraCostAttachment: !!docsByLinkedId.get(db.LRNumber),
+        invoiceId: db.isInvoiced,
+        status: db.annexureId ? "ALREADY_LINKED" : db.isInvoiced ? 'ALREADY_INVOICED' : 'FOUND',
+        customerName: db.CustomerName,
+        vendorName: db.tvendor?.name,
+        vendorId: db.tvendor?.id,
+        origin: db.origin,
+      });
+    }
 
-    // Group by fileNumber (use UNASSIGNED for null)
+    // Group by fileNumber
     const grouped: Record<string, any[]> = {};
     for (const r of validationRows) {
       const key = r.fileNumber ?? "UNASSIGNED";
@@ -118,18 +188,18 @@ export async function POST(req: NextRequest) {
       grouped[key].push(r);
     }
 
-    // Build summary
     const summary = {
       totalRows: validationRows.length,
-      found: validationRows.filter((r) => r.status === "FOUND").length,
-      notFound: validationRows.filter((r) => r.status === "NOT_FOUND").length,
-      issues: validationRows.filter((r) => r.issues.length > 0).length,
+      found: validationRows.filter((r: any) => r.status === "FOUND").length,
+      linked: validationRows.filter((r: any) => r.status === "ALREADY_LINKED").length,
+      invoiced: validationRows.filter((r: any) => r.status === "ALREADY_INVOICED").length, 
+      notFound: validationRows.filter((r: any) => r.status === "NOT_FOUND").length,
       files: Object.keys(grouped).length,
     };
 
-    return NextResponse.json({ validationRows, grouped, summary }, { status: 200 });
+    return NextResponse.json({ validationRows, grouped, summary });
   } catch (err: any) {
     console.error("validate error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }
 }

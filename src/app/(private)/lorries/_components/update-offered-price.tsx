@@ -67,12 +67,12 @@ const UpdateOfferedPrice = ({
 
       <Button
         type="submit"
-        size="icon"
+        size="icon-sm"
         variant="secondary"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
-          <Loader2 className="h-5 w-5 text-violet-500 animate-spin" />
+          <Loader2 className="h-5 w-5 text-primary-foreground animate-spin" />
         ) : (
           <IconReload className="h-5 w-5 text-green-500" />
         )}

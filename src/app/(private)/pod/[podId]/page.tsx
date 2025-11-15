@@ -124,12 +124,14 @@ export default async function VendorDetailPage({
                         </div>
 
                         <div className="flex items-center gap-2 text-green-600 font-semibold">
-                            <Label className="font-semibold text-foreground ">Extra Addon:</Label>
+                            <Label className="font-semibold text-foreground  ">Extra Addon: </Label>
                             <IndianRupee className="w-3.5 h-3.5" />
                             ₹ {lr.extraCost ?? "—"}
                             <div className="self-end">
                                 <SettlePrice
+                                    // costView={false}
                                     mode="view"
+                                    label="View Cost"
                                     fileNumber={filenumber}
                                     settlePrice={lr?.priceSettled?.toString() ?? ""}
                                     vehicle={lr?.vehicleNo || ""}

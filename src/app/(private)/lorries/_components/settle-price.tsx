@@ -14,7 +14,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { toast } from 'sonner'
-import { Plus, Eye, Link } from 'lucide-react'
+import { Plus, Eye, Link, ViewIcon, EyeIcon } from 'lucide-react'
 import { Spinner } from '@/components/ui/shadcn-io/spinner'
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -29,6 +29,7 @@ interface SettlePriceProps {
     label?: string
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
     mode?: "edit" | "view" // default is edit
+    costView?: boolean
 }
 
 export const SettlePrice = ({
@@ -39,9 +40,11 @@ export const SettlePrice = ({
     label,
     size = "default",
     mode = "edit",
+    costView = true
 }: SettlePriceProps) => {
-    const [settle, setSettle] = useState<string | undefined>(settlePrice?.toString())
-    const [extraCost, setExtraCost] = useState<string | undefined>(extraCostProp?.toString())
+    const [settle, setSettle] = useState<string | undefined>(
+        settlePrice?.toString().replace(/,/g, "")
+    ); const [extraCost, setExtraCost] = useState<string | undefined>(extraCostProp?.toString())
     const [description, setDescription] = useState<string>("")
     const [file, setFile] = useState<File | null>(null)
     const [fileUrl, setFileUrl] = useState<string | null>(null)
@@ -135,12 +138,14 @@ export const SettlePrice = ({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {mode === "edit" ?
-                    <Button className=' w-full max-w-32 ' variant="secondary" size={size}>
-                        <Plus className=' text-green-500' /> {label || "Add Cost"}
+                    <Button className=' w-full max-w-32 min-w-24 ' variant={Number(extraCost!) > 0 ? `${costView ? "ghost" : "outline"}` : "outline"} size={size}>
+                        {
+                            Number(extraCost!) > 0 ? <span className=' text-green-500 flex items-center justify-center gap-2'> {costView ? `₹ ${extraCost}` : "View"}  <EyeIcon className='text-primary' /></span> : label
+                        }
                     </Button>
                     :
                     <Button size={"icon-sm"} variant={"default"} >
-                        <Link className=' text-blue-500' />
+                        <Link className='' />
                     </Button>
                 }
             </DialogTrigger>
@@ -173,6 +178,10 @@ export const SettlePrice = ({
                             <Label>Extra Cost:</Label>
                             <span>₹ {extraCost ?? "—"}</span>
                         </div>
+                        <div className="flex justify-between">
+                            <Label>Remark:</Label>
+                            <span className=' line-clamp-4'>{description ?? "—"}</span>
+                        </div>
                         {fileUrl && (
                             <div className="flex justify-between items-center">
                                 <Label>Attachment:</Label>
@@ -190,12 +199,13 @@ export const SettlePrice = ({
                     // ------------------ EDIT MODE ------------------
                     <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                         {/* Settle Cost */}
+                      
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="settle" className="text-right">Cost</Label>
                             <Input
                                 id="settle"
                                 type="number"
-                                value={settle ?? ""}
+                                value={settle ?? ""}     // <<< FIXED
                                 onChange={(e) => setSettle(e.target.value)}
                                 className="col-span-3"
                                 placeholder="Enter settle cost"

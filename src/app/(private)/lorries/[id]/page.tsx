@@ -50,7 +50,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                     <div className="flex flex-col items-start space-y-3">
                         {/* File Number */}
                         <h2 className=" font-semibold tracking-tight">
-                            <span className="font-medium text-gray-700">File: </span>
+                            <span className="font-medium ">File: </span>
 
                             <span className="text-blue-500 text-lg"> #{data[0]?.fileNumber}</span>
                         </h2>
@@ -58,7 +58,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         {/* Action Buttons */}
                         {(user.role === UserRoleEnum.TADMIN || user.role === UserRoleEnum.BOSS) && (
                             <div className="self-end">
-                                <UpdateOfferdPrice 
+                                <UpdateOfferdPrice
                                     fileNumber={data[0].fileNumber}
                                     oldPrice={data[0].priceOffered?.toString() || "0"}
                                 />
@@ -68,7 +68,10 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                             <div className="">
                                 <SettlePrice
                                     mode={"edit"}
+                                    costView={false}
+
                                     fileNumber={id}
+                                    label="+ Cost"
                                     settlePrice={data[0]?.priceSettled?.toString() ?? ""}
                                     vehicle={data[0]?.vehicleNo || ""}
                                     extraCost={data[0]?.extraCost || null}
@@ -82,12 +85,12 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
 
 
 
-                    <div className="flex flex-col items-start justify-center gap-2 mr-10 text-sm text-gray-700">
+                    <div className="flex flex-col items-start justify-center gap-2 mr-10 text-sm  ">
 
                         {/* Out Date */}
                         <div className="flex items-center gap-2">
                             {/* <CalendarIcon className="w-4 h-4 text-blue-500" /> */}
-                            <Label className="font-semibold text-gray-800">Date of Entry:</Label>
+                            <Label className="font-semibold ">Date of Entry:</Label>
 
                             <span className="font-medium">
                                 {data[0].outDate
@@ -97,18 +100,19 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Label className="font-semibold text-gray-800">Cost:</Label>
+                            <Label className="font-semibold ">Cost:</Label>
                             <div className="flex items-center gap-1 text-green-600 font-medium">
                                 <IndianRupee className="w-3.5 h-3.5" />
                                 {data[0].priceSettled ?? "—"}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-green-600 font-semibold">
-                            <Label className="font-semibold text-gray-800">Extra Addon:</Label>
+                        <div className="flex items-center gap-2 font-semibold">
+                            <Label className="font-semibold ">Extra Addon:</Label>
 
-                            <IndianRupee className="w-3.5 h-3.5" />
-                            ₹ {data[0].extraCost ?? "—"}
+                            <IndianRupee className="w-3.5 h-3.5  text-green-600" />
+                            <span className="text-green-600">
+                                {data[0].extraCost ?? "—"} </span>
                             {user.role === "TADMIN" && (
                                 <div className="self-end">
                                     <SettlePrice

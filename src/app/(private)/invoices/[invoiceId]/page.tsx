@@ -146,7 +146,7 @@ const isAuthorized =
 
         
         } */}
-        {/* <Activity mode={(invoice.status === "SENT" && isAuthorized) ? "visible" : "hidden"}> */}
+        <Activity mode={(invoice.status === "SENT" && isAuthorized) ? "visible" : "hidden"}>
           <Button variant={"link"} className=" bg-muted">
 
             <Link href={`/invoices/${invoiceId}/compare`} className=" flex items-center justify-center gap-x-2" >
@@ -154,7 +154,7 @@ const isAuthorized =
             </Link>
           </Button>
 
-        {/* </Activity> */}
+        </Activity>
       </div>
 
       <Separator className="mt-3" />

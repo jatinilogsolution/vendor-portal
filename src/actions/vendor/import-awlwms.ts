@@ -204,7 +204,7 @@ export async function PODIMPORT() {
 
     // Get the second last day (2 days before today)
     const secondLastDay = new Date();
-    secondLastDay.setDate(today.getDate() - 2);
+    secondLastDay.setDate(today.getDate() - 20);
 
     // Format as YYYY-MM-DD
     const year = secondLastDay.getFullYear();
@@ -213,7 +213,7 @@ export async function PODIMPORT() {
 
     const formattedDate = `${year}-${month}-${day}`;
 
-    const query = `SELECT distinct  tranId AS OUTLRNO,file_url,custid FROM gDrive_Data with(nolock) WHERE tranId<>'' AND CONVERT(DATE,createTime)>'2025-05-31' AND subFolder='POD' AND docType='POD'`;
+    const query = `SELECT distinct  tranId AS OUTLRNO,file_url,custid FROM gDrive_Data with(nolock) WHERE tranId<>'' AND CONVERT(DATE,createTime)>'${formattedDate}' AND subFolder='POD' AND docType='POD'`;
 
     const response = await request.query(query);
     const records = response.recordset;

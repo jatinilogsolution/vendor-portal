@@ -6,40 +6,100 @@ import { prisma } from "@/lib/prisma"
 
 
 
+// export const getCostByFileNumber = async (fileNumber: string) => {
+
+
+//     try {
+
+
+//         const pool = await getAWLWMSDBPOOL()
+
+//         const request = pool.request();
+//         request.input("fileNumber", fileNumber);
+ 
+//          const query = "SELECT distinct M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK) LEFT JOIN ( SELECT Ref_No, WH, CustID, MAX(veh_cost) AS veh_cost  FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK) GROUP BY Ref_No, WH, CustID ) AS D ON D.Ref_No = M.Ref_no AND D.WH = M.WH AND D.CustID = M.CustID WHERE M.CustID <> 'sberlc01' AND M.OutLRDate >= '2025-07-01' and m.OutTransportBy='AWL' AND M.FileNo = @fileNumber"
+//         const response = await request.query(query)
+//         console.log("Cost Data", JSON.stringify(response.recordset[0]))
+//         if (response.recordset[0].veh_cost === null || response.recordset[0].veh_cost === "") {
+//             return {
+//                 success: false,
+//                 message: `Cost not found for FileNumber: ${fileNumber} in WMS`,
+//             }
+//         }
+//         return {
+//             success: true,
+//             message: "Cost retrived sucessfully",
+//             price: response.recordset[0].veh_cost
+//         }
+//     } catch (e) {
+//         console.error("Error in getCostByFileNumber", e)
+//         throw new Error("Something went wrong")
+//         // return {
+//         //     success: false,
+//         //     message: "Something went wrong"
+//         // }
+//     }
+// }
+
+ 
+
 export const getCostByFileNumber = async (fileNumber: string) => {
+  try {
+    const pool = await getAWLWMSDBPOOL()
+    const request = pool.request()
+    request.input("fileNumber", fileNumber)
 
+    const query = `
+      SELECT DISTINCT 
+        M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, 
+        M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost
+      FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK)
+      LEFT JOIN (
+        SELECT Ref_No, WH, CustID, MAX(veh_cost) AS veh_cost
+        FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK)
+        GROUP BY Ref_No, WH, CustID
+      ) AS D 
+      ON D.Ref_No = M.Ref_no 
+      AND D.WH = M.WH 
+      AND D.CustID = M.CustID
+      WHERE 
+        M.CustID <> 'sberlc01' 
+        AND M.OutLRDate >= '2025-05-31'
+        AND M.OutTransportBy = 'AWL' 
+        AND M.FileNo = @fileNumber
+    `
 
-    try {
+    const response = await request.query(query)
+    const record = response.recordset?.[0]
 
+    console.log("WMS Cost Query Result:", JSON.stringify(record))
 
-        const pool = await getAWLWMSDBPOOL()
-
-        const request = pool.request();
-        request.input("fileNumber", fileNumber);
-
-        // const resposne = request.query("SELECT distinct M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK) LEFT JOIN ( SELECT CustInv, WH, CustID, MAX(veh_cost) AS veh_cost  FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK) GROUP BY CustInv, WH, CustID ) AS D ON D.CustInv = M.CustInv AND D.WH = M.WH AND D.CustID = M.CustID WHERE M.CustID <> 'sberlc01' AND M.OutLRDate >= '2025-07-01' and m.OutTransportBy='AWL' AND M.FileNo<>'' AND M.FileNo = @fileNumber")
-        const query = "SELECT distinct M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK) LEFT JOIN ( SELECT Ref_No, WH, CustID, MAX(veh_cost) AS veh_cost  FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK) GROUP BY Ref_No, WH, CustID ) AS D ON D.Ref_No = M.Ref_no AND D.WH = M.WH AND D.CustID = M.CustID WHERE M.CustID <> 'sberlc01' AND M.OutLRDate >= '2025-07-01' and m.OutTransportBy='AWL' AND M.FileNo = @fileNumber"
-        const response = await request.query(query)
-        console.log("Cost Data", JSON.stringify(response.recordset[0]))
-        if (response.recordset[0].veh_cost === null || response.recordset[0].veh_cost === "") {
-            return {
-                success: false,
-                message: `Cost not found for FileNumber: ${fileNumber} in WMS`,
-            }
-        }
-        return {
-            success: true,
-            message: "Cost retrived sucessfully",
-            price: response.recordset[0].veh_cost
-        }
-    } catch (e) {
-        console.error("Error in getCostByFileNumber", e)
-        throw new Error("Something went wrong")
-        // return {
-        //     success: false,
-        //     message: "Something went wrong"
-        // }
+    if (!record) {
+      return {
+        success: false,
+        message: `No record found for FileNumber: ${fileNumber} in WMS.`,
+      }
     }
+
+    if (!record.veh_cost) {
+      return {
+        success: false,
+        message: `Cost not found for FileNumber: ${fileNumber} in WMS.`,
+      }
+    }
+
+    return {
+      success: true,
+      message: "Cost retrieved successfully.",
+      price: record.veh_cost,
+    }
+  } catch (e) {
+    console.error("Error in getCostByFileNumber:", e)
+    return {
+      success: false,
+      message: "Something went wrong while fetching cost from WMS.",
+    }
+  }
 }
 
 

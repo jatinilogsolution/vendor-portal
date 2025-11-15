@@ -12,18 +12,7 @@ import { updateAddress } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Address } from "@/generated/prisma"
  
-// interface AddressProfile {
-//   id: string
-//   line1: string
-//   line2?: string
-//   city: string
-//   state?: string
-//   postal?: string
-//   country: string
-//   vendorId: string
-//   createdAt: Date
-//   updatedAt: Date
-// }
+ 
 
 interface AddressFormProps {
   address: Address
@@ -94,11 +83,14 @@ export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressF
 
   if (!isEditing) {
     return (
-      <div className="space-y-6">
+      <div  
+      className="space-y-8 p-4 md:p-6 bg-card border rounded-xl shadow-sm animate-in fade-in duration-150"
+      
+      >
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <Label className="text-muted-foreground">Address Line 1</Label>
-            <p className="mt-2 text-lg font-medium">{address.line1}</p>
+            <p className="mt-2 text-md text-left font-medium text-wrap">{address.line1}</p>
           </div>
           {address.line2 && (
             <div>
@@ -132,7 +124,10 @@ export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressF
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} 
+      className="space-y-8 p-4 md:p-6 bg-card border rounded-xl shadow-sm animate-in fade-in duration-150"
+    
+    >
       {submitError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
