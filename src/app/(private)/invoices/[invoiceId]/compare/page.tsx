@@ -75,8 +75,6 @@ const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
     const { invoiceId } = await params;
 
 
-    // src/app/api/invoices/compare/[invoiceId]/route.ts
-    // 🔥 1) CALL THE NEW API ENDPOINT
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/compare/${invoiceId}`,
         {
@@ -88,10 +86,8 @@ const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
         throw new Error("Failed to fetch invoice details");
     }
 
-    // 🔥 2) PARSED DATA (invoice + LR + finsCosting)
     const data = await res.json();
 
-    // data.LRRequest[*].finsCosting → already attached from SQL
 
     return (
         <div className="bg-background">
@@ -113,7 +109,9 @@ const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
 
             <main className="container mx-auto px-4 py-6 space-y-4">
                 <InvoiceHeader invoice={data} />
-                <LRRequestsTable invoices={data} />
+                <LRRequestsTable requests={data} />
+
+                {/* <LRRequestsTable invoices={data} /> */}
             </main>
         </div>
     );
