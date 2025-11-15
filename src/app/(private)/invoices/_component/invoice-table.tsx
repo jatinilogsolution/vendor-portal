@@ -29,7 +29,7 @@ export const InvoiceTable = ({ data }: { data: InvoiceWithVendor[] }) => {
         </TableHeader>
         <TableBody>
           {data.map((invoice) => (
-            <TableRow key={invoice.id} className="hover:bg-gray-50">
+            <TableRow key={invoice.id} >
               <TableCell>
                 <Badge variant={"secondary"} className=" w-36">
 

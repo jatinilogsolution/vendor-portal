@@ -162,7 +162,7 @@ export const InvoiceHeader = ({ invoice }: { invoice: DataType }) => {
           <div className="bg-muted/50 rounded-lg p-4 space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <IndianRupee className="h-4 w-4" />
-              <p className="text-xs font-medium uppercase tracking-wider">Offered</p>
+              <p className="text-xs font-medium uppercase tracking-wider">AWL Cost</p>
             </div>
             <p className="text-2xl font-bold">₹{totalOffered.toLocaleString('en-IN')}</p>
           </div>
@@ -170,7 +170,7 @@ export const InvoiceHeader = ({ invoice }: { invoice: DataType }) => {
           <div className="bg-muted/50 rounded-lg p-4 space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <IndianRupee className="h-4 w-4" />
-              <p className="text-xs font-medium uppercase tracking-wider">Settled</p>
+              <p className="text-xs font-medium uppercase tracking-wider">Vendor Cost</p>
             </div>
             <p className="text-2xl font-bold">₹{totalSettled.toLocaleString('en-IN')}</p>
           </div>

@@ -1,111 +1,92 @@
-
-// components/annexure/UploadAnnexureExtractor.tsx
 "use client"
 
-import React, { useState } from "react";
-import * as XLSX from "xlsx";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { Upload, Download } from "lucide-react";
-import { downloadCsv } from "@/lib/annexure-utils";
-import AnnexureValidationPanel from "./annexure-validation-panel";
- 
+import { useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Upload, File } from "lucide-react"
+import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import { useAnnexureValidationContext } from "./annexure-context"
+
 export default function UploadAnnexureExtractor() {
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [validationResponse, setValidationResponse] = useState<any | null>(null);
-  const [showPanel, setShowPanel] = useState(false);
+  const { file, loading, handleFileChange, handleValidate } = useAnnexureValidationContext()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const parseAndNormalize = (rawRows: any[]) => {
-    return rawRows.map((row) => {
-      const normalized: any = {};
-      for (const key of Object.keys(row)) normalized[String(key).trim()] = row[key];
-      normalized["LR Number"] = String(normalized["LR Number"] ?? normalized["LRNumber"] ?? normalized["LR"] ?? "").trim();
-      normalized["Vendor Freight Cost"] = Number(normalized["Vendor Freight Cost"] ?? normalized["Freight"] ?? 0);
-      normalized["Extra Cost"] = Number(normalized["Extra Cost"] ?? normalized["Extra"] ?? 0);
-      normalized["Remark"] = String(normalized["Remark"] ?? normalized["Remarks"] ?? "").trim();
-      normalized["fileNumber_sheet"] = String(normalized["File Number"] ?? normalized["fileNumber"] ?? "").trim() || null;
-      return normalized;
-    });
-  };
-
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setFile(f);
-    setLoading(true);
-    try {
-      const ab = await f.arrayBuffer();
-      const wb = XLSX.read(ab, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      const rows = parseAndNormalize(raw);
-
-      if (rows.filter((r) => r["LR Number"]).length === 0) {
-        toast.error("No LR Numbers found in sheet");
-        setLoading(false);
-        return;
-      }
-
-      // send entire parsed rows (no truncation)
-      const res = await fetch("/api/lorries/annexures/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annexureData: rows }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Validation API failed");
-        setLoading(false);
-        return;
-      }
-      setValidationResponse(data);
-      setShowPanel(true);
-      toast.success("Validation finished");
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Failed to parse or validate file");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const downloadValidationCSV = () => {
-    if (!validationResponse) return toast.error("No validation available");
-    const rows = validationResponse.validationRows || [];
-    downloadCsv(rows.map((r: any) => ({
-      lrNumber: r.lrNumber,
-      fileNumber: r.fileNumber,
-      freightCost: r.freightCost,
-      extraCost: r.extraCost,
-      status: r.status,
-      issues: (r.issues || []).join("; "),
-    })), `annexure-validation-${Date.now()}.csv`);
-  };
+  const handleBrowse = () => {
+    if (!loading) fileInputRef.current?.click()
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upload Annexure</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-3 items-center mb-4">
-          <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleFile} />
-          <Button onClick={() => { if (file) handleFile({ target: { files: [file] } } as any); }} disabled={!file || loading}>
-            <Upload size={14} /> {loading ? "Processing..." : "Validate"}
-          </Button>
-          <Button onClick={downloadValidationCSV} disabled={!validationResponse}>
-            <Download size={14} /> Export CSV
-          </Button>
+    <div className="w-full max-w-sm space-y-2">
+      {/* Label */}
+      <label
+        htmlFor="annexureFile"
+        className="block text-sm font-medium "
+      >
+        Upload Annexure File <span className="text-red-500">*</span>
+      </label>
+
+      {/* Upload container */}
+      <div
+        className={`flex items-center justify-between border rounded-md pl-3  transition-all duration-200
+        ${loading ? "opacity-80 cursor-not-allowed" : "hover:border-primary/40 hover:shadow-sm"}
+        `}
+      >
+        {/* Hidden input */}
+        <input
+          ref={fileInputRef}
+          id="annexureFile"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={handleFileChange}
+          disabled={loading}
+          className="hidden"
+        />
+
+        {/* File name display */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <File className="w-4 h-4   shrink-0" />
+          <span
+            className="truncate text-sm  "
+            title={file?.name || "No file selected"}
+          >
+            {file?.name || "No file selected"}
+          </span>
         </div>
 
-        {showPanel && validationResponse && (
-          <AnnexureValidationPanel validationResponse={validationResponse} />
-        )}
-      </CardContent>
-    </Card>
-  );
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleBrowse}
+            disabled={loading}
+            className=" ml-2 transition-all duration-150"
+          >
+            Browse
+          </Button>
+
+          <Button
+            type="button"
+            size="icon-sm"
+            onClick={() => file && handleValidate(file)}
+            disabled={!file || loading}
+            className="transition-all duration-150"
+          >
+            {loading ? (
+              <Spinner className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-5 h-5" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Hint text */}
+      <p className="text-xs text-muted-foreground">
+        Supported: <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.csv</strong> — Max 5MB
+      </p>
+    </div>
+  )
 }
+
+

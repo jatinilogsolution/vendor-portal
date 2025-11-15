@@ -103,10 +103,10 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                     <TableBody>
                         {Object.entries(groupedByVehicle).map(([fileNumber, vehicleLRs]) => (
                             <React.Fragment key={fileNumber}>
-                                <TableRow className="bg-gray-50 rounded-md">
-                                    <TableCell colSpan={3} className="py-2 font-semibold">
+                                <TableRow className="  rounded-md">
+                                    <TableCell colSpan={3} className="py-2 bg-foreground/10 font-semibold">
                                         <div className="flex items-center gap-2">
-                                            <Badge className="bg-gray-100 text-gray-700">{vehicleLRs[0].vehicleNo}</Badge>
+                                            <Badge className=" ">{vehicleLRs[0].vehicleNo}</Badge>
                                             <Badge variant="secondary">{vehicleLRs[0].vehicleType}</Badge>
                                             <Badge variant="secondary">
                                                 {new Date(vehicleLRs[0].outDate).toLocaleDateString()}
@@ -123,7 +123,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                         <TableCell className="text-center">
                                             <SettlePrice
                                                 size="sm"
-                                                label="Cost"
+                                                label="+ Cost"
                                                 fileNumber={vehicleLRs[0].fileNumber}
                                                 vehicle={vehicleLRs[0].vehicleNo}
                                                 extraCost={vehicleLRs[0].extraCost || ""}
@@ -131,7 +131,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                             />
                                         </TableCell>
                                     )}
-                                    {(status === "SENT" || session.data?.user.role === UserRoleEnum.TVENDOR) && (
+                                    {(status === "SENT" || session.data?.user.role === UserRoleEnum.TADMIN) && (
                                         <TableCell className="text-center">
                                             <SettlePrice
                                                 size="sm"
@@ -148,7 +148,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                 {vehicleLRs.map((lr) => (
                                     <TableRow
                                         key={lr.id}
-                                        className="hover:bg-gray-50 transition-colors border-b last:border-b-0"
+                                        className=" transition-colors border-b last:border-b-0"
                                     >
                                         <TableCell className="text-left py-2 font-medium">{lr.LRNumber}</TableCell>
                                         <TableCell className="text-left py-2">{lr.originName || lr.origin}</TableCell>
@@ -173,27 +173,35 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                     </TableBody>
                 </Table>
             </div>
+            {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-4 border border-primary/40 rounded-md p-3">
 
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-4 border border-muted">
-                <Button
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    variant="link"
-                >
-                    Previous
-                </Button>
-                <span className="text-sm text-gray-600">
-                    Page {page} of {totalPages || 1}
-                </span>
-                <Button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    variant="link"
-                >
-                    Next
-                </Button>
-            </div>
+                    {/* Previous */}
+                    <Button
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        variant="link"
+                    >
+                        Previous
+                    </Button>
+
+                    {/* Status */}
+                    <span className="text-sm">
+                        Page {page} of {totalPages}
+                    </span>
+
+                    {/* Next */}
+                    <Button
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        variant="link"
+                    >
+                        Next
+                    </Button>
+
+                </div>
+            )}
+
         </div>
     )
 }

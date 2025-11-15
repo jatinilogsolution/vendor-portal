@@ -1,8 +1,7 @@
 "use server"
 
-import { prisma } from "@/lib/prisma" // adjust import path as needed
-import { sendEmail } from "@/services/mail"
-// import { getAWLWMSDBPOOL } from "@/services/db"
+import { getCustomSession } from "@/actions/auth.action"
+import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
 export const uploadPodForLr = async ({
@@ -87,6 +86,7 @@ export const addQuotationCostWithAttachment = async ({
     descriptionForAttachment?: string
 }) => {
     try {
+        const session = await getCustomSession()
         // Input validation
         if (!fileNumber) {
             return { error: 'Invalid or missing File number' }
@@ -108,6 +108,7 @@ export const addQuotationCostWithAttachment = async ({
             data: {
                 priceSettled: settleCostValue,
                 extraCost: extraCostValue,
+                remark: descriptionForAttachment
             },
         })
 
@@ -119,13 +120,15 @@ export const addQuotationCostWithAttachment = async ({
                     url: attachmentUrl,
                     description: descriptionForAttachment || undefined,
                     updatedAt: new Date(),
+                    entryBy: session.user.id
                 },
                 create: {
                     linkedId: fileNumber,
                     label: `Attachment for ${fileNumber}`,
                     url: attachmentUrl,
                     description: descriptionForAttachment || undefined,
-                    entryBy: "system", // adjust if you have user info
+                    entryBy: session.user.id
+
                 },
             })
         }
@@ -138,6 +141,7 @@ export const addQuotationCostWithAttachment = async ({
                 invoiceId: true,
                 priceSettled: true,
                 extraCost: true,
+                remark: true
             },
         })
 

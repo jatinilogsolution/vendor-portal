@@ -2,6 +2,8 @@
 
 import { BillToAddressByNameId } from "@/actions/wms/warehouse"
 import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+// import { revalidatePath } from "next/cache"
 import { cache } from "react"
 
 export const getLRInfo = cache(async (fileNumber: string) => {
@@ -94,3 +96,36 @@ export const updateOfferedPriceForFileNo = async (
     return { sucess: false, message: "Failed to update Cost" };
   }
 };
+
+
+
+export async function setLrPrice({
+  lrNumber,
+  lrPrice,
+   
+  // extraCost = 0,
+}: {
+  lrNumber: string;
+  lrPrice: number;
+   // extraCost?: number;
+  // pathToRevalidate?: string;
+}) {
+  try {
+    // update LRRequest based on LRNumber
+    const updatedLR = await prisma.lRRequest.update({
+      where: { LRNumber: lrNumber },
+      data: {
+        lrPrice: lrPrice
+        // priceSettled: settledPrice,
+        // extraCost: extraCost,
+      },
+    });
+
+     
+ 
+    return { success: true, data: updatedLR };
+  } catch (err: any) {
+    console.error("Error Settling LR:", err);
+    return { success: false, message: err.message };
+  }
+}

@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { IconUpload } from '@tabler/icons-react'
+import { DownloadIcon } from 'lucide-react'
 
 const page = async () => {
 
@@ -44,10 +45,19 @@ const page = async () => {
         <div className=' flex items-center justify-between mb-2'>
 
           <h2 className=' mb-2 font-medium text-md'> All Pending LR without POD</h2>
-          <Button variant={"secondary"} asChild>
-            <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
-          </Button>
+          <div className='flex items-center gap-x-4'>
+
+            <Button variant={"secondary"} size={'sm'} asChild>
+              <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
+            </Button>
+            <Button size={'sm'} asChild>
+              <Link href="/files/Annexure.xlsx" download>
+                <DownloadIcon /> Annexure
+              </Link>
+            </Button>
+          </div>
         </div>
+
         <LorryTable vendorId={vendor?.Vendor?.id} />
       </div>
     )
@@ -61,10 +71,22 @@ const page = async () => {
       <div className=' flex items-center justify-between mb-2'>
 
         <h2 className=' mb-2 font-medium text-md'> All Pending LR without POD</h2>
-        <Button variant={"secondary"} asChild>
+        {/* <Button variant={"secondary"} asChild>
           <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
-        </Button>
+        </Button> */}
+          <div className='flex items-center gap-x-4'>
+
+            <Button variant={"secondary"} size={'sm'} asChild>
+              <Link href={"/lorries/annexure"} ><IconUpload className="text-primary" /> Annexure</Link>
+            </Button>
+            <Button size={'sm'} asChild>
+              <Link href="/files/Annexure.xlsx" download>
+                <DownloadIcon /> Annexure
+              </Link>
+            </Button>
+          </div>
       </div>
+
 
       <LorryTable />
     </div>
