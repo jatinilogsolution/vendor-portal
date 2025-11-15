@@ -104,7 +104,12 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
       const vendorSettled = lrs[0].priceSettled // vendor price (original scheme)
       const lrPriceTotal = lrs.reduce((s, x) => s + (x.lrPrice || 0), 0); // sum of lrPrice for this file (your "settle" definition)
       const extraCost = lrs.reduce((s, x) => s + (x.extraCost || 0), 0);
-
+const fileRevenue = lrs.reduce(
+      (sum, lr) =>
+        sum +
+        (lr.finsCosting?.reduce((a, f) => a + (f.revenue || 0), 0) || 0),
+      0
+    );
       return {
         fileNumber,
         lrs,
@@ -113,6 +118,7 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
         vendorSettled,
         lrPriceTotal,
         extraCost,
+        fileRevenue
       };
     });
   }, [requests?.LRRequest]);
@@ -171,6 +177,8 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
               <TableHead className="text-xs font-semibold h-10 text-right">AWL (Offered)</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">Vendor (Settled)</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">LR Price (Sum)</TableHead>
+              <TableHead className="text-xs font-semibold h-10 text-right">Revenue (Sum)</TableHead>
+
               <TableHead className="text-xs font-semibold h-10 text-right">Extra</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">Variance</TableHead>
             </TableRow>
@@ -194,6 +202,8 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.awlOffered.toLocaleString()}</TableCell>
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.vendorSettled.toLocaleString()}</TableCell>
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.lrPriceTotal.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm py-3 text-right font-semibold">₹{group.fileRevenue.toLocaleString()}</TableCell>
+                
                     <TableCell className="text-sm py-3 text-right">{group.extraCost ? <span className="font-semibold text-orange-600">₹{group.extraCost.toLocaleString()}</span> : '-'}</TableCell>
                     <TableCell className={`text-sm py-3 text-right ${getVarianceColor(fileVariance)}`}>
                       <div className="flex items-center justify-end gap-1">
@@ -258,7 +268,7 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
                         {expandedLRs.has(lr.id) && lr.finsCosting && lr.finsCosting.length > 0 && (
                           <TableRow className="bg-surface/60 hover:bg-none">
                             <TableCell></TableCell>
-                            <TableCell colSpan={6} className="py-2 px-8">
+                            <TableCell colSpan={6} className="py-2 px-8" >
                               <div className="text-xs font-semibold mb-2">Fins Costing Breakdown</div>
 
                               <div className="overflow-x-auto border rounded-md">
