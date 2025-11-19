@@ -28,7 +28,7 @@ export default function AnnexureHeader({ search, setSearch, resultsCount }: Anne
           <InputGroup className="border rounded-lg overflow-hidden   focus-within:border-blue-400 transition-all duration-200">
             <InputGroupInput
               id="annexureSearch"
-              placeholder="Search by name, LR number or date..."
+              placeholder="Search by name or date..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="focus-visible:ring-0 focus-visible:outline-none text-sm"

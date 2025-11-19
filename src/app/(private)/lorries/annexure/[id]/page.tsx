@@ -234,12 +234,12 @@ export default function AnnexureDetailPage() {
           </div>
         </div>
 
-        <Separator />
+        {/* <Separator  /> */}
 
         {/* Empty State */}
         {filteredGroups.length === 0 && (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+            <CardContent className="flex flex-col items-center justify-center ">
               <Search className="w-12 h-12 text-muted-foreground/50 mb-3" />
               <p className="text-lg font-medium text-muted-foreground">No results found</p>
               <p className="text-sm text-muted-foreground">Try adjusting your search criteria</p>
@@ -256,7 +256,7 @@ export default function AnnexureDetailPage() {
             )
 
             return (
-              <Card key={group.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card key={group.id} className=" gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Group Header */}
                 <div className="bg-linear-to-r from-primary/5 via-primary/10 to-background border-b p-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -277,11 +277,7 @@ export default function AnnexureDetailPage() {
                           {group.LRs.length} LRs
                         </Badge>
                       </div>
-                      {group.LRs[0]?.tvendor?.name && (
-                        <p className="text-sm text-muted-foreground">
-                          Vendor: <span className="font-medium">{group.LRs[0].tvendor.name}</span>
-                        </p>
-                      )}
+                      
                     </div>
 
                     <div className="flex flex-wrap gap-3 text-sm font-medium">
@@ -295,7 +291,7 @@ export default function AnnexureDetailPage() {
                         <span>
 
 
-                          <SettlePrice fileNumber={group.fileNumber} vehicle={group.LRs[0]?.vehicleNo} extraCost={group.LRs?.[0].extraCost} label="+ Extra" mode="edit" settlePrice={totalFreight} />
+                          <SettlePrice disbleCost={true} fileNumber={group.fileNumber} vehicle={group.LRs[0]?.vehicleNo} extraCost={group.LRs?.[0].extraCost} label="+ Extra" mode="edit" settlePrice={totalFreight} />
 
                         </span>
                       </div>
@@ -363,9 +359,7 @@ export default function AnnexureDetailPage() {
                               })
                               : "-"}
                           </TableCell>
-                          {/* <TableCell className="text-right font-medium">
-                            ₹{(lr.lrPrice || 0).toLocaleString()}
-                          </TableCell> */}
+                        
                           <TableCell className="text-right font-medium">
                             <form
                               onSubmit={async (e) => {
@@ -378,7 +372,9 @@ export default function AnnexureDetailPage() {
 
                                 if (form.dataset.submitting === "true") return;
                                 form.dataset.submitting = "true";
-
+                                if (lr.lrPrice === lrPrice) {
+                                  return
+                                }
                                 try {
                                   await setLrPrice({
                                     lrNumber: lr.LRNumber as any,
@@ -408,9 +404,8 @@ export default function AnnexureDetailPage() {
                                 defaultValue={(lr.lrPrice || 0).toLocaleString()}
                                 onBlur={(e) => e.currentTarget.form?.requestSubmit()}
                                 className="hover:bg-input/30 focus-visible:bg-background 
-                 dark:hover:bg-input/30 dark:focus-visible:bg-input/30
-                 h-8 w-16 border-transparent bg-transparent text-right 
-                 shadow-none focus-visible:border dark:bg-transparent"
+                                        h-8 w-16 border-transparent bg-primary border text-right 
+                                        shadow-none focus-visible:border "
                               />
                             </form>
                           </TableCell>

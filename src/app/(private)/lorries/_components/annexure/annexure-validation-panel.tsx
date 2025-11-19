@@ -50,6 +50,7 @@ type ValidationRow = {
   vendorName: string | null
   vendorId: string | null
   origin: string
+  destination: string
 }
 
 type FileGroup = {
@@ -207,6 +208,8 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
         vehicleType: r.vehicleType,
         outDate: r.outDate,
         freightCost: r.freightCost,
+        Origin: r.origin,
+        Destination: r.destination,
         extraCost: r.extraCost,
         fileExtra: fileExtra(g),
         remark: g.remark,

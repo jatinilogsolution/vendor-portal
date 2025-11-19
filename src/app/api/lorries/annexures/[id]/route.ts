@@ -1,49 +1,4 @@
-// // src/app/api/lorries/annexures/[id]/route.ts
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/lib/prisma";
 
-// export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-//   try {
-//     const {id} = await params
-//     const annexure = await prisma.annexure.findUnique({
-//       where: { id: id },
-//       include: {
-//         groups: {
-//           include: {
-//             LRs: {
-//               select: {
-//                 id: true,
-//                 LRNumber: true,
-//                 CustomerName: true,
-//                 vehicleNo: true,
-//                 vehicleType: true,
-//                 origin: true,
-//                 destination: true,
-//                 outDate: true,
-//                 lrPrice: true,
-//                 extraCost: true,
-//                 podlink: true,
-//                 tvendor: {
-//                   select:{
-//                     id: true,
-//                     name: true
-//                   }
-//                 }
-//               },
-//             },
-//           },
-//         },
-//       },
-//     });
-//     if (!annexure) return NextResponse.json({ error: "Not found" }, { status: 404 });
-//     return NextResponse.json(annexure);
-//   } catch (err: any) {
-//     console.error(err);
-//     return NextResponse.json({ error: "Failed" }, { status: 500 });
-//   }
-// }
-
-// src/app/api/lorries/annexures/[id]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { BillToAddressByNameId } from "@/actions/wms/warehouse";

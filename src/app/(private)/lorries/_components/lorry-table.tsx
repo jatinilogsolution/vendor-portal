@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ChevronLeft, ChevronRight, Search, Eye, Calendar, FileText } from "lucide-react"
+import { ChevronLeft, ChevronRight, Search, Eye, Calendar, FileText, AlertCircle, Truck } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { debounce } from "lodash"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -15,6 +15,7 @@ import { LazyDate } from "@/components/lazzy-date"
 import { getAllLRforVendorById } from "../../profile/_action/getVendor"
 import { generateSingleInvoiceFromLorryPage } from "../../invoices/_action/invoice"
 import { useUserCheck } from "@/hooks/useRoleCheck"
+import { Badge } from "@/components/ui/badge"
 
 interface Lorry {
   LRNumber: string
@@ -67,11 +68,10 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
   const [fromDate, setFromDate] = useState<string>("")
   const [toDate, setToDate] = useState<string>("")
 
-
+  const { roleCheck } = useUserCheck()
   // store actual selected files across pages
   const [selectedFilesData, setSelectedFilesData] = useState<Record<string, Lorry[]>>({})
 
-  const { roleCheck } = useUserCheck()
   const searchParams = useSearchParams()
   const router = useRouter()
   const page = Number(searchParams.get("page")) || 1
@@ -118,21 +118,31 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
         pod
       })
 
-      const formattedData: Lorry[] = res.data.map((item: any) => ({
-        LRNumber: item.LRNumber,
-        outDate: item.outDate,
-        vehicleNo: item.vehicleNo,
-        origin: item.origin,
-        vehicleType: item.vehicleType,
-        destination: item.destination || "",
-        tvendorName: item.tvendor?.name || "-",
-        fileNumber: item.fileNumber,
-        podLink: item.podlink || "",
-      }))
+      const formattedData: Lorry[] = res.data.map((item: any) => {
+        const cleanedFile = (item.fileNumber ?? "NO_FILE")
+          .toString()
+          .trim()
+          .replace(/\u200B/g, "")
+          .replace(/\u00A0/g, "")
+          .replace(/\s+/g, "");
+
+        return {
+          LRNumber: item.LRNumber,
+          outDate: item.outDate,
+          vehicleNo: item.vehicleNo,
+          origin: item.origin,
+          vehicleType: item.vehicleType,
+          destination: item.destination || "",
+          tvendorName: item.tvendor?.name || "-",
+          fileNumber: cleanedFile,   // <-- FIXED HERE
+          podLink: item.podlink || "",
+        }
+      })
+
 
       setData(formattedData)
       setTotalPages(res.totalPages || 1)
-      setTotalItems(res.totalItems || 0)
+      setTotalItems(res.totalFiles || 0)
 
       if (querySearch && formattedData.length === 0) {
         toast.info(`No results found for "${querySearch}"`)
@@ -153,68 +163,83 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
   }, [fetchData])
 
   const groupedData = useMemo(() => {
-    return data.reduce((acc, curr) => {
-      if (!acc[curr.fileNumber]) acc[curr.fileNumber] = []
-      acc[curr.fileNumber].push(curr)
-      return acc
-    }, {} as Record<string, Lorry[]>)
+    const groups: Record<string, Lorry[]> = {}
+
+    for (const curr of data) {
+      const fileKey = (curr.fileNumber ?? "NO_FILE")
+        .toString()
+        .trim()
+        .replace(/\u200B/g, "")
+        .replace(/\u00A0/g, "")
+        .replace(/\s+/g, "")
+
+      if (!groups[fileKey]) groups[fileKey] = []
+      groups[fileKey].push(curr)
+    }
+
+    Object.values(groups).forEach((records) => {
+      records.sort((a, b) => a.LRNumber.localeCompare(b.LRNumber))
+    })
+
+    return groups
   }, [data])
 
+
   // toggle selection of files, persist across pages
-  const toggleFileSelection = useCallback(
-    (fileNumber: string) => {
-      setSelectedFilesData((prev) => {
-        if (prev[fileNumber]) {
-          const newData = { ...prev }
-          delete newData[fileNumber]
-          return newData
-        } else if (groupedData[fileNumber]) {
-          return { ...prev, [fileNumber]: groupedData[fileNumber] }
-        }
-        return prev
-      })
-    },
-    [groupedData]
-  )
+  // const toggleFileSelection = useCallback(
+  //   (fileNumber: string) => {
+  //     setSelectedFilesData((prev) => {
+  //       if (prev[fileNumber]) {
+  //         const newData = { ...prev }
+  //         delete newData[fileNumber]
+  //         return newData
+  //       } else if (groupedData[fileNumber]) {
+  //         return { ...prev, [fileNumber]: groupedData[fileNumber] }
+  //       }
+  //       return prev
+  //     })
+  //   },
+  //   [groupedData]
+  // )
 
-  const handleGenerateInvoice = async () => {
-    const filesWithoutPods = Object.entries(selectedFilesData)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .filter(([_, lrs]) => lrs.some((lr) => !lr.podLink))
-      .map(([fileNo]) => fileNo)
+  // const handleGenerateInvoice = async () => {
+  //   const filesWithoutPods = Object.entries(selectedFilesData)
+  //     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //     .filter(([_, lrs]) => lrs.some((lr) => !lr.podLink))
+  //     .map(([fileNo]) => fileNo)
 
-    if (filesWithoutPods.length > 0) {
-      toast.error(`Cannot generate invoice. Files without POD: ${filesWithoutPods.join(", ")}`)
-      return
-    }
+  //   if (filesWithoutPods.length > 0) {
+  //     toast.error(`Cannot generate invoice. Files without POD: ${filesWithoutPods.join(", ")}`)
+  //     return
+  //   }
 
-    const invoiceData = Object.entries(selectedFilesData).map(([fileNo, lrs]) => ({
-      fileNumber: fileNo,
-      LRs: lrs.map((lr) => ({
-        LRNumber: lr.LRNumber,
-        vehicleNo: lr.vehicleNo,
-        vehicleType: lr.vehicleType,
-        origin: lr.origin,
-        destination: lr.destination,
-        vendorId: vendorId,
-      })),
-    }))
+  //   const invoiceData = Object.entries(selectedFilesData).map(([fileNo, lrs]) => ({
+  //     fileNumber: fileNo,
+  //     LRs: lrs.map((lr) => ({
+  //       LRNumber: lr.LRNumber,
+  //       vehicleNo: lr.vehicleNo,
+  //       vehicleType: lr.vehicleType,
+  //       origin: lr.origin,
+  //       destination: lr.destination,
+  //       vendorId: vendorId,
+  //     })),
+  //   }))
 
 
-    const { error, reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
-    if (error) {
-      toast.error(error)
-    }
-    if (!refernceNo) {
+  //   const { error, reference } = await generateSingleInvoiceFromLorryPage(invoiceData, refernceNo ?? "")
+  //   if (error) {
+  //     toast.error(error)
+  //   }
+  //   if (!refernceNo) {
 
-      router.push(`/invoices/${reference?.id}`)
-    } else {
-      setOpen!()
-    }
+  //     router.push(`/invoices/${reference?.id}`)
+  //   } else {
+  //     setOpen!()
+  //   }
 
-    toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
-    // console.log("Invoice Data:", invoiceData)
-  }
+  //   toast.success(`Invoice generated for ${Object.keys(selectedFilesData).length} file(s)!`)
+  //   // console.log("Invoice Data:", invoiceData)
+  // }
 
   const handleClearDates = useCallback(() => {
     setFromDate("")
@@ -299,7 +324,11 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
               <TableRow>
                 <TableHead className="w-12"><span className="sr-only">Select</span></TableHead>
                 <TableHead className="font-semibold">LR Number</TableHead>
-                <TableHead className="font-semibold">Vendor</TableHead>
+
+                {!(roleCheck("TVENDOR") || roleCheck("VENDOR")) ?
+                  <TableHead>Vendor</TableHead> : <TableHead></TableHead>
+                }
+                {/* <TableHead className="font-semibold">Vendor</TableHead> */}
                 {/* <TableHead className="font-semibold">Date</TableHead> */}
                 <TableHead className="font-semibold">Origin</TableHead>
                 <TableHead className="font-semibold">Destination</TableHead>
@@ -312,42 +341,65 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                 <TableSkeletonLoader />
               ) : Object.keys(groupedData).length > 0 ? (
                 Object.entries(groupedData).map(([fileNo, records]) => {
-                  const isSelected = !!selectedFilesData[fileNo]
+                  // const isSelected = !!selectedFilesData[fileNo]
                   const hasMissingPods = records.some((r) => !r.podLink)
 
                   return (
                     <React.Fragment key={fileNo}>
-                      <TableRow className="bg-muted/40 hover:bg-muted/60 border transition-colors">
-                        <TableCell className="py-3">
+                      <TableRow className=" bg-muted/40 hover:bg-muted/60 border transition-colors">
+                        {/* <TableCell className="py-3">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleFileSelection(fileNo)}
                           />
-                        </TableCell>
-                        <TableCell colSpan={6} className="font-semibold py-1">
-                          <div className="flex items-center justify-between gap-4 flex-wrap">
-                            {/* <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-muted-foreground" />
-                              <span>File: {fileNo}</span>
-                            </div> */}
+                        </TableCell> */}
+                        <TableCell colSpan={6} className="py-4 bg-muted/30">
+                          <div className="flex flex-col gap-3">
+                            {/* Primary Header Row */}
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-6 text-sm">
+                                {/* File Number - Hidden for TVENDOR/VENDOR */}
+                                {!(roleCheck("TVENDOR") || roleCheck("VENDOR")) && (
+                                  <div className="flex items-center gap-2 font-medium">
+                                    <FileText className="w-4 h-4 text-muted-foreground" />
+                                    <span>File: {fileNo}</span>
+                                  </div>
+                                )}
 
-                            <p className=" text-muted-foreground"> Date: <LazyDate date={records[0].outDate} /></p>
-                            <div className=" flex items-center  gap-4 flex-wrap mr-10">
+                                {/* Date */}
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>Date: <LazyDate date={records[0].outDate} /></span>
+                                </div>
 
-                              <div className="flex items-center gap-2 text-muted-foreground font-normal">
-                                <span>Vehicle: {records[0].vehicleNo}</span>
-                                <span className="text-xs px-2 py-0.5 bg-background rounded-md">{records[0].vehicleType}</span>
                               </div>
-                              <span className="text-sm text-muted-foreground font-normal">
-                                {records.length} LR{records.length > 1 ? "s" : ""}
-                              </span>
-                              {hasMissingPods && (
-                                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
-                                  Missing POD
-                                </span>
-                              )}
-                            </div>
 
+                              {/* Status Badges - Right aligned */}
+                              <div className="flex items-center gap-2">
+
+                                {/* Vehicle Info */}
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2 text-foreground font-medium">
+                                    <Truck className="w-4 h-4 text-muted-foreground" />
+                                    <span>{records[0].vehicleNo}</span>
+                                  </div>
+                                  <Badge variant={"outline"}>
+                                    {records[0].vehicleType}
+                                  </Badge>
+                                </div>
+
+                                {/* LR Count */}
+                                <span className="text-muted-foreground">
+                                  {records.length} LR{records.length > 1 ? "s" : ""}
+                                </span>
+                                {hasMissingPods && (
+                                  <Badge >
+                                    <AlertCircle className="w-3.5 h-3.5" />
+                                    Missing POD
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -364,7 +416,10 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                         >
                           <TableCell></TableCell>
                           <TableCell className="font-medium">{lr.LRNumber}</TableCell>
-                          <TableCell>{lr.tvendorName}</TableCell>
+
+                          {!(roleCheck("TVENDOR") || roleCheck("VENDOR")) ?
+                            <TableCell>{lr.tvendorName}</TableCell> : <TableCell></TableCell>
+                          }
                           <TableCell>{lr.origin}</TableCell>
                           <TableCell>{lr.destination}</TableCell>
                           <TableCell className="text-center">
@@ -406,7 +461,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
         </div>
 
         <div className="flex items-center gap-3 order-1 sm:order-2">
-
+          {/* 
           {roleCheck("TVENDOR") && <Button
             onClick={handleGenerateInvoice}
             disabled={Object.keys(selectedFilesData).length === 0}
@@ -416,7 +471,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
             <FileText className="w-4 h-4" />
             {pod ? `Add (${Object.keys(selectedFilesData).length})` : `Generate BCN (${Object.keys(selectedFilesData).length})`}
           </Button>
-          }
+          } */}
 
           <div className="flex items-center gap-2">
             <Button

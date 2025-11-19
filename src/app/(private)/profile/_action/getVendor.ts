@@ -58,7 +58,6 @@ interface GetAllLRParams {
 
  
 
-
 export const getAllLRforVendorById = async ({
   vendorId,
   page = 1,
@@ -69,72 +68,78 @@ export const getAllLRforVendorById = async ({
   pod,
 }: GetAllLRParams) => {
   try {
-    const skip = (page - 1) * limit
-
-
+    const skip = (page - 1) * limit;
 
     const filters: any = {
       tvendorId: vendorId,
       isInvoiced: false,
       invoiceId: null,
-    }
+    };
 
-    // POD filter
-
-    // 📅 Date filter
+    // Date filter
     if (fromDate && toDate) {
       filters.outDate = {
         gte: new Date(fromDate),
         lte: new Date(toDate),
-      }
+      };
     } else if (fromDate) {
-      filters.outDate = { gte: new Date(fromDate) }
+      filters.outDate = { gte: new Date(fromDate) };
     } else if (toDate) {
-      filters.outDate = { lte: new Date(toDate) }
+      filters.outDate = { lte: new Date(toDate) };
     }
 
- 
+    // Search
     if (search?.trim()) {
-      const searchTerm = search.trim()
+      const s = search.trim();
       filters.AND = [
         {
           OR: [
-            { LRNumber: { contains: searchTerm } },
-            { vehicleNo: { contains: searchTerm } },
-            { vehicleType: { contains: searchTerm } },
-            { origin: { contains: searchTerm } },
-            { destination: { contains: searchTerm } },
-            {
-              tvendor: {
-                name: { contains: searchTerm },
-              },
-            },
+            { LRNumber: { contains: s } },
+            { vehicleNo: { contains: s } },
+            { vehicleType: { contains: s } },
+            { origin: { contains: s } },
+            { destination: { contains: s } },
+            { tvendor: { name: { contains: s } } },
           ],
         },
-      ]
+      ];
     }
+
+    // POD filter
     if (pod === true) {
-      filters.podlink = { not: null }  
-
-      filters.AND = [
-        ...(filters.AND || []),
-        { podlink: { not: "" } },  
-      ]
+      filters.podlink = { not: null };
+      filters.AND = [...(filters.AND || []), { podlink: { not: "" } }];
     }
 
-    // 🧮 Total count
-    const totalItems = await prisma.lRRequest.count({ where: filters })
-
-    // 📋 Fetch paginated data
-    const data = await prisma.lRRequest.findMany({
+    // 1️⃣ Get DISTINCT fileNumbers
+    const fileGroups = await prisma.lRRequest.findMany({
       where: filters,
+      distinct: ["fileNumber"],
+      select: { fileNumber: true },
+      orderBy: {
+        outDate: "desc",   // 🆕 newest first
+      },
+    });
+
+    const totalFiles = fileGroups.length;
+    const totalPages = Math.ceil(totalFiles / limit);
+
+    // 2️⃣ Paginate based on file groups
+    const paginatedFileNumbers = fileGroups
+      .slice(skip, skip + limit)
+      .map((f) => f.fileNumber);
+
+    // 3️⃣ Fetch ALL LRs for those fileNumbers
+    const data = await prisma.lRRequest.findMany({
+      where: {
+        ...filters,
+        fileNumber: { in: paginatedFileNumbers },
+      },
       include: {
         tvendor: { select: { id: true, name: true } },
       },
-      skip,
-      take: limit,
       orderBy: { outDate: "desc" },
-    })
+    });
 
     // 🏭 Resolve warehouse names for origins (with caching)
     const warehouseCache: Record<string, string> = {}
@@ -162,15 +167,135 @@ export const getAllLRforVendorById = async ({
 
     return {
       data: enhancedData,
-      totalItems,
-      totalPages: Math.ceil(totalItems / limit),
+      totalFiles,
+      totalPages: Math.ceil(totalFiles / limit),
       currentPage: page,
     }
+    // return {
+    //   data,
+    //   totalFiles,
+    //   totalPages,
+    //   currentPage: page,
+    // };
   } catch (err) {
-    console.error("❌ Error fetching LRs:", err)
-    throw new Error("Failed to fetch lorry receipts")
+    console.error("❌ Error fetching LRs:", err);
+    throw new Error("Failed to fetch lorry receipts");
   }
-}
+};
+
+
+// export const getAllLRforVendorById = async ({
+//   vendorId,
+//   page = 1,
+//   limit = 10,
+//   search = "",
+//   fromDate,
+//   toDate,
+//   pod,
+// }: GetAllLRParams) => {
+//   try {
+//     const skip = (page - 1) * limit
+
+
+
+//     const filters: any = {
+//       tvendorId: vendorId,
+//       isInvoiced: false,
+//       invoiceId: null,
+//     }
+
+//     // POD filter
+
+//     // 📅 Date filter
+//     if (fromDate && toDate) {
+//       filters.outDate = {
+//         gte: new Date(fromDate),
+//         lte: new Date(toDate),
+//       }
+//     } else if (fromDate) {
+//       filters.outDate = { gte: new Date(fromDate) }
+//     } else if (toDate) {
+//       filters.outDate = { lte: new Date(toDate) }
+//     }
+
+ 
+//     if (search?.trim()) {
+//       const searchTerm = search.trim()
+//       filters.AND = [
+//         {
+//           OR: [
+//             { LRNumber: { contains: searchTerm } },
+//             { vehicleNo: { contains: searchTerm } },
+//             { vehicleType: { contains: searchTerm } },
+//             { origin: { contains: searchTerm } },
+//             { destination: { contains: searchTerm } },
+//             {
+//               tvendor: {
+//                 name: { contains: searchTerm },
+//               },
+//             },
+//           ],
+//         },
+//       ]
+//     }
+//     if (pod === true) {
+//       filters.podlink = { not: null }  
+
+//       filters.AND = [
+//         ...(filters.AND || []),
+//         { podlink: { not: "" } },  
+//       ]
+//     }
+
+//     // 🧮 Total count
+//     const totalItems = await prisma.lRRequest.count({ where: filters })
+
+//     // 📋 Fetch paginated data
+//     const data = await prisma.lRRequest.findMany({
+//       where: filters,
+//       include: {
+//         tvendor: { select: { id: true, name: true } },
+//       },
+//       skip,
+//       take: limit,
+//       orderBy: { outDate: "desc" },
+//     })
+
+//     // 🏭 Resolve warehouse names for origins (with caching)
+//     const warehouseCache: Record<string, string> = {}
+
+//     const enhancedData = await Promise.all(
+//       data.map(async (item) => {
+//         const originName = item.origin
+
+//         if (originName && !warehouseCache[originName]) {
+//           try {
+//             const { warehouseName } = await BillToAddressByNameId(originName)
+//             warehouseCache[originName] = warehouseName || originName
+//           } catch (err) {
+//             console.warn(`Failed to fetch warehouse name for ID: ${originName}`, err)
+//             warehouseCache[originName] = originName
+//           }
+//         }
+
+//         return {
+//           ...item,
+//           origin: warehouseCache[originName!] || originName,
+//         }
+//       })
+//     )
+
+//     return {
+//       data: enhancedData,
+//       totalItems,
+//       totalPages: Math.ceil(totalItems / limit),
+//       currentPage: page,
+//     }
+//   } catch (err) {
+//     console.error("❌ Error fetching LRs:", err)
+//     throw new Error("Failed to fetch lorry receipts")
+//   }
+// }
 
 
 
