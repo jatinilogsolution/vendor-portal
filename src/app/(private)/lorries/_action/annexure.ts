@@ -173,3 +173,79 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
     return { error: err instanceof Error ? err.message : "Unknown error" };
   }
 };
+
+
+ 
+
+export async function validateFileAdd(
+  lrNumber: string,
+  annexureId: string
+) {
+  // 1. LR exists?
+  const lr = await prisma.lRRequest.findUnique({
+    where: { LRNumber: lrNumber },
+  });
+
+  if (!lr) return { error: "LR not found in database." };
+
+  // 2. Has fileNumber?
+  const fileNo = lr.fileNumber;
+  if (!fileNo) return { error: "This LR has no file number assigned." };
+
+  // 3. Fetch all LRs belonging to this file
+  const fileLRs = await prisma.lRRequest.findMany({
+    where: { fileNumber: fileNo },
+    orderBy: { LRNumber: "asc" },
+  });
+
+  // 4. If any LR belongs to another annexure → block
+  const isInOtherAnnexure = fileLRs.find(
+    (x) => x.annexureId && x.annexureId !== annexureId
+  );
+
+  if (isInOtherAnnexure) {
+    const annexure = await prisma.annexure.findUnique({
+      where: { id: isInOtherAnnexure.annexureId! },
+    });
+
+    return {
+      error: `This file is already linked with Annexure "${annexure?.name}". Cannot attach.`,
+    };
+  }
+
+  // 5. If LR already in THIS annexure → block adding again
+  const alreadyIncluded = fileLRs.find(
+    (x) => x.annexureId === annexureId
+  );
+
+  if (alreadyIncluded) {
+    return {
+      error: `This file is already attached to current annexure.`,
+    };
+  }
+
+  // 6. If any LR is invoiced → block
+  const invoiced = fileLRs.find((x) => x.isInvoiced);
+
+  if (invoiced) {
+    return {
+      error: `LR ${invoiced.LRNumber} is already invoiced. Cannot attach this file.`,
+    };
+  }
+
+  // 7. Sanity check: file is complete (no missing LRs)
+  // you can add extra validation if required
+
+  return {
+    success: true,
+    fileNumber: fileNo,
+    totalLRs: fileLRs.length,
+    lrs: fileLRs.map((lr) => ({
+      id: lr.id,
+      lrNumber: lr.LRNumber,
+      price: lr.lrPrice ?? null,
+      extra: lr.extraCost ?? null,
+      remark: lr.remark ?? "",
+    })),
+  };
+}

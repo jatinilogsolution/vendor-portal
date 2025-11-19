@@ -100,16 +100,16 @@ export const LRRequestsTable = ({ requests }: { requests: Invoice }) => {
     });
     return Array.from(grouped.entries()).map(([fileNumber, lrs]) => {
       const lrCount = lrs.length;
-      const awlOffered = lrs[0].priceOffered // AWL (offered)
+      const awlOffered = lrs[0].priceOffered 
       const vendorSettled = lrs[0].priceSettled // vendor price (original scheme)
       const lrPriceTotal = lrs.reduce((s, x) => s + (x.lrPrice || 0), 0); // sum of lrPrice for this file (your "settle" definition)
       const extraCost = lrs.reduce((s, x) => s + (x.extraCost || 0), 0);
-const fileRevenue = lrs.reduce(
-      (sum, lr) =>
-        sum +
-        (lr.finsCosting?.reduce((a, f) => a + (f.revenue || 0), 0) || 0),
-      0
-    );
+      const fileRevenue = lrs.reduce(
+        (sum, lr) =>
+          sum +
+          (lr.finsCosting?.reduce((a, f) => a + (f.revenue || 0), 0) || 0),
+        0
+      );
       return {
         fileNumber,
         lrs,
@@ -174,8 +174,8 @@ const fileRevenue = lrs.reduce(
               <TableHead className="text-xs font-semibold h-10 w-12"></TableHead>
               <TableHead className="text-xs font-semibold h-10">File No.</TableHead>
               <TableHead className="text-xs font-semibold h-10">LR Count</TableHead>
-              <TableHead className="text-xs font-semibold h-10 text-right">AWL (Offered)</TableHead>
-              <TableHead className="text-xs font-semibold h-10 text-right">Vendor (Settled)</TableHead>
+              <TableHead className="text-xs font-semibold h-10 text-right">PRQ Cost</TableHead>
+              <TableHead className="text-xs font-semibold h-10 text-right">Vendor Cost</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">LR Price (Sum)</TableHead>
               <TableHead className="text-xs font-semibold h-10 text-right">Revenue (Sum)</TableHead>
 
@@ -199,11 +199,11 @@ const fileRevenue = lrs.reduce(
                       <Badge variant={"secondary"} className="border border-primary">{group.lrs[0].vehicleNo} - {group.lrs[0].vehicleType}</Badge>
                     </TableCell>
                     <TableCell className="text-sm py-3"><Badge variant="secondary">{group.lrCount} LR{group.lrCount > 1 ? 's' : ''}</Badge></TableCell>
-                    <TableCell className="text-sm py-3 text-right font-semibold">₹{group.awlOffered.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm py-3 text-right font-semibold">₹{group?.awlOffered}</TableCell>
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.vendorSettled.toLocaleString()}</TableCell>
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.lrPriceTotal.toLocaleString()}</TableCell>
                     <TableCell className="text-sm py-3 text-right font-semibold">₹{group.fileRevenue.toLocaleString()}</TableCell>
-                
+
                     <TableCell className="text-sm py-3 text-right">{group.extraCost ? <span className="font-semibold text-orange-600">₹{group.extraCost.toLocaleString()}</span> : '-'}</TableCell>
                     <TableCell className={`text-sm py-3 text-right ${getVarianceColor(fileVariance)}`}>
                       <div className="flex items-center justify-end gap-1">

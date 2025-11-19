@@ -30,6 +30,7 @@ interface SettlePriceProps {
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
     mode?: "edit" | "view" // default is edit
     costView?: boolean
+    disbleCost?:boolean
 }
 
 export const SettlePrice = ({
@@ -40,7 +41,8 @@ export const SettlePrice = ({
     label,
     size = "default",
     mode = "edit",
-    costView = true
+    costView = true,
+    disbleCost=false
 }: SettlePriceProps) => {
     const [settle, setSettle] = useState<string | undefined>(
         settlePrice?.toString().replace(/,/g, "")
@@ -205,11 +207,12 @@ export const SettlePrice = ({
                             <Input
                                 id="settle"
                                 type="number"
+
                                 value={settle ?? ""}     // <<< FIXED
                                 onChange={(e) => setSettle(e.target.value)}
                                 className="col-span-3"
                                 placeholder="Enter settle cost"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || disbleCost}
                             />
                         </div>
 

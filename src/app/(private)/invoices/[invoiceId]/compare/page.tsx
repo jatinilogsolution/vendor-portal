@@ -60,7 +60,9 @@ import { UserRoleEnum } from '@/utils/constant';
 import { forbidden } from 'next/navigation';
 import { FileSpreadsheet } from 'lucide-react';
 import { InvoiceHeader } from '../../_component/compare/invoice-header';
-import { LRRequestsTable } from '../../_component/compare/lr-request-table';
+import { LRRequestsTable } from '../../_component/invoice/LRRequestsTable';
+// import { LRRequestsTa/ble } from '../../_component/invoice';
+ // import { LRRequestsTable } from '../../_component/compare/lr-request-table';
 
 const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
     const session = await getCustomSession();
@@ -109,7 +111,8 @@ const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
 
             <main className="container mx-auto px-4 py-6 space-y-4">
                 <InvoiceHeader invoice={data} />
-                <LRRequestsTable requests={data} />
+                {/* <LRRequestsTable requests={data} /> */}
+                <LRRequestsTable requests={data}  />
 
                 {/* <LRRequestsTable invoices={data} /> */}
             </main>
