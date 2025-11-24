@@ -1,3 +1,4 @@
+"use server"
 import { prisma } from "@/lib/prisma"
 import { getExtraCostDocumentByFileNumber } from "./pod"
 
@@ -10,8 +11,10 @@ export interface Annexure {
   groups?: any[]
 }
 
+
 export async function getAnnexures(): Promise<Annexure[]> {
-  const res = await fetch("/api/lorries/annexures", { cache: "no-store" })
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures`, { cache: "no-store" })
   if (!res.ok) throw new Error("Failed to fetch annexures")
 
   const data = await res.json()
@@ -19,14 +22,14 @@ export async function getAnnexures(): Promise<Annexure[]> {
 }
 
 export async function deleteAnnexure(id: string): Promise<{ unlinkedCount?: number }> {
-  const res = await fetch(`/api/lorries/annexures/${id}/delete`, { method: "DELETE" })
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/${id}/delete`, { method: "DELETE" })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || "Delete failed")
   return data
 }
 
 export async function validateAnnexure(rows: any[]): Promise<any> {
-  const res = await fetch("/api/lorries/annexures/validate", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ annexureData: rows }),
@@ -37,7 +40,7 @@ export async function validateAnnexure(rows: any[]): Promise<any> {
 }
 
 export async function saveAnnexure(payload: any): Promise<any> {
-  const res = await fetch("/api/lorries/annexures/saveAnnexure", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/saveAnnexure`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -140,10 +143,10 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
     )
       .toString()
       .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${Math.floor(
-      Math.random() * 1000
-    )
-      .toString()
-      .padStart(3, "0")}`;
+        Math.random() * 1000
+      )
+        .toString()
+        .padStart(3, "0")}`;
 
     // 7️⃣ Create invoice
     const invoice = await prisma.invoice.create({
@@ -175,7 +178,7 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
 };
 
 
- 
+
 
 export async function validateFileAdd(
   lrNumber: string,

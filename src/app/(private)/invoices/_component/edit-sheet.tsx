@@ -16,18 +16,16 @@ import {
 import { Plus } from "lucide-react"
 import { type FormEvent, useEffect, useState, useTransition } from "react"
 import { getInvoiceOnlyById } from "../_action/invoice-list"
-import type { Invoice } from "@/generated/prisma"
 import { WarehouseSelector } from "@/components/modules/warehouse-selector"
 import { updateBillToAddress } from "../_action/invoice-update"
-import { BillingAddition, BillingAdditions } from "./billing-additions"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import { Invoice } from "@/generated/prisma/client"
 
 export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: () => void }) => {
   const [isPending, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
   const [data, setData] = useState<Invoice | null>(null)
   const [value, setValue] = useState<string>("")
-  // const [additions, setAdditions] = useState<BillingAddition[]>([])
   useEffect(() => {
     const fetchInvoice = async () => {
       const { data, error } = await getInvoiceOnlyById({ id: invoiceId })
@@ -78,10 +76,7 @@ export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: 
               <WarehouseSelector value={value} setValue={setValue} />
             </div>
 
-            {/* <div className="grid gap-3">
-              <Label htmlFor="billing-additions">Billing Additions</Label>
-              <BillingAdditions value={additions} onChange={setAdditions} />
-            </div> */}
+
           </div>
 
           <SheetFooter className="flex justify-between">
@@ -89,7 +84,6 @@ export const InvoiceAddOnSheet = ({ invoiceId, fun }: { invoiceId: string, fun: 
               {isPending ? <Spinner className="w-5 h-5" /> : "Save changes"}
             </Button>
 
-            {/* Make sure SheetClose button is separate and not inside the form */}
             <SheetClose asChild>
               <Button variant="outline" type="button">
                 Close

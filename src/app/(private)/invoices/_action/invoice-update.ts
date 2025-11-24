@@ -94,12 +94,14 @@ export async function saveInvoiceFile(
   invoiceId: string,
   invoiceNumber: string,
   file: File,
-  referenceNumber: string
+  referenceNumber: string,
+  invoiceDate: string
 ) {
   if (!invoiceId) throw new Error("Invoice ID is required");
   if (!referenceNumber?.trim()) throw new Error("Reference number is required");
   if (!invoiceNumber?.trim()) throw new Error("Invoice number is required");
   if (!file) throw new Error("File is required");
+  if (!invoiceDate) throw new Error("Invoice Date is required");
 
   try {
     // Check if the invoiceNumber already exists for the same reference
@@ -133,6 +135,7 @@ export async function saveInvoiceFile(
         invoiceURI: fileUrl,
         invoiceNumber: invoiceNumber,
         refernceNumber: referenceNumber,
+        invoiceDate: new Date(invoiceDate),
       },
     });
 

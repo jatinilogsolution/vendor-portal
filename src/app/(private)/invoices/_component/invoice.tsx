@@ -55,7 +55,7 @@ export const Invoice = ({ data }: { data: any }) => {
             </div>
 
             <p className="text-muted-foreground">
-              Date: {new Date(data.createdAt).toLocaleDateString()}
+              Date: {new Date(data.invoiceDate).toLocaleDateString()}
             </p>
           </div>
 

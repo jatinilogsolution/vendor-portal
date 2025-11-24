@@ -117,9 +117,20 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                         ₹ {vehicleLRs[0].priceSettled || "-"}
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
-                                        ₹ {vehicleLRs[0].extraCost || "-"}
-                                    </TableCell>
-                                    {status !== "SENT" && (
+                                        
+                                            <SettlePrice
+                                                costView
+                                                size="sm"
+                                                label="+ Cost"
+                                                disbleCost={status !== "SENT"}
+                                                mode={status === "SENT" ? "view" : "edit"}
+                                                fileNumber={vehicleLRs[0].fileNumber}
+                                                vehicle={vehicleLRs[0].vehicleNo}
+                                                extraCost={vehicleLRs[0].extraCost || ""}
+                                                settlePrice={vehicleLRs[0].priceSettled || ""}
+                                            />
+                                                                         </TableCell>
+                                    {/* {status !== "SENT" && (
                                         <TableCell className="text-center">
                                             <SettlePrice
                                                 size="sm"
@@ -130,19 +141,22 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                                 settlePrice={vehicleLRs[0].priceSettled || ""}
                                             />
                                         </TableCell>
-                                    )}
-                                    {(status === "SENT" || session.data?.user.role === UserRoleEnum.TADMIN) && (
-                                        <TableCell className="text-center">
-                                            <SettlePrice
-                                                size="sm"
-                                                label="Cost"
-                                                fileNumber={vehicleLRs[0].fileNumber}
-                                                vehicle={vehicleLRs[0].vehicleNo}
-                                                extraCost={vehicleLRs[0].extraCost || ""}
-                                                settlePrice={vehicleLRs[0].priceSettled || ""}
-                                            />
-                                        </TableCell>
-                                    )}
+                                    )} */}
+                                    {/* {(status === "SENT" || session.data?.user.role === UserRoleEnum.TADMIN) && ( */}
+                                    <TableCell className="text-center">
+                                        {/* <SettlePrice
+                                            // costView
+                                            size="sm"
+                                            label="+ Cost"
+                                            disbleCost={status !== "SENT"}
+                                            mode={status === "SENT" ? "view" : "edit"}
+                                            fileNumber={vehicleLRs[0].fileNumber}
+                                            vehicle={vehicleLRs[0].vehicleNo}
+                                            extraCost={vehicleLRs[0].extraCost || ""}
+                                            settlePrice={vehicleLRs[0].priceSettled || ""}
+                                        /> */}
+                                    </TableCell>
+                                    {/* )} */}
                                 </TableRow>
 
                                 {vehicleLRs.map((lr) => (

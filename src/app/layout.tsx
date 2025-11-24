@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
-// import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -29,10 +28,11 @@ export default function RootLayout({
   // const theme = useThem
   return (
     <html lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -44,8 +44,7 @@ export default function RootLayout({
 
             {children}
           </TooltipProvider>
-          {/* <ThemedToaster /> */}
-          <Toaster richColors position="top-center" />
+          <Toaster theme="system" richColors position="top-center" />
         </ThemeProvider>
       </body>
     </html>
