@@ -123,6 +123,8 @@ const isAuthorized =
 
 
 
+    // console.log(">><><><><><><><><><><><><><>,>><><", invoice)
+
   return (
     <div className="relative">
       <div className="flex w-full  items-center justify-between  px-6">
@@ -138,7 +140,9 @@ const isAuthorized =
               fileUrl: invoice.invoiceURI,
               id: "1",
               name: "Invoice"
-            }} />
+            }} 
+            initialInvoiceDate={invoice.invoiceDate.split("T")[0]}
+            />
             <Button onClick={handleSubmit}>Send Invoice</Button>
           </div>
         </Activity>

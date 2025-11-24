@@ -30,7 +30,7 @@ interface SettlePriceProps {
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
     mode?: "edit" | "view" // default is edit
     costView?: boolean
-    disbleCost?:boolean
+    disbleCost?: boolean
 }
 
 export const SettlePrice = ({
@@ -42,7 +42,7 @@ export const SettlePrice = ({
     size = "default",
     mode = "edit",
     costView = true,
-    disbleCost=false
+    disbleCost = false
 }: SettlePriceProps) => {
     const [settle, setSettle] = useState<string | undefined>(
         settlePrice?.toString().replace(/,/g, "")
@@ -139,17 +139,12 @@ export const SettlePrice = ({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {mode === "edit" ?
-                    <Button className=' w-full max-w-32 min-w-24 ' variant={Number(extraCost!) > 0 ? `${costView ? "ghost" : "outline"}` : "outline"} size={size}>
-                        {
-                            Number(extraCost!) > 0 ? <span className=' text-green-500 flex items-center justify-center gap-2'> {costView ? `₹ ${extraCost}` : "View"}  <EyeIcon className='text-primary' /></span> : label
-                        }
-                    </Button>
-                    :
-                    <Button size={"icon-sm"} variant={"default"} >
-                        <Link className='' />
-                    </Button>
-                }
+                <Button className=' w-full max-w-32 min-w-24 ' variant={Number(extraCost!) > 0 ? `${costView ? "ghost" : "outline"}` : "outline"} size={size}>
+                    {
+                        Number(extraCost!) > 0 ? <span className=' text-green-500 flex items-center justify-center gap-2'> {costView ? `₹ ${extraCost}` : "View"}  <EyeIcon className='text-primary' /></span> : label
+                    }
+                </Button>
+
             </DialogTrigger>
 
             <DialogContent className="sm:max-w-[500px]">
@@ -173,7 +168,7 @@ export const SettlePrice = ({
                     // ------------------ VIEW ONLY ------------------
                     <div className="space-y-4 py-4">
                         <div className="flex justify-between">
-                            <Label>Settle Cost:</Label>
+                            <Label>Vendor Cost:</Label>
                             <span>₹ {settle ?? "—"}</span>
                         </div>
                         <div className="flex justify-between">
@@ -182,7 +177,7 @@ export const SettlePrice = ({
                         </div>
                         <div className="flex justify-between">
                             <Label>Remark:</Label>
-                            <span className=' line-clamp-4'>{description ?? "—"}</span>
+                            <span className=' line-clamp-4'>{description || "No Remark"}</span>
                         </div>
                         {fileUrl && (
                             <div className="flex justify-between items-center">
@@ -201,7 +196,7 @@ export const SettlePrice = ({
                     // ------------------ EDIT MODE ------------------
                     <form onSubmit={handleSubmit} className="grid gap-6 py-4">
                         {/* Settle Cost */}
-                      
+
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="settle" className="text-right">Cost</Label>
                             <Input

@@ -1,22 +1,4 @@
-// "use client"
-// import { Button } from '@/components/ui/button'
-// import { Spinner } from '@/components/ui/shadcn-io/spinner'
-// import React from 'react'
-
-// const SubmitAnnexure = ({ annexureId }: {
-//     annexureId: string,
-
-// }) => {
-//     return (
-//         <Button variant={"secondary"}>
-//             <Spinner />
-//             {annexureId}
-//         </Button>
-//     )
-// }
-
-// export default SubmitAnnexure
-
+ 
 "use client";
 
 import { useState } from "react";

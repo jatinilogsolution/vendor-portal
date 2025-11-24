@@ -1,8 +1,8 @@
 
 "use server"
 import { getCustomSession } from "@/actions/auth.action"
-import type { Invoice } from "@/generated/prisma"
-import { signOut } from "@/lib/auth-client"
+import { Invoice } from "@/generated/prisma/client"
+ import { signOut } from "@/lib/auth-client"
 import { prisma } from "@/lib/prisma" 
 import { UserRoleEnum } from "@/utils/constant"
 import { redirect } from "next/navigation"
