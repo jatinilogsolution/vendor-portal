@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LRRequest } from "@/generated/prisma";
+import { LRRequest } from "@/generated/prisma/client";
 import { AlertCircle, FileCheck, Package, TrendingUp } from "lucide-react";
 
 export const StatsGrid = ({ data, loading }: { data: LRRequest[], loading: boolean }) => {

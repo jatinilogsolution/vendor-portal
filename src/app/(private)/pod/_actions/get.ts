@@ -1,8 +1,8 @@
 "use server"
 
 import { BillToAddressByNameId } from "@/actions/wms/warehouse"
-import { LRRequest, Vendor } from "@/generated/prisma"
-import { prisma } from "@/lib/prisma"
+import { LRRequest, Vendor } from "@/generated/prisma/client"
+ import { prisma } from "@/lib/prisma"
 
 export type EnrichedLRRequest = LRRequest & {
   warehouseName: string,

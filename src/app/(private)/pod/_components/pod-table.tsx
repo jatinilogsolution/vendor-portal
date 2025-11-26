@@ -11,7 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Search, ExternalLink, FileText, Calendar } from "lucide-react"
-import { LRRequest, Vendor } from "@/generated/prisma"
+import { LRRequest, Vendor } from "@/generated/prisma/client"
 import {
   InputGroup,
   InputGroupAddon,

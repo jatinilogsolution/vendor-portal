@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, FileText, Building2, Hash, RefreshCw, IndianRupee, Package, Receipt } from "lucide-react";
-import { Prisma } from "@/generated/prisma";
-import { useRouter } from "next/navigation";
+ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateOfferedPricesForFiles } from '@/actions/wms/cost';
+import { Prisma } from '@/generated/prisma/client';
 
 type DataType = Prisma.InvoiceGetPayload<{
   include: {

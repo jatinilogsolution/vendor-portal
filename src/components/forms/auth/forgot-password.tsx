@@ -38,7 +38,7 @@ export function ForgotPassword({
             fetchOptions: {
                 onRequest: () => setIsPending(true),
                 onResponse: () => setIsPending(false),
-                onError: (ctx) => { toast.error(ctx.error.message) },
+                onError: (ctx :any) => { toast.error(ctx.error.message) },
                 onSuccess: () => {
                     toast.success("Reset link sent to your email.")
                     router.push("/auth/login")

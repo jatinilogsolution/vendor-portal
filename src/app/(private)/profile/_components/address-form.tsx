@@ -10,7 +10,7 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { updateAddress } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
-import { Address } from "@/generated/prisma"
+import { Address } from "@/generated/prisma/client"
  
  
 

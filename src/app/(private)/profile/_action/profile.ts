@@ -1,6 +1,6 @@
 "use server"
 
-import { Address, User, Vendor } from "@/generated/prisma"
+import { Address, User, Vendor } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
 import { revalidateTag } from "next/cache"

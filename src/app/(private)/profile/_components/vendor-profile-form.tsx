@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle2, AlertCircle } from "lucide-react"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
-import { Vendor } from "@/generated/prisma"
+import { Vendor } from "@/generated/prisma/client"
 import { updateVendorProfile } from "../_action/profile"
 
 interface VendorProfileFormProps {

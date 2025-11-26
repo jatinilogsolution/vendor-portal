@@ -1,4 +1,4 @@
-import { Vendor, PurchaseOrder, PurchaseOrderItem, Invoice, InvoiceItem } from '@/generated/prisma'
+import { Vendor, PurchaseOrder, PurchaseOrderItem, Invoice, InvoiceItem } from '@/generated/prisma/client'
 
 export type VendorWithDetails = Vendor & {
     purchaseOrders: PurchaseOrder[]
