@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react"
 
-import { adminClient, customSessionClient, inferAdditionalFields } from "better-auth/client/plugins"
+import { adminClient, customSessionClient, emailOTPClient, inferAdditionalFields } from "better-auth/client/plugins"
 import { ac, roles } from "@/lib/permissions"
 import { auth } from "@/lib/auth"
 
@@ -11,10 +11,10 @@ const authClient = createAuthClient({
     inferAdditionalFields<typeof auth>(),
     adminClient({ ac, roles }),
     customSessionClient<typeof auth>(),
+    emailOTPClient()
 
   ],
 })
 
 
-export const { signOut, useSession, forgetPassword, sendVerificationEmail, resetPassword, admin, signUp, verifyEmail,  } = authClient
- 
+export const { signOut, useSession, sendVerificationEmail, resetPassword, admin, signUp, verifyEmail, requestPasswordReset } = authClient

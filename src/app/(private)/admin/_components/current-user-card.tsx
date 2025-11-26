@@ -111,7 +111,7 @@ export default function UserProfileCard({ user }: UserProfileCardProps) {
                             </div>
                         </div>
                     </div>
-                    <div className="flex-shrink-0 w-full lg:w-auto">
+                    <div className="shrink-0 w-full lg:w-auto">
                         <CreateNewUserButton />
                     </div>
                 </div>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
-import { forgetPassword } from "@/lib/auth-client"
+import {  requestPasswordReset } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 
@@ -32,13 +32,17 @@ export function ForgotPassword({
 
         if (!email) return toast.error("Please enter your email.")
 
-        await forgetPassword({
+        await requestPasswordReset({
             email,
+            
             redirectTo: "/auth/reset-password",
             fetchOptions: {
                 onRequest: () => setIsPending(true),
                 onResponse: () => setIsPending(false),
-                onError: (ctx :any) => { toast.error(ctx.error.message) },
+                // onError: (ctx)=>{ 
+                //     console.log(JSON.stringify(ctx.error, null, 2))
+                // },
+                onError: (ctx :any) => { toast.error(ctx.error.statusText) },
                 onSuccess: () => {
                     toast.success("Reset link sent to your email.")
                     router.push("/auth/login")

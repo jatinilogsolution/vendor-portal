@@ -255,9 +255,9 @@ export const SettlePrice = ({
                                     <Dropzone
                                         accept={{ "image/*": [], "application/pdf": [] }}
                                         maxFiles={1}
-                                        maxSize={1024 * 1024 * 10}
+                                        maxSize={1024 * 1024 * 20}
                                         onDrop={handleDrop}
-                                        onError={() => toast.error(`File must be less than 10MB`)}
+                                        onError={() => toast.error(`File must be less than 20MB`)}
                                         src={file ? [file] : undefined}
                                         className="border-dashed border-2 border-gray-300 p-4 rounded"
                                     >

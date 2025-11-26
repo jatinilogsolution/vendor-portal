@@ -172,7 +172,7 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
                   "application/pdf": [],
                 }}
                 maxFiles={1}
-                maxSize={10 * 1024 * 1024} // 10 MB
+                maxSize={20 * 1024 * 1024} // 10 MB
                 onDrop={handleDrop}
                 onError={(err) => toast.error(err.message)}
                 src={file ? [file] : undefined}
