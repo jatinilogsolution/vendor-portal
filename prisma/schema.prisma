@@ -36,6 +36,7 @@ model User {
   PurchaseOrder PurchaseOrder[]
 
   @@map("users")
+  logs Log[]
 }
 
 model Vendor {
@@ -62,6 +63,7 @@ model Vendor {
   LRRequest     LRRequest[]
 
   @@map("vendors")
+  logs Log[]
 }
 
 model Document {
@@ -335,4 +337,31 @@ model LorryReceipt {
   vehicleNo   String // OutVehNo
 
   @@map("lorry_receipts") // prisma table name
+}
+
+
+
+model Log {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  action      String   // "CREATE" | "UPDATE" | "DELETE"
+  model       String   // "LRRequest", "Invoice", etc.
+  recordId    String?  // id of the affected record
+
+  vendorId    String?  // to restrict vendor-scoped access
+  Vendor      Vendor?  @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  oldData     String?  @db.NVarChar(Max) // stringified JSON
+  newData     String?  @db.NVarChar(Max) // stringified JSON
+
+  description String?  // optional human-readable text
+
+  @@index([model])
+  @@index([recordId])
+  @@index([vendorId])
+  @@index([createdAt])
 }

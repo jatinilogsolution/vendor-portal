@@ -1,7 +1,10 @@
+import { getCustomSession } from "@/actions/auth.action";
 import { DataTable } from "@/components/data-table";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
-export default function Page() {
+export default async function Page() {
+
+  const session = await getCustomSession()
   return (
 
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -18,10 +21,14 @@ export default function Page() {
         <p className="  text-center leading-7 not-first:mt-6">
 
           Coming soon...        </p>
+<pre>
+  {session.user.vendorId}
+{JSON.stringify(session, null, 2)}
 
+</pre>
         {/* <div className=" flex items-center justify-center">
           <Spinner variant="bars" />
-
+        
         </div> */}
       </div>
     </div>
