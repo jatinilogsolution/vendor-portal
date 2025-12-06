@@ -34,10 +34,10 @@ const InvoiceIdPage = () => {
     }
   }, [])
   const role = session.data?.user.role;
-const isAuthorized =
-  role !== undefined &&
-  role !== null &&
-  [UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(role as UserRoleEnum);
+  const isAuthorized =
+    role !== undefined &&
+    role !== null &&
+    [UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(role as UserRoleEnum);
 
   const {
     taxRate,
@@ -123,7 +123,7 @@ const isAuthorized =
 
 
 
-    // console.log(">><><><><><><><><><><><><><>,>><><", invoice)
+  // console.log(">><><><><><><><><><><><><><>,>><><", invoice)
 
   return (
     <div className="relative">
@@ -140,8 +140,8 @@ const isAuthorized =
               fileUrl: invoice.invoiceURI,
               id: "1",
               name: "Invoice"
-            }} 
-            initialInvoiceDate={invoice.invoiceDate.split("T")[0]}
+            }}
+              initialInvoiceDate={invoice.invoiceDate.split("T")[0]}
             />
             <Button onClick={handleSubmit}>Send Invoice</Button>
           </div>

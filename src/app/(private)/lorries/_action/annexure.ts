@@ -9,12 +9,24 @@ export interface Annexure {
   toDate: string
   _count?: { LRRequest: number }
   groups?: any[]
+  isInvoiced?: boolean
+  invoiceDetails?: {
+    id: string
+    refernceNumber: string
+    invoiceNumber?: string
+    status: string
+  } | null
 }
 
 
-export async function getAnnexures(): Promise<Annexure[]> {
+export async function getAnnexures(vendorId?: string): Promise<Annexure[]> {
+  const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures`);
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures`, { cache: "no-store" })
+  if (vendorId) {
+    url.searchParams.set("vendorId", vendorId);
+  }
+
+  const res = await fetch(url.toString(), { cache: "no-store" })
   if (!res.ok) throw new Error("Failed to fetch annexures")
 
   const data = await res.json()
@@ -28,11 +40,11 @@ export async function deleteAnnexure(id: string): Promise<{ unlinkedCount?: numb
   return data
 }
 
-export async function validateAnnexure(rows: any[]): Promise<any> {
+export async function validateAnnexure(rows: any[], currentVendorId?: string, userRole?: string): Promise<any> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ annexureData: rows }),
+    body: JSON.stringify({ annexureData: rows, currentVendorId, userRole }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || "Validation failed")
@@ -66,14 +78,42 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
     const vendorId = lrs[0].tvendorId;
     if (!vendorId) throw new Error("Vendor ID missing on LR records");
 
-    // 2️⃣ GROUP LRs by fileNumber for priceSettled logic
+    // 2️⃣ CHECK FOR MISSING LRs PER FILE
+    const fileNumbers = [...new Set(lrs.map(lr => lr.fileNumber).filter(Boolean))];
+    const missingLRsPerFile: { fileNumber: string; missing: string[] }[] = [];
+
+    for (const fileNumber of fileNumbers) {
+      const allLRsInFile = await prisma.lRRequest.findMany({
+        where: { fileNumber },
+        select: { LRNumber: true, annexureId: true }
+      });
+
+      const lrsInAnnexure = allLRsInFile.filter(lr => lr.annexureId === annexureId);
+      const lrsNotInAnnexure = allLRsInFile.filter(lr => !lr.annexureId || lr.annexureId !== annexureId);
+
+      if (lrsNotInAnnexure.length > 0) {
+        missingLRsPerFile.push({
+          fileNumber,
+          missing: lrsNotInAnnexure.map(lr => lr.LRNumber)
+        });
+      }
+    }
+
+    if (missingLRsPerFile.length > 0) {
+      const errorDetails = missingLRsPerFile
+        .map(f => `${f.fileNumber}: ${f.missing.join(", ")}`)
+        .join("; ");
+      throw new Error(`Incomplete files detected. Missing LRs: ${errorDetails}. Add all LRs from each file before submitting.`);
+    }
+
+    // 3️⃣ GROUP LRs by fileNumber for priceSettled logic
     const fileGroup: Record<string, any[]> = {};
     lrs.forEach((lr) => {
       if (!fileGroup[lr.fileNumber]) fileGroup[lr.fileNumber] = [];
       fileGroup[lr.fileNumber].push(lr);
     });
 
-    // 3️⃣ Validation Flags
+    // 4️⃣ Validation Flags
     const missingPodLinks: string[] = [];
     const missingExtraCostDocs: string[] = [];
 

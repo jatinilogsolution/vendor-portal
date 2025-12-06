@@ -8,21 +8,29 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle2, AlertCircle } from "lucide-react"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
-import { Vendor } from "@/generated/prisma/client"
+import { Vendor, Document } from "@/generated/prisma/client"
 import { updateVendorProfile } from "../_action/profile"
+
+import DocumentUpload from "@/components/modules/upload-docs"
+import { Separator } from "@/components/ui/separator"
 
 interface VendorProfileFormProps {
   vendor: Vendor
+  documents?: Document[]
   isEditing: boolean
   onUpdate: (vendor: Vendor) => void
   onCancel: () => void
+  readOnly?: boolean
 }
 
-export function VendorProfileForm({ vendor, isEditing, onUpdate, onCancel }: VendorProfileFormProps) {
+export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate, onCancel, readOnly = false }: VendorProfileFormProps) {
   const [formData, setFormData] = useState<Vendor>(vendor)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Helper to find existing document
+  const getDocument = (linkedCode: string) => documents.find(d => d.linkedCode === linkedCode)
 
   // -------------------- VALIDATION --------------------
   const validateForm = () => {
@@ -117,6 +125,34 @@ export function VendorProfileForm({ vendor, isEditing, onUpdate, onCancel }: Ven
             </div>
           ))}
         </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <h4 className="text-lg font-semibold">Documents</h4>
+          <div className="grid gap-4 lg:grid-cols-2 ">
+
+            <DocumentUpload
+              linkedId={vendor.id}
+              linkedCode="PAN_CARD"
+              label="PAN Card"
+              description="Upload your PAN Card copy"
+              existingDoc={getDocument("PAN_CARD")}
+              entryBy="VENDOR"
+              readOnly={true}
+            />
+
+            <DocumentUpload
+              linkedId={vendor.id}
+              linkedCode="GST_CERTIFICATE"
+              label="GST Certificate"
+              description="Upload your GST Certificate"
+              existingDoc={getDocument("GST_CERTIFICATE")}
+              entryBy="VENDOR"
+              readOnly={true}
+            />
+          </div>
+        </div>
       </div>
     )
   }
@@ -134,7 +170,7 @@ export function VendorProfileForm({ vendor, isEditing, onUpdate, onCancel }: Ven
         </Alert>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid gap-6  md:grid-cols-2 lg:grid-cols-3">
         <FormField
           id="name"
           label="Company Name *"
@@ -197,6 +233,30 @@ export function VendorProfileForm({ vendor, isEditing, onUpdate, onCancel }: Ven
         />
       </div>
 
+      <Separator />
+
+      <div className="space-y-4">
+        <h4 className="text-lg font-semibold">Documents</h4>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DocumentUpload
+            linkedId={vendor.id}
+            linkedCode="PAN_CARD"
+            label="PAN Card"
+            description="Upload your PAN Card copy"
+            existingDoc={getDocument("PAN_CARD")}
+            entryBy="VENDOR"
+          />
+          <DocumentUpload
+            linkedId={vendor.id}
+            linkedCode="GST_CERTIFICATE"
+            label="GST Certificate"
+            description="Upload your GST Certificate"
+            existingDoc={getDocument("GST_CERTIFICATE")}
+            entryBy="VENDOR"
+          />
+        </div>
+      </div>
+
       <div className="flex flex-wrap justify-end gap-3 pt-4">
         <Button type="submit" disabled={isSubmitting} className="gap-2">
           {isSubmitting && <Spinner className="h-4 w-4" />}
@@ -238,9 +298,8 @@ function FormField({
         onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
-        className={`transition-colors duration-150 ${
-          error ? "border-destructive focus-visible:ring-destructive" : ""
-        }`}
+        className={`transition-colors duration-150 ${error ? "border-destructive focus-visible:ring-destructive" : ""
+          }`}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

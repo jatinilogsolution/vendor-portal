@@ -26,11 +26,16 @@ import {
   X,
   AlertCircle,
   CircleCheckBig,
+  Building2,
+  TriangleAlert,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { UploadPod } from "../upload-pod"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useSession } from "@/lib/auth-client"
+import { UserRoleEnum } from "@/utils/constant"
 
 type ValidationRow = {
   lrNumber: string
@@ -72,6 +77,11 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
   const [draftName, setDraftName] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const session = useSession()
+  // Vendor summary from API
+  const vendorSummary = validationResponse?.vendorSummary || []
+  const hasMultipleVendors = validationResponse?.hasMultipleVendors || false
+  const primaryVendor = validationResponse?.primaryVendor || null
 
   useEffect(() => {
     if (!validationResponse) return
@@ -94,7 +104,10 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
             vehicleNo: r.vehicleNo,
             vehicleType: r.vehicleType,
             outDate: r.outDate,
-
+            vendorName: r.vendorName,
+            vendorId: r.vendorId,
+            origin: r.origin,
+            destination: r.destination,
           }) as ValidationRow,
       )
       const firstRow = rows[0] || {}
@@ -113,6 +126,7 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
     setGroups(g)
     const s = new Set<string>()
     validationResponse.validationRows?.forEach((r: any) => {
+      // Don't auto-select wrong vendor LRs
       if (r.status === "FOUND" && !r.annexureId) s.add(r.lrNumber)
     })
     setSelected(s)
@@ -143,6 +157,15 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
   const handleSaveDraft = async () => {
     if (!draftName.trim() || !fromDate || !toDate)
       return toast.error("Please fill all fields")
+
+    if (hasMultipleVendors) {
+      // Check if selected LRs belong to multiple vendors
+      const selectedRows = groups.flatMap(g => g.rows).filter(r => selected.has(r.lrNumber))
+      const uniqueVendors = new Set(selectedRows.map(r => r.vendorId).filter(Boolean))
+      if (uniqueVendors.size > 1) {
+        return toast.error("Cannot create annexure with mixed vendors. Please select LRs from a single vendor.")
+      }
+    }
 
     setSavingDraft(true)
     try {
@@ -214,6 +237,7 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
         fileExtra: fileExtra(g),
         remark: g.remark,
         podLink: r.podLink,
+        vendorName: r.vendorName,
         issues: (r.issues || []).join("; "),
       })),
     )
@@ -225,6 +249,21 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
 
   return (
     <div className=" py-2 space-y-3">
+
+      {/* Vendor Warning */}
+      {hasMultipleVendors && (
+        <Alert variant="destructive" className="mb-4">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertTitle>Multiple Vendors Detected</AlertTitle>
+          <AlertDescription>
+            This file contains LRs from multiple vendors. An annexure must belong to a single vendor.
+            <div className="mt-2 text-sm font-medium">
+              Found Vendors: {vendorSummary.map((v: any) => `${v.name} (${v.count})`).join(", ")}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Top Bar */}
       <div className="sticky top-0 z-10 bg-background border-b pb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
@@ -246,7 +285,7 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
 
           {/* ✅ Open Draft Dialog */}
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogTrigger asChild>
+            <DialogTrigger disabled={savingDraft} asChild>
               <Button size="sm" disabled={savingDraft}>
                 <Save className="w-3.5 h-3.5 mr-1" /> Draft
               </Button>
@@ -256,6 +295,17 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                 <DialogTitle>Save Annexure Draft</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
+                {/* Vendor Info in Dialog */}
+                {session.data?.user.role !== UserRoleEnum.TVENDOR && primaryVendor && (
+                  <div className="p-2 bg-muted rounded border text-sm flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vendor</p>
+                      <p className="font-semibold">{primaryVendor.name}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className=" space-y-1">
                   <Label>Name</Label>
                   <Input
@@ -309,8 +359,21 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
             >
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <ChevronDown className={cn("w-4 h-4 transition-transform", g.isExpanded && "rotate-90")} />
-                <FileText className="w-4 h-4" />
-                {g.fileNumber} <Badge variant={"secondary"}>{g.vehicleNo} - {g.vehicleType}</Badge> <Badge variant={"outline"}>{g.rows.length} LRs</Badge>
+                {session.data?.user.role !== UserRoleEnum.TVENDOR && <>
+                  <FileText className="w-4 h-4" />
+                  {g.fileNumber}
+                </>}
+
+
+                <Badge variant={g.rows[0].status === "WRONG_VENDOR" ? "destructive" : "secondary"}>
+
+                  {/* {g.rows[0].status === "WRONG_VENDOR" ? "********" : g.vehicleNo}
+
+                  - {g.rows[0].vehicleType} */}
+
+                  {g.rows[0].status === "WRONG_VENDOR" ? "Wrong Vendor" : ""}
+
+                </Badge> <Badge variant={"outline"}>{g.rows.length} LRs</Badge>
               </div>
               <div className="text-xs font-mono">
                 <span className="text-muted-foreground">Freight:</span> ₹{sumFreight(g.rows).toLocaleString()} |
@@ -331,7 +394,16 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                             checked={g.rows.every((r) => selected.has(r.lrNumber))}
                             onChange={(e) => {
                               const s = new Set(selected)
-                              g.rows.forEach((r) => (e.target.checked ? s.add(r.lrNumber) : s.delete(r.lrNumber)))
+                              g.rows.forEach((r) => {
+                                // Only check valid rows
+                                if (r.status === "FOUND" || r.status === "WRONG_VENDOR" && hasMultipleVendors) { // If admin, allow selecting wrong vendor (technically different vendor)
+                                  // But actually, we want to allow selecting only if it's not a hard block
+                                  if (r.status === "WRONG_VENDOR") return // Skip selecting blocked items
+                                  e.target.checked ? s.add(r.lrNumber) : s.delete(r.lrNumber)
+                                } else if (r.status === "FOUND") {
+                                  e.target.checked ? s.add(r.lrNumber) : s.delete(r.lrNumber)
+                                }
+                              })
                               setSelected(s)
                             }}
                             className="w-3.5 h-3.5 rounded border-input accent-primary"
@@ -339,6 +411,7 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                         </th>
                         <th className="p-2 text-left font-medium">LR #</th>
                         <th className="p-2 text-left font-medium">Vehicle</th>
+                        <th className="p-2 text-left font-medium w-24">Vendor</th>
                         <th className="p-2 text-left font-medium">Freight</th>
                         <th className="p-2 text-left font-medium">Out Date</th>
                         <th className="p-2 text-left font-medium">POD</th>
@@ -360,50 +433,39 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                             <input
                               type="checkbox"
                               checked={selected.has(r.lrNumber)}
+                              disabled={r.status === "WRONG_VENDOR" || r.status === "ALREADY_LINKED" || r.status === "ALREADY_INVOICED"}
                               onChange={() => toggleSelect(r.lrNumber)}
-                              className="w-3.5 h-3.5 rounded border-input accent-primary"
+                              className="w-3.5 h-3.5 rounded border-input accent-primary disabled:opacity-50"
                             />
                           </td>
-                          <td className="p-2 font-mono font-medium">{r.lrNumber}</td>
+                          <td className="p-2 font-mono font-medium">
+                            {r.status === "WRONG_VENDOR" ? "********" : r.lrNumber}
+                          </td>
                           <td className="p-2">
                             <div className="flex items-center gap-1">
                               <Truck className="w-3 h-3 text-muted-foreground" />
-                              <span className="truncate max-w-24">{r.vehicleNo || "—"}</span>
+                              <span className="truncate max-w-24">
+                                {/* {r.vehicleNo || "—"} */}
+                                {r.status === "WRONG_VENDOR" ? "********" : r.vehicleNo}
+
+                              </span>
                             </div>
                           </td>
-                          <td className="p-2 font-medium">₹{r.freightCost.toLocaleString()}</td>
-                          {/* <td className="p-2">
-                            {editingCell?.groupIdx === groupIdx && editingCell?.rowIdx === rowIdx && editingCell?.field === "extra" ? (
-                              <div className="flex items-center gap-1">
-                                <Input
+                          <td className="p-2">
+                            <span className="truncate max-w-24 block" title={r.vendorName || "—"}>
+                              {/* {r.vendorName || "—"} */}
 
-                                  type="number"
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                                  className="h-7 w-16"
-                                  autoFocus
-                                />
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveEdit}>
-                                  <CheckCircle2 className="w-3 h-3 text-success" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={cancelEdit}>
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => startEdit(groupIdx, rowIdx, "extra", String(r.extraCost))}
-                                className="font-medium hover:underline"
-                              >
-                                {r.extraCost > 0 ? `₹${r.extraCost}` : "—"}
-                              </button>
-                            )}
-                          </td> */}
+                              {r.status === "WRONG_VENDOR" ? "********" : r.vendorName}
+                            </span>
+                          </td>
+                          <td className="p-2 font-medium">₹{r.freightCost.toLocaleString()}</td>
                           <td className="p-2">{r.outDate ? new Date(r.outDate).toLocaleDateString() : "—"}</td>
                           <td className="p-2">
-                            <UploadPod LrNumber={r.lrNumber} customer={r.customerName!} whId={r.origin} vendor={r.vendorName!} initialFileUrl={r.podLink ?? null} fileNumber={g.fileNumber} />
-
+                            {r.status === "FOUND" ? (
+                              <UploadPod LrNumber={r.lrNumber} customer={r.customerName!} whId={r.origin} vendor={r.vendorName!} initialFileUrl={r.podLink ?? null} fileNumber={g.fileNumber} />
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
                           </td>
 
                           <td className="p-2">
@@ -413,11 +475,15 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                               </span>
                             ) : r.status === "ALREADY_LINKED" ? (
                               <span className="flex items-center gap-1 text-destructive text-xs">
-                                <AlertCircle className="w-3 h-3" /> Already Annexured
+                                <AlertCircle className="w-3 h-3" /> Annexured
                               </span>
                             ) : r.status === "ALREADY_INVOICED" ? (
                               <span className="flex items-center gap-1 text-primary text-xs">
-                                <CircleCheckBig className="w-3 h-3" /> Already Invoiced
+                                <CircleCheckBig className="w-3 h-3" /> Invoiced
+                              </span>
+                            ) : r.status === "WRONG_VENDOR" ? (
+                              <span className="flex items-center gap-1 text-destructive text-xs font-semibold">
+                                <X className="w-3 h-3" /> Wrong LR
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-destructive text-xs">

@@ -5,7 +5,6 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronLeft, ChevronRight, Search, Eye, Calendar, FileText, AlertCircle, Truck } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { debounce } from "lodash"
@@ -13,7 +12,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { LazyDate } from "@/components/lazzy-date"
 import { getAllLRforVendorById } from "../../profile/_action/getVendor"
-import { generateSingleInvoiceFromLorryPage } from "../../invoices/_action/invoice"
 import { useUserCheck } from "@/hooks/useRoleCheck"
 import { Badge } from "@/components/ui/badge"
 
@@ -27,6 +25,13 @@ interface Lorry {
   tvendorName: string
   fileNumber: string
   podLink?: string
+  annexureId?: string | null
+  annexureName?: string | null
+  groupId?: string | null
+  groupStatus?: string | null
+  invoiceId?: string | null
+  invoiceNumber?: string | null
+  isInvoiced?: boolean
 }
 
 interface LorryTableProps {
@@ -35,7 +40,7 @@ interface LorryTableProps {
   pod?: boolean
   refernceNo?: string
   setOpen?: () => void
-
+  userId?: string
 }
 
 const PAGE_SIZE = 10
@@ -58,7 +63,7 @@ const TableSkeletonLoader = () => (
   </>
 )
 
-const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, pod = false, refernceNo, setOpen }) => {
+const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, pod = false, refernceNo, setOpen, userId }) => {
   const [data, setData] = useState<Lorry[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -70,7 +75,6 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
 
   const { roleCheck } = useUserCheck()
   // store actual selected files across pages
-  const [selectedFilesData, setSelectedFilesData] = useState<Record<string, Lorry[]>>({})
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -115,7 +119,8 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
         search: querySearch,
         fromDate,
         toDate,
-        pod
+        pod,
+        userId
       })
 
       const formattedData: Lorry[] = res.data.map((item: any) => {
@@ -134,8 +139,15 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
           vehicleType: item.vehicleType,
           destination: item.destination || "",
           tvendorName: item.tvendor?.name || "-",
-          fileNumber: cleanedFile,   // <-- FIXED HERE
+          fileNumber: cleanedFile,
           podLink: item.podlink || "",
+          annexureId: item.annexureId,
+          annexureName: item.Annexure?.name,
+          groupId: item.groupId,
+          groupStatus: item.group?.status,
+          invoiceId: item.invoiceId,
+          invoiceNumber: item.Invoice?.invoiceNumber || item.Invoice?.refernceNumber,
+          isInvoiced: item.isInvoiced,
         }
       })
 
@@ -366,12 +378,29 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                                   </div>
                                 )}
 
+
                                 {/* Date */}
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                   <Calendar className="w-4 h-4" />
                                   <span>Date: <LazyDate date={records[0].outDate} /></span>
                                 </div>
-
+                                <div className="flex flex-wrap items-center gap-2 text-sm pl-1">
+                                  {records[0].isInvoiced ? (
+                                    <Badge className="gap-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200">
+                                      <FileText className="w-3.5 h-3.5" />
+                                      Invoiced {records[0].invoiceNumber ? `• ${records[0].invoiceNumber}` : ""}
+                                    </Badge>
+                                  ) : records[0].annexureId ? (
+                                    <Badge variant="secondary" className="gap-1.5">
+                                      <FileText className="w-3.5 h-3.5" />
+                                      Annexed {records[0].annexureName ? `• ${records[0].annexureName}` : ""}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-muted-foreground">
+                                      Pending
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
 
                               {/* Status Badges - Right aligned */}
@@ -400,6 +429,9 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                                 )}
                               </div>
                             </div>
+
+                            {/* Status Row */}
+
                           </div>
                         </TableCell>
                       </TableRow>

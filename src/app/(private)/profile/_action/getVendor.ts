@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { cache } from "react"
 
-export const getVendor = cache( async ({ id }: { id: string }) => {
+export const getVendor = cache(async ({ id }: { id: string }) => {
 
   try {
 
@@ -23,7 +23,7 @@ export const getVendor = cache( async ({ id }: { id: string }) => {
         Vendor: {
           include: {
             Address: true,
-            
+
           }
         }
       }
@@ -52,11 +52,12 @@ interface GetAllLRParams {
   search?: string;
   fromDate?: string;
   toDate?: string;
-  pod: boolean
+  pod: boolean;
+  userId?: string;
 }
 
 
- 
+
 
 export const getAllLRforVendorById = async ({
   vendorId,
@@ -66,15 +67,37 @@ export const getAllLRforVendorById = async ({
   fromDate,
   toDate,
   pod,
+  userId,
 }: GetAllLRParams) => {
   try {
     const skip = (page - 1) * limit;
 
+    // Check user role if userId is provided
+    let userRole: string | null = null;
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      userRole = user?.role || null;
+    }
+
     const filters: any = {
       tvendorId: vendorId,
-      isInvoiced: false,
-      invoiceId: null,
     };
+
+    // Role-based filtering for TVENDOR
+    if (userRole === "TVENDOR") {
+      // For TVENDOR, only show LRs that are annexed OR invoiced
+      filters.OR = [
+        { annexureId: { not: null } },
+        { isInvoiced: true }
+      ];
+    } else {
+      // For other roles, show only non-invoiced LRs (original behavior)
+      filters.isInvoiced = false;
+      filters.invoiceId = null;
+    }
 
     // Date filter
     if (fromDate && toDate) {
@@ -117,7 +140,7 @@ export const getAllLRforVendorById = async ({
       distinct: ["fileNumber"],
       select: { fileNumber: true },
       orderBy: {
-        outDate: "desc",   // 🆕 newest first
+        outDate: "desc",
       },
     });
 
@@ -137,6 +160,33 @@ export const getAllLRforVendorById = async ({
       },
       include: {
         tvendor: { select: { id: true, name: true } },
+        Annexure: {
+          select: {
+            id: true,
+            name: true,
+            fromDate: true,
+            toDate: true
+          }
+        },
+        group: {
+          select: {
+            id: true,
+            fileNumber: true,
+            status: true,
+            totalPrice: true,
+            extraCost: true,
+            remark: true,
+            annexureId: true
+          }
+        },
+        Invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            refernceNumber: true,
+            status: true
+          }
+        }
       },
       orderBy: { outDate: "desc" },
     });
@@ -218,7 +268,7 @@ export const getAllLRforVendorById = async ({
 //       filters.outDate = { lte: new Date(toDate) }
 //     }
 
- 
+
 //     if (search?.trim()) {
 //       const searchTerm = search.trim()
 //       filters.AND = [

@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rows = Array.isArray(body.annexureData) ? body.annexureData : [];
+    const currentVendorId = body.currentVendorId || null; // Vendor ID of logged-in user
+    const userRole = body.userRole || null; // TVENDOR, BOSS, TADMIN
 
     if (!rows.length)
       return NextResponse.json({ error: "No data provided" }, { status: 400 });
@@ -47,6 +49,7 @@ export async function POST(req: NextRequest) {
         CustomerName: true,
         isInvoiced: true,
         origin: true,
+        destination: true,
         tvendor: { select: { name: true, id: true } },
       },
     });
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest) {
           outDate: true,
           CustomerName: true,
           origin: true,
+          destination: true,
           isInvoiced: true,
           tvendor: { select: { name: true, id: true } },
         },
@@ -97,7 +101,10 @@ export async function POST(req: NextRequest) {
     });
     const docsByLinkedId = new Map(docs.map((d) => [d.linkedId, d]));
 
-    // STEP 4: Build validationRows including both uploaded & missing ones
+    // STEP 4: Track vendors for multi-vendor detection
+    const vendorMap = new Map<string, { id: string; name: string; count: number }>();
+
+    // STEP 5: Build validationRows including both uploaded & missing ones
     const seen = new Set<string>();
     const validationRows: any[] = [];
 
@@ -107,6 +114,16 @@ export async function POST(req: NextRequest) {
       seen.add(lrNum);
       const db = allDbByLr.get(lrNum);
       const fileNumber = db?.fileNumber ?? r.fileNumber_sheet ?? null;
+
+      // Track vendor
+      if (db?.tvendor?.id) {
+        const existing = vendorMap.get(db.tvendor.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          vendorMap.set(db.tvendor.id, { id: db.tvendor.id, name: db.tvendor.name, count: 1 });
+        }
+      }
 
       const row: any = {
         lrNumber: lrNum,
@@ -122,13 +139,13 @@ export async function POST(req: NextRequest) {
         podLink: db?.podlink ?? null,
         issues: [] as string[],
         extraCostAttachment: false,
-        status: "NOT_FOUND" as "FOUND" | "ALREADY_LINKED" | "NOT_FOUND" | "ALREADY_INVOICED",
+        status: "NOT_FOUND" as "FOUND" | "ALREADY_LINKED" | "NOT_FOUND" | "ALREADY_INVOICED" | "WRONG_VENDOR",
         customerName: db?.CustomerName ?? null,
         vendorName: db?.tvendor?.name ?? null,
         vendorId: db?.tvendor?.id ?? null,
         origin: db?.origin ?? null,
+        destination: db?.destination ?? null,
         isInvoiced: db?.isInvoiced ?? null,
-
       };
 
       if (!db) {
@@ -139,6 +156,12 @@ export async function POST(req: NextRequest) {
       } else if (db.isInvoiced) {
         row.status = "ALREADY_INVOICED";
         row.issues.push("Already invoiced");
+      } else if (userRole === "TVENDOR" && currentVendorId && db.tvendor?.id !== currentVendorId) {
+        // TVENDOR trying to add LR belonging to different vendor
+        row.status = "WRONG_VENDOR";
+        // row.issues.push(`LR belongs to vendor: ${db.tvendor?.name || "Unknown"}`);
+        row.issues.push(`LR not belong to this vendor or Wrong LR Number`);
+
       } else {
         row.status = "FOUND";
         if (!db.podlink) row.issues.push("POD missing");
@@ -157,6 +180,17 @@ export async function POST(req: NextRequest) {
     // Include DB-only LRs (not uploaded)
     for (const db of allLrsForFiles) {
       if (seen.has(db.LRNumber)) continue;
+
+      // Track vendor
+      if (db.tvendor?.id) {
+        const existing = vendorMap.get(db.tvendor.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          vendorMap.set(db.tvendor.id, { id: db.tvendor.id, name: db.tvendor.name, count: 1 });
+        }
+      }
+
       validationRows.push({
         lrNumber: db.LRNumber,
         fileNumber: db.fileNumber,
@@ -177,6 +211,7 @@ export async function POST(req: NextRequest) {
         vendorName: db.tvendor?.name,
         vendorId: db.tvendor?.id,
         origin: db.origin,
+        destination: db.destination,
       });
     }
 
@@ -188,18 +223,34 @@ export async function POST(req: NextRequest) {
       grouped[key].push(r);
     }
 
+    // Build vendor summary
+    const vendorSummary = Array.from(vendorMap.values());
+    const hasMultipleVendors = vendorSummary.length > 1;
+    const primaryVendor = vendorSummary.length > 0
+      ? vendorSummary.reduce((a, b) => a.count > b.count ? a : b)
+      : null;
+
     const summary = {
       totalRows: validationRows.length,
       found: validationRows.filter((r: any) => r.status === "FOUND").length,
       linked: validationRows.filter((r: any) => r.status === "ALREADY_LINKED").length,
-      invoiced: validationRows.filter((r: any) => r.status === "ALREADY_INVOICED").length, 
+      invoiced: validationRows.filter((r: any) => r.status === "ALREADY_INVOICED").length,
       notFound: validationRows.filter((r: any) => r.status === "NOT_FOUND").length,
+      wrongVendor: validationRows.filter((r: any) => r.status === "WRONG_VENDOR").length,
       files: Object.keys(grouped).length,
     };
 
-    return NextResponse.json({ validationRows, grouped, summary });
+    return NextResponse.json({
+      validationRows,
+      grouped,
+      summary,
+      vendorSummary,
+      hasMultipleVendors,
+      primaryVendor,
+    });
   } catch (err: any) {
     console.error("validate error:", err);
     return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }
 }
+

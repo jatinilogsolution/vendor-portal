@@ -28,7 +28,7 @@ export function useAnnexureValidationContext() {
   return ctx
 }
 
-export function AnnexureValidationProvider({ children }: { children: ReactNode }) {
+export function AnnexureValidationProvider({ children, vendorId, userRole }: { children: ReactNode, vendorId?: string, userRole?: string }) {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [validationData, setValidationData] = useState<ValidationResult | null>(null)
@@ -65,7 +65,8 @@ export function AnnexureValidationProvider({ children }: { children: ReactNode }
         toast.error("No LR numbers found in the sheet")
         return
       }
-      const res = await validateAnnexure(rows)
+      // Pass vendor context to validation action
+      const res = await validateAnnexure(rows, vendorId, userRole)
       setValidationData(res)
       setExpanded(true)
       toast.success("Validation completed successfully")

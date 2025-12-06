@@ -1,35 +1,26 @@
- 
-import { prisma } from "@/lib/prisma"
-import ProfileCard from "../_components/profile-card"
- 
+import { getCustomSession } from "@/actions/auth.action"
+import { ProfileContent } from "../_components/profile-content"
+
+
 interface Props {
   params: Promise<{ id: string }>
 }
 
 export default async function ProfilePage({ params }: Props) {
+  const session = await getCustomSession()
+  const { id } = await params
 
-  const {id} = await params
-  const user = await prisma.user.findUnique({
-    where: { id: id },
-    include: {
-      Vendor: {
-        include: {
-          Address: true,
-          PurchaseOrder: true,
-          invoices: true,
-        },
-      },
-    },
-  })
-
-  if (!user) {
-    return <div className="p-6 text-center text-muted-foreground">User not found.</div>
+  // Check if user is admin or tadmin
+  if (!["ADMIN", "TADMIN", "BOSS"].includes(session.user.role!)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
+        <p className="text-muted-foreground">You do not have permission to view this profile.</p>
+      </div>
+    )
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">User Profile</h1>
-      <ProfileCard user={user} />
-    </div>
+    <ProfileContent userId={id} readOnly={true} />
   )
 }

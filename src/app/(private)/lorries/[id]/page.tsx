@@ -10,16 +10,17 @@ import { LRForFileNumber } from "../_components/lr-per-file"
 import { getCustomSession } from "@/actions/auth.action"
 import UpdateOfferdPrice from "../_components/update-offered-price"
 import { Label } from "@/components/ui/label"
-import { IndianRupee } from "lucide-react"
+import { IndianRupee, FileCheck } from "lucide-react"
 import { BackToPage } from "@/components/back-to-page"
 import { UserRoleEnum } from "@/utils/constant"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 
 export default async function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
 
     const { user } = await getCustomSession()
-    const { data, error } = await getLRInfo(id)
+    const { data, error } = await getLRInfo(id, user.id)
     if (error || !data) {
         return (
             <div className="flex justify-center h-72 items-center">
@@ -30,6 +31,10 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             </div>
         )
     }
+
+    // Check if any LR in this file is invoiced
+    const isAnyInvoiced = data.some(lr => lr.isInvoiced)
+    const invoiceInfo = data.find(lr => lr.Invoice)?.Invoice
 
     return (
         <div className="space-y-6">
@@ -42,7 +47,28 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         ? "Pending"
                         : data[0].status}
                 </Badge>
+                {isAnyInvoiced && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        <FileCheck className="h-3 w-3 mr-1" />
+                        Invoiced
+                    </Badge>
+                )}
             </div>
+
+            {/* Invoice Status Banner */}
+            {isAnyInvoiced && invoiceInfo && (
+                <Alert className="border-green-500 bg-green-50 dark:bg-green-900/20">
+                    <FileCheck className="h-4 w-4 text-green-600" />
+                    <AlertTitle className="text-green-700 dark:text-green-400">Invoice Generated</AlertTitle>
+                    <AlertDescription className="text-green-600 dark:text-green-300">
+                        <div className="flex items-center gap-4 mt-1">
+                            <span><strong>Ref:</strong> {invoiceInfo.refernceNumber}</span>
+                            {invoiceInfo.invoiceNumber && <span><strong>Invoice #:</strong> {invoiceInfo.invoiceNumber}</span>}
+                            <span><strong>Status:</strong> {invoiceInfo.status}</span>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {/* File Header */}
             <div className="flex flex-col gap-3 [">
@@ -64,7 +90,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                                 />
                             </div>
                         )}
-                        {user.role === "TVENDOR" && (
+                        {user.role === "TVENDOR" && !isAnyInvoiced && (
                             <div className="">
                                 <SettlePrice
                                     mode={"edit"}
@@ -141,7 +167,8 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
             <Separator />
 
 
-            <LRForFileNumber data={data} />
+            <LRForFileNumber data={data} isInvoiced={isAnyInvoiced} />
         </div>
     )
 }
+

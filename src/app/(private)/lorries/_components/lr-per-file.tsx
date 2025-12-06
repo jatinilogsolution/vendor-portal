@@ -5,10 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState } from "react"
 import { getLRInfo } from "../_action/lorry"
 import { UploadPod } from "./upload-pod"
+import { Badge } from "@/components/ui/badge"
+import { FileCheck } from "lucide-react"
 
-type LRData = Awaited<ReturnType<typeof getLRInfo>>["data"]  
+type LRData = Awaited<ReturnType<typeof getLRInfo>>["data"]
 
-export const LRForFileNumber = ({ data }: { data: LRData }) => {
+interface LRForFileNumberProps {
+  data: LRData
+  isInvoiced?: boolean
+}
+
+export const LRForFileNumber = ({ data, isInvoiced = false }: LRForFileNumberProps) => {
   const [currentPage, setCurrentPage] = useState(1)
   const rowsPerPage = 10
 
@@ -20,6 +27,9 @@ export const LRForFileNumber = ({ data }: { data: LRData }) => {
     )
   }
 
+  // Check if any LR in data is invoiced (fallback if prop not passed)
+  const anyInvoiced = isInvoiced || data.some(lr => lr.isInvoiced)
+
   const totalPages = Math.ceil(data.length / rowsPerPage)
   const startIndex = (currentPage - 1) * rowsPerPage
   const currentData = data.slice(startIndex, startIndex + rowsPerPage)
@@ -30,6 +40,16 @@ export const LRForFileNumber = ({ data }: { data: LRData }) => {
 
   return (
     <div className="border rounded-md overflow-hidden">
+      {/* Invoice Status Banner */}
+      {anyInvoiced && (
+        <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 px-4 py-2 flex items-center gap-2">
+          <FileCheck className="h-4 w-4 text-green-600" />
+          <span className="text-sm text-green-700 dark:text-green-400 font-medium">
+            This file has been invoiced - editing is disabled
+          </span>
+        </div>
+      )}
+
       <div className="max-h-[40rem] overflow-y-auto">
         <Table>
           <TableHeader>
@@ -40,7 +60,8 @@ export const LRForFileNumber = ({ data }: { data: LRData }) => {
               <TableHead>Origin</TableHead>
               <TableHead>Destination</TableHead>
               <TableHead>Out Date</TableHead>
-              <TableHead className="text-right pr-6">Action</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right pr-6">POD</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -63,6 +84,17 @@ export const LRForFileNumber = ({ data }: { data: LRData }) => {
                 <TableCell>
                   <LazyDate date={i.outDate.toString()} />
                 </TableCell>
+                <TableCell>
+                  {i.isInvoiced ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      Invoiced
+                    </Badge>
+                  ) : i.annexureId ? (
+                    <Badge variant="secondary">Annexed</Badge>
+                  ) : (
+                    <Badge variant="outline">Pending</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right pr-6">
                   <UploadPod
                     LrNumber={i.LRNumber}
@@ -71,6 +103,7 @@ export const LRForFileNumber = ({ data }: { data: LRData }) => {
                     initialFileUrl={i.podlink || null}
                     fileNumber={i.fileNumber}
                     whId={(i as any).whId || ""}
+                    readOnly={i.isInvoiced === true}
                   />
                 </TableCell>
               </TableRow>

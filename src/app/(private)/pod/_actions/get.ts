@@ -1,18 +1,40 @@
 "use server"
 
 import { BillToAddressByNameId } from "@/actions/wms/warehouse"
-import { LRRequest, Vendor } from "@/generated/prisma/client"
- import { prisma } from "@/lib/prisma"
+import { LRRequest, Vendor, Invoice, Annexure, AnnexureFileGroup } from "@/generated/prisma/client"
+import { prisma } from "@/lib/prisma"
 
 export type EnrichedLRRequest = LRRequest & {
-  warehouseName: string,
+  warehouseName: string
   tvendor: Vendor
+  Invoice: {
+    id: string
+    invoiceNumber: string | null
+    refernceNumber: string
+    status: string
+  } | null
+  Annexure: {
+    id: string
+    name: string
+    fromDate: Date
+    toDate: Date
+  } | null
+  group: {
+    id: string
+    fileNumber: string
+    status: string | null
+    totalPrice: number | null
+    extraCost: number | null
+    remark: string | null
+    annexureId: string
+  } | null
 }
+
 
 // Simple in-memory cache
 let cachedData: EnrichedLRRequest[] | null = null
 let cacheTime: number | null = null
-const CACHE_DURATION = 2 * 60 * 1000  
+const CACHE_DURATION = 2 * 60 * 1000
 
 export const getAllPodsForAllVendors = async ({
   fromDate,
@@ -23,8 +45,8 @@ export const getAllPodsForAllVendors = async ({
 } = {}): Promise<EnrichedLRRequest[]> => {
   try {
     const now = Date.now()
-    
-     if (cachedData && cacheTime && now - cacheTime < CACHE_DURATION) {
+
+    if (cachedData && cacheTime && now - cacheTime < CACHE_DURATION) {
       return cachedData
     }
 
@@ -38,11 +60,37 @@ export const getAllPodsForAllVendors = async ({
 
     const data = await prisma.lRRequest.findMany({
       where: {
-        podlink:{not: null}
+        podlink: { not: null }
       },
       include: {
         tvendor: true,
-        // Invoice: true,
+        Invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            refernceNumber: true,
+            status: true
+          }
+        },
+        Annexure: {
+          select: {
+            id: true,
+            name: true,
+            fromDate: true,
+            toDate: true
+          }
+        },
+        group: {
+          select: {
+            id: true,
+            fileNumber: true,
+            status: true,
+            totalPrice: true,
+            extraCost: true,
+            remark: true,
+            annexureId: true
+          }
+        }
       },
       orderBy: { outDate: "desc" },
     })
@@ -67,6 +115,78 @@ export const getAllPodsForAllVendors = async ({
   }
 }
 
+// Fetch all LRs by fileNumber with detailed information
+export async function getDetailedLRsByFileNumber(fileNumber: string) {
+  try {
+    const lrs = await prisma.lRRequest.findMany({
+      where: { fileNumber },
+      include: {
+        tvendor: {
+          select: {
+            id: true,
+            name: true,
+            contactEmail: true,
+            contactPhone: true
+          }
+        },
+        Invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            refernceNumber: true,
+            status: true,
+            invoiceDate: true
+          }
+        },
+        Annexure: {
+          select: {
+            id: true,
+            name: true,
+            fromDate: true,
+            toDate: true
+          }
+        },
+        group: {
+          select: {
+            id: true,
+            fileNumber: true,
+            status: true,
+            totalPrice: true,
+            extraCost: true,
+            remark: true,
+            annexureId: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    })
+
+    if (!lrs || lrs.length === 0) {
+      return { error: "No LR Requests found for this file number." }
+    }
+
+    // Enrich with warehouse names
+    const enrichedLRs = await Promise.all(
+      lrs.map(async (lr) => {
+        const { warehouseName } = await BillToAddressByNameId(lr.origin || "")
+        return { ...lr, warehouseName }
+      })
+    )
+
+    // Calculate status counts
+    const statusCounts = {
+      total: enrichedLRs.length,
+      verified: enrichedLRs.filter(lr => lr.status === 'VERIFIED').length,
+      pending: enrichedLRs.filter(lr => !lr.status || lr.status === 'PENDING').length,
+      wrong: enrichedLRs.filter(lr => lr.status === 'WRONG').length,
+    }
+
+    return { data: enrichedLRs, statusCounts }
+  } catch (err) {
+    console.error("Error fetching detailed LR Requests:", err)
+    return { error: "Something went wrong while fetching the LR requests." }
+  }
+}
 
 // Fetch LR by fileNumber
 export async function getLRRequestByFileNumber(fileNumber: string) {

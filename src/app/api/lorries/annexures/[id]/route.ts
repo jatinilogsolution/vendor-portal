@@ -7,7 +7,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   try {
     const { id } = await params;
 
-    // 1️⃣ Fetch annexure with nested LRs
+    // 1️⃣ Fetch annexure with nested LRs and invoice info
     const annexure = await prisma.annexure.findUnique({
       where: { id },
       include: {
@@ -26,10 +26,22 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
                 lrPrice: true,
                 extraCost: true,
                 podlink: true,
+                fileNumber: true,
+                isInvoiced: true,
+                invoiceId: true,
                 tvendor: {
                   select: {
                     id: true,
                     name: true,
+                  },
+                },
+                Invoice: {
+                  select: {
+                    id: true,
+                    refernceNumber: true,
+                    invoiceNumber: true,
+                    status: true,
+                    invoiceDate: true,
                   },
                 },
               },
@@ -42,10 +54,38 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     if (!annexure)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 2️⃣ Build cache to avoid duplicate warehouse lookups
+    // 2️⃣ Check if any LRs are invoiced
+    const allLRs = annexure.groups.flatMap(g => g.LRs);
+    const isInvoiced = allLRs.some(lr => lr.isInvoiced || lr.invoiceId);
+    const invoiceDetails = allLRs.find(lr => lr.Invoice)?.Invoice || null;
+
+    // 3️⃣ Build cache to avoid duplicate warehouse lookups
     const warehouseCache: Record<string, string> = {};
 
-    // 3️⃣ Enhance *each LR* with resolved warehouse origin name
+    // 4️⃣ Check for missing LRs per fileNumber
+    const fileNumbers = [...new Set(annexure.groups.map(g => g.fileNumber).filter(Boolean))];
+    const missingLRsPerFile: { fileNumber: string; missing: string[]; total: number; inAnnexure: number }[] = [];
+
+    for (const fileNumber of fileNumbers) {
+      const allLRsInFile = await prisma.lRRequest.findMany({
+        where: { fileNumber },
+        select: { LRNumber: true, annexureId: true }
+      });
+
+      const lrsInThisAnnexure = allLRsInFile.filter(lr => lr.annexureId === id);
+      const lrsNotInAnnexure = allLRsInFile.filter(lr => !lr.annexureId || lr.annexureId !== id);
+
+      if (lrsNotInAnnexure.length > 0) {
+        missingLRsPerFile.push({
+          fileNumber,
+          missing: lrsNotInAnnexure.map(lr => lr.LRNumber),
+          total: allLRsInFile.length,
+          inAnnexure: lrsInThisAnnexure.length
+        });
+      }
+    }
+
+    // 5️⃣ Enhance *each LR* with resolved warehouse origin name
     const enhancedGroups = await Promise.all(
       annexure.groups.map(async (group) => {
         const enhancedLRs = await Promise.all(
@@ -79,10 +119,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       })
     );
 
-    // 4️⃣ Return enhanced annexure
+    // 6️⃣ Return enhanced annexure with invoice status
     return NextResponse.json({
       ...annexure,
       groups: enhancedGroups,
+      isInvoiced,
+      invoiceDetails,
+      missingLRsPerFile,
     });
   } catch (err: any) {
     console.error(err);

@@ -11,17 +11,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { updateAddress } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Address } from "@/generated/prisma/client"
- 
- 
+
+
 
 interface AddressFormProps {
   address: Address
   isEditing: boolean
   onUpdate: (address: Address) => void
   onCancel: () => void
+  readOnly?: boolean
 }
 
-export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressFormProps) {
+export function AddressForm({ address, isEditing, onUpdate, onCancel, readOnly = false }: AddressFormProps) {
   const [formData, setFormData] = useState<Address>(address)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,9 +84,9 @@ export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressF
 
   if (!isEditing) {
     return (
-      <div  
-      className="space-y-8 p-4 md:p-6 bg-card border rounded-xl shadow-sm animate-in fade-in duration-150"
-      
+      <div
+        className="space-y-8 p-4 md:p-6 bg-card border rounded-xl shadow-sm animate-in fade-in duration-150"
+
       >
         <div className="grid gap-6 md:grid-cols-2">
           <div>
@@ -124,9 +125,9 @@ export function AddressForm({ address, isEditing, onUpdate, onCancel }: AddressF
   }
 
   return (
-    <form onSubmit={handleSubmit} 
+    <form onSubmit={handleSubmit}
       className="space-y-8 p-4 md:p-6 bg-card border rounded-xl shadow-sm animate-in fade-in duration-150"
-    
+
     >
       {submitError && (
         <Alert variant="destructive">

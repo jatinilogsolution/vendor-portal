@@ -10,27 +10,33 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, X } from "lucide-react"
 import { getUserProfile } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
-import { Address, User, Vendor } from "@/generated/prisma/client"
+import { Address, User, Vendor, Document } from "@/generated/prisma/client"
 import { useSession } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { IconEdit } from "@tabler/icons-react"
 
-export function ProfileContent() {
+interface ProfileContentProps {
+  userId?: string
+  readOnly?: boolean
+}
+
+export function ProfileContent({ userId, readOnly = false }: ProfileContentProps) {
   const { data, isPending } = useSession()
 
   const [user, setUser] = useState<User | null>(null)
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [address, setAddress] = useState<Address | null | undefined>(null)
+  const [documents, setDocuments] = useState<Document[]>([])
   const [editingSection, setEditingSection] = useState<'personal' | 'vendor' | 'address' | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (id: string) => {
     try {
       setIsLoading(true)
       setError(null)
 
-      const result = await getUserProfile(userId)
+      const result = await getUserProfile(id)
 
       if (result.error) {
         setError(result.error)
@@ -38,6 +44,7 @@ export function ProfileContent() {
         setUser(result.user)
         setVendor(result.vendor)
         setAddress(result.address)
+        setDocuments(result.documents || [])
       }
     } catch (err) {
       console.error("[Profile] Error loading profile:", err)
@@ -48,10 +55,12 @@ export function ProfileContent() {
   }, [])
 
   useEffect(() => {
-    if (!isPending && data?.user?.id) {
+    if (userId) {
+      fetchProfile(userId)
+    } else if (!isPending && data?.user?.id) {
       fetchProfile(data.user.id)
     }
-  }, [isPending, data?.user?.id, fetchProfile])
+  }, [isPending, data?.user?.id, userId, fetchProfile])
 
   const handleUserUpdate = (updatedUser: User) => {
     setUser(updatedUser)
@@ -88,7 +97,7 @@ export function ProfileContent() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <ProfileHeader
         user={user}
 
@@ -106,10 +115,12 @@ export function ProfileContent() {
               <CardDescription>Manage your personal information and account settings</CardDescription>
             </div>
 
-            <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')} className="gap-2">
-              {editingSection === "personal" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
-              }
-            </Button>
+            {!readOnly && (
+              <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')} className="gap-2">
+                {editingSection === "personal" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+                }
+              </Button>
+            )}
 
           </CardHeader>
           <CardContent>
@@ -118,6 +129,7 @@ export function ProfileContent() {
               isEditing={editingSection === 'personal'}
               onUpdate={handleUserUpdate}
               onCancel={() => setEditingSection(null)}
+              readOnly={readOnly}
             />
           </CardContent>
         </Card>
@@ -132,18 +144,22 @@ export function ProfileContent() {
                 <CardDescription>Manage your vendor profile and business details</CardDescription>
               </div>
 
-              <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'vendor' ? null : 'vendor')} className="gap-2">
-                {editingSection === "vendor" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
-                }
-              </Button>
+              {!readOnly && (
+                <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'vendor' ? null : 'vendor')} className="gap-2">
+                  {editingSection === "vendor" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+                  }
+                </Button>
+              )}
 
             </CardHeader>
             <CardContent>
               <VendorProfileForm
                 vendor={vendor}
+                documents={documents}
                 isEditing={editingSection === 'vendor'}
                 onUpdate={handleVendorUpdate}
                 onCancel={() => setEditingSection(null)}
+                readOnly={readOnly}
               />
             </CardContent>
           </Card>
@@ -159,10 +175,12 @@ export function ProfileContent() {
                 <CardDescription>Manage your business address and location details</CardDescription>
               </div>
 
-              <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'address' ? null : 'address')} className="gap-2">
-                {editingSection === "address" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
-                }
-              </Button>
+              {!readOnly && (
+                <Button variant={"secondary"} size={"icon-sm"} onClick={() => setEditingSection(editingSection === 'address' ? null : 'address')} className="gap-2">
+                  {editingSection === "address" ? <X className="h-4 w-4 text-destructive" /> : <IconEdit className="h-4 w-4 text-primary" />
+                  }
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <AddressForm
@@ -170,6 +188,7 @@ export function ProfileContent() {
                 isEditing={editingSection === 'address'}
                 onUpdate={handleAddressUpdate}
                 onCancel={() => setEditingSection(null)}
+                readOnly={readOnly}
               />
             </CardContent>
           </Card>

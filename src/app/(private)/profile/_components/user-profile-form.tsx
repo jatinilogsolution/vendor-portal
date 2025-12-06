@@ -11,8 +11,8 @@
 // import { Spinner } from "@/components/ui/shadcn-io/spinner"
 // import { updateUserProfile } from "../_action/profile"
 // import { User } from "@/generated/prisma"
- 
- 
+
+
 // interface UserProfileFormProps {
 //   user: User
 //   isEditing: boolean
@@ -211,9 +211,10 @@ interface UserProfileFormProps {
   isEditing: boolean
   onUpdate: (user: User) => void
   onCancel: () => void
+  readOnly?: boolean
 }
 
-export function UserProfileForm({ user, isEditing, onUpdate, onCancel }: UserProfileFormProps) {
+export function UserProfileForm({ user, isEditing, onUpdate, onCancel, readOnly = false }: UserProfileFormProps) {
   const [formData, setFormData] = useState<User>(user)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -288,7 +289,7 @@ export function UserProfileForm({ user, isEditing, onUpdate, onCancel }: UserPro
             <div className="mt-1.5 flex items-center gap-2">
               <p className="text-base font-medium text-foreground">{user.email}</p>
               {user.emailVerified && (
-                <CheckCircle2 className="h-4 w-4 text-green-600"   />
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
               )}
             </div>
           </div>
@@ -406,9 +407,8 @@ function FormField({
         onChange={onChange}
         disabled={disabled}
         placeholder={placeholder}
-        className={`transition-colors duration-150 ${
-          error ? "border-destructive focus-visible:ring-destructive" : ""
-        }`}
+        className={`transition-colors duration-150 ${error ? "border-destructive focus-visible:ring-destructive" : ""
+          }`}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

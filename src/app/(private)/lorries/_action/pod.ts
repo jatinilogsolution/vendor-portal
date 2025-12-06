@@ -115,7 +115,12 @@ export const addQuotationCostWithAttachment = async ({
         // Save attachment in Document table if provided
         if (attachmentUrl) {
             await prisma.document.upsert({
-                where: { linkedId: fileNumber },
+                where: {
+                    linkedId_linkedCode: {
+                        linkedId: fileNumber,
+                        linkedCode: "EXTRA_COST_ATTACHMENT"
+                    }
+                },
                 update: {
                     url: attachmentUrl,
                     description: descriptionForAttachment || undefined,
@@ -124,6 +129,7 @@ export const addQuotationCostWithAttachment = async ({
                 },
                 create: {
                     linkedId: fileNumber,
+                    linkedCode: "EXTRA_COST_ATTACHMENT",
                     label: `Attachment for ${fileNumber}`,
                     url: attachmentUrl,
                     description: descriptionForAttachment || undefined,
@@ -198,7 +204,8 @@ export const getExtraCostDocumentByFileNumber = async (fileNumber: string) => {
 
         const getFile = await prisma.document.findFirst({
             where: {
-                linkedId: fileNumber
+                linkedId: fileNumber,
+                linkedCode: "EXTRA_COST_ATTACHMENT"
             },
             select: {
                 url: true,

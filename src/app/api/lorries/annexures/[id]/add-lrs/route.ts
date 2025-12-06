@@ -7,7 +7,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     try {
         const { id } = await params
         const body = await req.json()
-        const { lrNumbers } = body
+        const { lrNumbers, vendorId } = body
 
         if (!lrNumbers || !Array.isArray(lrNumbers) || lrNumbers.length === 0) {
             return NextResponse.json({ error: "lrNumbers array required" }, { status: 400 })
@@ -22,7 +22,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const alreadyInvoiced: string[] = []
         const missingPod: string[] = []
         const duplicateInFile: string[] = []
+        const wrongVendor: string[] = [] // LRs that don't belong to the requesting vendor
         const createdGroups: any[] = []
+
+        // Track file numbers and their LRs for missing LR detection
+        const fileNumbersProcessed = new Set<string>()
 
         const seenInFile = new Set<string>()
 
@@ -38,6 +42,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             const lr = await prisma.lRRequest.findUnique({ where: { LRNumber: lrNumber }, include: { Invoice: true } })
             if (!lr) {
                 missingInDb.push(lrNumber)
+                continue
+            }
+
+            // Vendor ownership validation - if vendorId is provided, check if LR belongs to that vendor
+            if (vendorId && lr.tvendorId && lr.tvendorId !== vendorId) {
+                wrongVendor.push(lrNumber)
                 continue
             }
 
@@ -58,6 +68,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             }
 
             const fileNumber = lr.fileNumber
+            if (fileNumber) {
+                fileNumbersProcessed.add(fileNumber)
+            }
+
             let group = await prisma.annexureFileGroup.findFirst({
                 where: { annexureId: id, fileNumber },
             })
@@ -82,6 +96,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             added.push(lrNumber)
         }
 
+        // Check for missing LRs in each processed file
+        const missingLRsPerFile: { fileNumber: string; missing: string[]; total: number; added: number }[] = []
+
+        for (const fileNumber of fileNumbersProcessed) {
+            const allLRsInFile = await prisma.lRRequest.findMany({
+                where: { fileNumber },
+                select: { LRNumber: true, annexureId: true }
+            })
+
+            const lrsInThisAnnexure = allLRsInFile.filter(lr => lr.annexureId === id)
+            const lrsNotInAnnexure = allLRsInFile.filter(lr => !lr.annexureId)
+
+            if (lrsNotInAnnexure.length > 0) {
+                missingLRsPerFile.push({
+                    fileNumber,
+                    missing: lrsNotInAnnexure.map(lr => lr.LRNumber),
+                    total: allLRsInFile.length,
+                    added: lrsInThisAnnexure.length
+                })
+            }
+        }
+
         return NextResponse.json({
             success: true,
             added,
@@ -90,6 +126,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             alreadyInvoiced,
             missingPod,
             duplicateInFile,
+            wrongVendor,
+            missingLRsPerFile,
             createdGroups,
         })
     } catch (err: any) {

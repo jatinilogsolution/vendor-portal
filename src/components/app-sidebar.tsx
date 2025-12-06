@@ -16,6 +16,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSession } from "@/lib/auth-client"
@@ -40,15 +41,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
               <Link href="/dashboard">
-                <h2 className="text-xl text-center font-bold w-full">
-                  <span className="text-blue-600">Vendor</span> <span className=' text-foreground'>Portal</span>
+                <h2 className="text-xl text-center font-bold w-full ">
+                  <span className="text-primary">Vendor</span> <span className=' text-foreground'>Portal</span>
                 </h2>
               </Link>
+              
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
+<SidebarSeparator />
       <SidebarContent>
         {loading ? (
           // Skeleton while session loads
