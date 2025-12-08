@@ -1,31 +1,29 @@
-import { DataTable } from "@/components/data-table";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { getCustomSession } from "@/actions/auth.action"
+import { redirect } from "next/navigation"
+import { signOut } from "@/lib/auth-client"
+import { getDashboardStats } from "./_actions/dashboard"
+import DashboardClient from "./_components/dashboard-client"
 
-export default function Page() {
-  return (
+export default async function DashboardPage() {
+  const { session, user } = await getCustomSession()
 
-    <div className="@container/main flex flex-1 flex-col gap-2">
-      <div className="flex flex-col gap-4 py-4 md:gap-6  ">
-        {/* <SectionCards /> */}
-        {/* <div className="px-4 lg:px-6"> */}
-        {/* <ChartAreaInteractive /> */}
-        {/* </div> */}
-        {/* <DataTable data={data} /> */}
+  if (!session) {
+    await signOut()
+    redirect("/auth/login")
+  }
 
-        <h2 className="scroll-m-20 text-center border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-          Your dashboard will be ready shortly!
-        </h2>
-        <p className="  text-center leading-7 not-first:mt-6">
+  const dashboardData = await getDashboardStats()
 
-          Coming soon...        </p>
-
-        {/* <div className=" flex items-center justify-center">
-          <Spinner variant="bars" />
-
-        </div> */}
+  if ("error" in dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-destructive">Error Loading Dashboard</h2>
+          <p className="text-muted-foreground mt-2">{dashboardData.error}</p>
+        </div>
       </div>
-    </div>
+    )
+  }
 
-
-  )
+  return <DashboardClient data={dashboardData.data!} userName={user.name} />
 }

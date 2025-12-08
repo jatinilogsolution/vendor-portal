@@ -86,7 +86,7 @@ export default function RootLayout({
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0" />
                 <div className="text-left">
                   <p className="text-sm font-semibold text-white">Sarah Chen</p>
-                  <p className="text-xs text-zinc-500">Operations Director, TechFlow</p>
+                  <p className="text-xs text-zinc-500">Operations Director, xyz.com</p>
                 </div>
               </div>
             </div>

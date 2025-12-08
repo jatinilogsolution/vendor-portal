@@ -200,6 +200,9 @@ export default function AnnexureDetailPage() {
 
       toast.success(`Invoice Generated: ${result.invoice.refernceNumber}`)
       fetchData() // Refresh to show invoiced state
+
+      router.push(`/invoices/${result.invoice?.id}`)
+
     } catch (err) {
       toast.error("Unexpected error while submitting annexure")
     } finally {

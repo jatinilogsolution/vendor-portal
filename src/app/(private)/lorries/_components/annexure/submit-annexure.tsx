@@ -1,18 +1,19 @@
- 
+
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function SubmitAnnexure({ annexureId }: { annexureId: string }) {
   const [loading, setLoading] = useState(false);
-
+  const router = useRouter()
   const handleSubmit = async () => {
     try {
       setLoading(true);
-       const res = await fetch("/api/lorries/annexures/submit", {
+      const res = await fetch("/api/lorries/annexures/submit", {
         method: "POST",
         body: JSON.stringify({ annexureId }),
       });
@@ -25,6 +26,7 @@ export default function SubmitAnnexure({ annexureId }: { annexureId: string }) {
       }
 
       toast.success(`Invoice Generated: ${data.invoice.refernceNumber}`);
+      router.push(`/invoices/${data.invoice?.id}`)
     } catch (err) {
       toast.error("Unexpected error while submitting annexure");
     } finally {

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { useParams, useRouter } from 'next/navigation'
+import { redirect, RedirectType, useParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
@@ -310,7 +310,7 @@ export default function AnnexureEditPage() {
             // Handle wrong vendor LRs
             if (data.wrongVendor?.length) {
                 data.wrongVendor.forEach((lr: string) => {
-                    issues.push({ lrNumber: lr, type: "wrong_vendor", message: "This LR belongs to another vendor" })
+                    issues.push({ lrNumber: lr, type: "wrong_vendor", message: "Wrong LR" })
                 })
             }
 
@@ -418,6 +418,7 @@ export default function AnnexureEditPage() {
             if (!res.ok) throw new Error(data.error || "Save failed")
             toast.success("Annexure saved successfully")
             fetchAnnexure()
+            router.push(`/lorries/annexure/${id}`)
         } catch (err: any) {
             console.error(err)
             toast.error(err.message || "Failed to save")
