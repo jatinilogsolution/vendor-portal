@@ -288,7 +288,7 @@ const InvoiceIdPage = () => {
             {/* Compare Button (for admins) */}
             {isAuthorized && (
               <Button variant="link" className=" bg-muted">
-                <Link href={`/ invoices / ${invoiceId}/compare`} className=" flex items-center justify-center gap-x-2" >
+                <Link href={`/invoices/${invoiceId}/compare`} className=" flex items-center justify-center gap-x-2" >
                   <IconChartColumn className="w-4 h-4" />  Compare
                 </Link >
               </Button >
