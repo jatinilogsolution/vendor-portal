@@ -41,7 +41,11 @@ export const GET = cache(async (
             Address: true,
           },
         },
-        LRRequest: true,
+        LRRequest: {
+          include: {
+            Annexure: true,
+          },
+        },
       },
     });
 

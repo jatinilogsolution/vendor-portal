@@ -6,7 +6,7 @@ import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/a
 import { revalidateTag } from "next/cache"
 
 // Types matching your Prisma schema
- 
+
 
 // interface VendorProfile {
 //   id: string
@@ -35,29 +35,34 @@ import { revalidateTag } from "next/cache"
 //   updatedAt: Date
 // }
 
-export async function getUserProfile(userId: string) 
-{
+export async function getUserProfile(userId: string) {
   try {
- 
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         Vendor: {
-            include:{
-                Address: true
-            }
+          include: {
+            Address: true
+          }
         },
-   
-    
+
+
       },
     })
 
-   
+    let documents: any[] = []
+    if (user?.vendorId) {
+      documents = await prisma.document.findMany({
+        where: { linkedId: user.vendorId }
+      })
+    }
 
     return {
       user: user,
       vendor: user?.vendorId ? user?.Vendor : null,
       address: user?.vendorId ? user.Vendor?.Address[0] : null,
+      documents
     }
   } catch (error) {
     console.error("[v0] Error fetching user profile:", error)
@@ -65,6 +70,7 @@ export async function getUserProfile(userId: string)
       user: null,
       vendor: null,
       address: null,
+      documents: [],
       error: "Failed to fetch profile data",
     }
   }
@@ -78,7 +84,7 @@ export async function getUserProfile(userId: string)
 export async function updateUserProfile(
   userId: string,
   data: Partial<User>,
-){
+) {
   try {
     // Validate input
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
@@ -100,8 +106,8 @@ export async function updateUserProfile(
         updatedAt: new Date(),
       },
     })
- 
-    revalidateTag(`user-${userId}`,'max')
+
+    revalidateTag(`user-${userId}`, 'max')
 
     return { success: true, user: updatedUser }
   } catch (error) {
@@ -113,7 +119,7 @@ export async function updateUserProfile(
 export async function updateVendorProfile(
   vendorId: string,
   data: Partial<Vendor>,
-){
+) {
   try {
     // Validate input
     if (data.gstNumber && !/^[A-Z0-9]{15}$/.test(data.gstNumber)) {
@@ -159,7 +165,7 @@ export async function updateVendorProfile(
     // }
 
     // Revalidate cache
-    revalidateTag(`vendor-${vendorId}`,"max")
+    revalidateTag(`vendor-${vendorId}`, "max")
 
     return { success: true, vendor: updatedVendor }
   } catch (error) {
@@ -225,7 +231,7 @@ export async function updateAddress(
     // }
 
     // Revalidate cache
-    revalidateTag(`address-${vendorId}`,"max")
+    revalidateTag(`address-${vendorId}`, "max")
 
     return { success: true, address: updatedAddress }
   } catch (error) {
@@ -238,8 +244,8 @@ export async function updateAddress(
 
 
 
- 
-  
+
+
 export async function uploadUserImage(formData: FormData) {
   try {
     const userId = formData.get("userId") as string

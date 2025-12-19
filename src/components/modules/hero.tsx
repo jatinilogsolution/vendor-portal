@@ -1,10 +1,14 @@
+"use client"
 
+import { useSession } from '@/lib/auth-client'
 import Image from 'next/image'
 import Link from 'next/link'
- 
+import { Button } from '../ui/button'
+
 
 
 export default function Hero() {
+  const session = useSession()
 
   return (
     <div className="bg-gray-900">
@@ -17,15 +21,26 @@ export default function Hero() {
           <div className="flex lg:flex-1">
             <a href="#" className="-m-1.5 p-1.5">
               <h2 className="text-xl font-bold">
-                <span className="text-blue-600">Vendor</span> <span className=' text-background'>Portal</span>
+                <span className="text-blue-600">Vendor</span> <span className=' text-white'>Portal</span>
               </h2>
             </a>
           </div>
 
           <div className="flex lg:flex-1 lg:justify-end">
-            <a href="/auth/login" className="text-sm/6 font-semibold text-white">
-              Log in <span aria-hidden="true">&rarr;</span>
-            </a>
+            {session.data?.session ?
+              (
+                <Button variant="outline" asChild>
+                  <Link href={"/dashboard"}>
+                    Dashboard
+                  </Link>
+                </Button>
+              )
+              :
+              (
+                <Link href="/auth/login" className="text-sm/6 font-semibold text-white">
+                  Log in <span aria-hidden="true">&rarr;</span>
+                </Link>
+              )}
           </div>
         </nav>
 

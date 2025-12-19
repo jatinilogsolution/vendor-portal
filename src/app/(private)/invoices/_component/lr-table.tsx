@@ -114,22 +114,34 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
-                                        ₹ {vehicleLRs[0].priceSettled || "-"}
+                                        <div className="flex flex-col items-center">
+                                            <span>₹ {vehicleLRs[0].priceSettled || "-"}</span>
+                                            {vehicleLRs[0].extraCost && vehicleLRs[0].extraCost > 0 && (
+                                                <span className="text-xs text-green-600 font-medium">
+                                                    + ₹ {vehicleLRs[0].extraCost}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
-                                        
+                                        {status === "SENT" ? (
+                                            <span className={vehicleLRs[0].extraCost && Number(vehicleLRs[0].extraCost) > 0 ? "text-green-600 font-semibold" : "text-muted-foreground"}>
+                                                ₹ {vehicleLRs[0].extraCost || 0}
+                                            </span>
+                                        ) : (
                                             <SettlePrice
                                                 costView
                                                 size="sm"
                                                 label="+ Cost"
-                                                disbleCost={status !== "SENT"}
-                                                mode={status === "SENT" ? "view" : "edit"}
+                                                disbleCost={false}
+                                                mode="edit"
                                                 fileNumber={vehicleLRs[0].fileNumber}
                                                 vehicle={vehicleLRs[0].vehicleNo}
                                                 extraCost={vehicleLRs[0].extraCost || ""}
                                                 settlePrice={vehicleLRs[0].priceSettled || ""}
                                             />
-                                                                         </TableCell>
+                                        )}
+                                    </TableCell>
                                     {/* {status !== "SENT" && (
                                         <TableCell className="text-center">
                                             <SettlePrice

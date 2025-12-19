@@ -1,31 +1,38 @@
 "use client"
 
+import { useEffect, useState } from "react"
+
 interface LazyDateProps {
-  date: string
-  format?: "short" | "long" | "medium"
+  date: string | Date
+  format?: "short" | "medium" | "long"
 }
 
 export function LazyDate({ date, format = "medium" }: LazyDateProps) {
-  const formatDate = (dateString: string) => {
+  const [formatted, setFormatted] = useState<string>(date.toString())
+
+  useEffect(() => {
     try {
-      const dateObj = new Date(dateString)
+      const dateObj = new Date(date)
 
       if (isNaN(dateObj.getTime())) {
-        return dateString
+        setFormatted(date.toString())
+        return
       }
 
-      const options: Intl.DateTimeFormatOptions | any= {
+      const optionsMap: Record<string, Intl.DateTimeFormatOptions> = {
         short: { month: "short", day: "numeric", year: "numeric" },
         medium: { month: "short", day: "numeric", year: "numeric" },
         long: { month: "long", day: "numeric", year: "numeric" },
-      }[format]
+      }
+      const options = optionsMap[format]
 
-      return new Intl.DateTimeFormat("en-US", options).format(dateObj)
-    } catch (error) {
-        console.log("Error Lazzy: ", error)
-      return dateString
+      setFormatted(
+        new Intl.DateTimeFormat("en-US", options).format(dateObj)
+      )
+    } catch {
+      setFormatted(date.toString())
     }
-  }
+  }, [date, format])
 
-  return <span suppressHydrationWarning>{formatDate(date)}</span>
+  return <span>{formatted}</span>
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { useParams, useRouter } from 'next/navigation'
+import { redirect, RedirectType, useParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadPod } from "../../../_components/upload-pod"
 import { SettlePrice } from "../../../_components/settle-price"
+import { useSession } from "@/lib/auth-client"
+import { UserRoleEnum } from "@/utils/constant"
 
 type LR = {
     id: string
@@ -40,7 +42,7 @@ type FileGroup = {
 
 type ValidationIssue = {
     lrNumber: string
-    type: "missing_pod" | "already_annexed" | "already_invoiced" | "not_found" | "duplicate_in_file"
+    type: "missing_pod" | "already_annexed" | "already_invoiced" | "not_found" | "duplicate_in_file" | "wrong_vendor" | "missing_in_file"
     message: string
 }
 
@@ -68,6 +70,8 @@ function ValidationIssuesDialog({
         already_invoiced: { icon: <XCircle className="w-4 h-4" />, color: "text-red-600", title: "Already Invoiced" },
         missing_pod: { icon: <AlertCircle className="w-4 h-4" />, color: "text-amber-600", title: "POD Not Uploaded" },
         duplicate_in_file: { icon: <AlertCircle className="w-4 h-4" />, color: "text-orange-600", title: "Duplicate in File" },
+        wrong_vendor: { icon: <XCircle className="w-4 h-4" />, color: "text-red-600", title: "Wrong Vendor (Not Yours)" },
+        missing_in_file: { icon: <AlertCircle className="w-4 h-4" />, color: "text-amber-500", title: "Missing LRs in File" },
     }
 
     return (
@@ -148,6 +152,7 @@ function StatusBadge({ status, message }: { status: string; message: string }) {
 export default function AnnexureEditPage() {
     const { id } = useParams() as { id: string }
     const router = useRouter()
+    const session = useSession()
     const [loading, setLoading] = useState(false)
     const [groups, setGroups] = useState<FileGroup[]>([])
     const [annexureName, setAnnexureName] = useState("")
@@ -158,10 +163,23 @@ export default function AnnexureEditPage() {
     const [processingFile, setProcessingFile] = useState(false)
     const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])
     const [showValidationDialog, setShowValidationDialog] = useState(false)
+    const [isInvoiced, setIsInvoiced] = useState(false)
+    const [vendorId, setVendorId] = useState<string | null>(null)
+
+    // Authorization check
+    const role = session.data?.user?.role
+    const isAdmin = role !== undefined && role !== null &&
+        [UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(role as UserRoleEnum)
 
     useEffect(() => {
+        // Redirect admins to view page - they shouldn't edit
+        if (isAdmin) {
+            toast.error("Admins cannot edit annexures. Redirecting to view page.")
+            router.replace(`/lorries/annexure/${id}`)
+            return
+        }
         fetchAnnexure()
-    }, [id])
+    }, [id, isAdmin])
 
     async function fetchAnnexure() {
         try {
@@ -169,9 +187,22 @@ export default function AnnexureEditPage() {
             const res = await fetch(`/api/lorries/annexures/${id}`)
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || "Failed to load")
+
+            // Check if invoiced - redirect to view page
+            if (data.isInvoiced) {
+                setIsInvoiced(true)
+                toast.error("This annexure has been invoiced and cannot be edited.")
+                router.replace(`/lorries/annexure/${id}`)
+                return
+            }
+
             setAnnexureName(data.name || "")
-            // setFromDate(new Date(data.fromDate).toISOString().slice(0, 10))
-            // setToDate(new Date(data.toDate).toISOString().slice(0, 10))
+            // Extract vendorId from first LR for validation
+            const firstVendorId = data.groups?.[0]?.LRs?.[0]?.tvendor?.id
+            if (firstVendorId) {
+                setVendorId(firstVendorId)
+            }
+
             const g: FileGroup[] = (data.groups || []).map((grp: any) => ({
                 id: grp.id,
                 fileNumber: grp.fileNumber,
@@ -242,7 +273,7 @@ export default function AnnexureEditPage() {
             const res = await fetch(`/api/lorries/annexures/${id}/add-lrs`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ lrNumbers: raw }),
+                body: JSON.stringify({ lrNumbers: raw, vendorId }),
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || "Add failed")
@@ -273,6 +304,26 @@ export default function AnnexureEditPage() {
             if (data.missingPod?.length) {
                 data.missingPod.forEach((lr: string) => {
                     issues.push({ lrNumber: lr, type: "missing_pod", message: "POD not uploaded yet" })
+                })
+            }
+
+            // Handle wrong vendor LRs
+            if (data.wrongVendor?.length) {
+                data.wrongVendor.forEach((lr: string) => {
+                    issues.push({ lrNumber: lr, type: "wrong_vendor", message: "Wrong LR" })
+                })
+            }
+
+            // Handle missing LRs per file
+            if (data.missingLRsPerFile?.length) {
+                data.missingLRsPerFile.forEach((file: { fileNumber: string; missing: string[]; total: number; added: number }) => {
+                    file.missing.forEach(lr => {
+                        issues.push({
+                            lrNumber: lr,
+                            type: "missing_in_file",
+                            message: `Missing from ${file.fileNumber} (${file.added}/${file.total} added)`
+                        })
+                    })
                 })
             }
 
@@ -367,6 +418,7 @@ export default function AnnexureEditPage() {
             if (!res.ok) throw new Error(data.error || "Save failed")
             toast.success("Annexure saved successfully")
             fetchAnnexure()
+            router.push(`/lorries/annexure/${id}`)
         } catch (err: any) {
             console.error(err)
             toast.error(err.message || "Failed to save")

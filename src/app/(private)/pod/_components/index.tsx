@@ -1,20 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { PodTable } from "./pod-table"
+import { PodStats } from "./pod-stats"
 import { getAllPodsForAllVendors, EnrichedLRRequest } from "../_actions/get"
 
 const Index = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const tableRef = useRef<{ setStatusFilter: (value: string) => void; setInvoiceFilter: (value: string) => void } | null>(null)
 
   // Initialize state with fallback to current month
-  const [data, setData] = useState<EnrichedLRRequest[]>([])
-  const [filteredData, setFilteredData] = useState<EnrichedLRRequest[]>([])
+  const [allData, setAllData] = useState<EnrichedLRRequest[]>([]) // All LRs for stats and search
+  const [displayData, setDisplayData] = useState<EnrichedLRRequest[]>([]) // Date-filtered LRs for display
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,19 +33,18 @@ const Index = () => {
   const [fromDate, setFromDate] = useState(initialFromDate)
   const [toDate, setToDate] = useState(initialToDate)
 
-  // Fetch data when fromDate or toDate changes
+  // Fetch ALL data once on mount (for stats and global search)
   useEffect(() => {
-    if (!fromDate || !toDate) return
-
-    const fetchData = async () => {
+    const fetchAllData = async () => {
       try {
         setLoading(true)
         setError(null)
-        const result = await getAllPodsForAllVendors({ fromDate, toDate })
+        // Fetch all PODs without date filter
+        const result = await getAllPodsForAllVendors({})
         if (!result) {
           throw new Error("No data returned from API")
         }
-        setData(result)
+        setAllData(result)
       } catch (err) {
         console.error("Error fetching data:", err)
         setError("Failed to load data. Please try again.")
@@ -52,12 +53,12 @@ const Index = () => {
       }
     }
 
-    fetchData()
-  }, [fromDate, toDate])
+    fetchAllData()
+  }, []) // Only run once on mount
 
-  // Filter data when data, fromDate, or toDate changes
+  // Filter data for display based on date range
   useEffect(() => {
-    const filtered = data.filter((item) => {
+    const filtered = allData.filter((item) => {
       if (!item.outDate) return false
       const out = new Date(item.outDate)
       const from = new Date(fromDate)
@@ -65,8 +66,8 @@ const Index = () => {
       // Ensure dates are valid and within range
       return !isNaN(out.getTime()) && out >= from && out <= to
     })
-    setFilteredData(filtered)
-  }, [data, fromDate, toDate])
+    setDisplayData(filtered)
+  }, [allData, fromDate, toDate])
 
   // Sync URL with date filters
   useEffect(() => {
@@ -74,16 +75,27 @@ const Index = () => {
     params.set("fromDate", fromDate)
     params.set("toDate", toDate)
     router.replace(`?${params.toString()}`, { scroll: false })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromDate, toDate, router])
+
+  // Handle filter click from stats
+  const handleFilterClick = (type: 'status' | 'invoice', value: string) => {
+    if (tableRef.current) {
+      if (type === 'status') {
+        tableRef.current.setStatusFilter(value)
+      } else if (type === 'invoice') {
+        tableRef.current.setInvoiceFilter(value)
+      }
+    }
+  }
 
   return (
     <div className=" ">
-      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Proofs From Transporter</h1>
           <p className="text-sm text-muted-foreground">
-            Search and filter all POD records by date and customer.
+            Search globally across all LRs. Stats show all-time counts. Table displays selected date range.
           </p>
         </div>
 
@@ -129,7 +141,17 @@ const Index = () => {
           </CardContent>
         </Card>
       ) : (
-        <PodTable data={filteredData} />
+        <>
+          {/* Statistics - Using ALL data */}
+          <PodStats data={allData} onFilterClick={handleFilterClick} />
+
+          {/* POD Table - Display date-filtered, but search through all */}
+          <PodTable
+            data={displayData}
+            allData={allData}
+            ref={tableRef}
+          />
+        </>
       )}
     </div>
   )

@@ -6,11 +6,31 @@ import { revalidatePath } from "next/cache"
 // import { revalidatePath } from "next/cache"
 import { cache } from "react"
 
-export const getLRInfo = cache(async (fileNumber: string) => {
+export const getLRInfo = cache(async (fileNumber: string, userId?: string) => {
   try {
+    // Check user role if userId is provided
+    let userRole: string | null = null;
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      userRole = user?.role || null;
+    }
+
+    // Build where clause based on role
+    const whereClause: any = { fileNumber };
+
+    // Role-based filtering for TVENDOR
+    if (userRole === "TVENDOR") {
+      whereClause.OR = [
+        { annexureId: { not: null } },
+        { isInvoiced: true }
+      ];
+    }
 
     const LRData = await prisma.lRRequest.findMany({
-      where: { fileNumber },
+      where: whereClause,
       include: {
         tvendor: {
           include: {
@@ -24,7 +44,33 @@ export const getLRInfo = cache(async (fileNumber: string) => {
             },
           },
         },
-        Invoice: true
+        Invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            refernceNumber: true,
+            status: true
+          }
+        },
+        Annexure: {
+          select: {
+            id: true,
+            name: true,
+            fromDate: true,
+            toDate: true
+          }
+        },
+        group: {
+          select: {
+            id: true,
+            fileNumber: true,
+            status: true,
+            totalPrice: true,
+            extraCost: true,
+            remark: true,
+            annexureId: true
+          }
+        }
       },
     })
 
@@ -102,12 +148,12 @@ export const updateOfferedPriceForFileNo = async (
 export async function setLrPrice({
   lrNumber,
   lrPrice,
-   
+
   // extraCost = 0,
 }: {
   lrNumber: string;
   lrPrice: number;
-   // extraCost?: number;
+  // extraCost?: number;
   // pathToRevalidate?: string;
 }) {
   try {
@@ -121,8 +167,8 @@ export async function setLrPrice({
       },
     });
 
-     
- 
+
+
     return { success: true, data: updatedLR };
   } catch (err: any) {
     console.error("Error Settling LR:", err);

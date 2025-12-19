@@ -6,6 +6,20 @@ interface Annexure {
   id: string
   name?: string
   groups?: any[]
+  isInvoiced?: boolean
+  invoiceDetails?: {
+    id: string
+    refernceNumber: string
+    invoiceNumber?: string
+    status: string
+    invoiceDate?: string
+  } | null
+  missingLRsPerFile?: {
+    fileNumber: string
+    missing: string[]
+    total: number
+    inAnnexure: number
+  }[]
   [key: string]: any
 }
 

@@ -1,6 +1,7 @@
 import { generateInvoiceFromAnnexure } from "@/app/(private)/lorries/_action/annexure";
+import { redirect } from "next/navigation";
 import { NextRequest, NextResponse } from "next/server";
- 
+
 export async function POST(req: NextRequest) {
   try {
     const { annexureId } = await req.json();
@@ -9,6 +10,8 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await generateInvoiceFromAnnexure(annexureId);
+
+
 
     if (response.error) {
       return NextResponse.json({ error: response.error }, { status: 400 });

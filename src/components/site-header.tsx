@@ -28,8 +28,48 @@ export function SiteHeader() {
   const router = useRouter()
   const { title } = usePageTitle()
 
+  // Enhanced dynamic title resolution
+  const getCurrentTitle = () => {
+    // 1. If custom title is set via store, use it
+    if (title && title !== "Page") return title
 
-  const currentNav = title ? title : SideBarData.navMain.find((item) => item.url === path)?.headerTitle
+    // 2. Try exact match first
+    const exactMatch = SideBarData.navMain.find((item) => item.url === path)
+    if (exactMatch) return exactMatch.headerTitle
+
+    // 3. Handle dynamic routes (with IDs in path)
+    // Check if path starts with any nav URL
+    for (const item of SideBarData.navMain) {
+      if (path.startsWith(item.url) && item.url !== "/") {
+        // For specific routes, add context
+        if (path.match(/\/invoices\/[^/]+$/)) {
+          return "Invoice Details"
+        }
+        if (path.match(/\/invoices\/[^/]+\/compare$/)) {
+          return "Compare Invoice"
+        }
+        if (path.match(/\/lorries\/annexure\/[^/]+$/)) {
+          return "Annexure Details"
+        }
+        if (path.match(/\/lorries\/annexure\/[^/]+\/edit$/)) {
+          return "Edit Annexure"
+        }
+        if (path.match(/\/pod\/[^/]+$/)) {
+          return "POD Details"
+        }
+        if (path.match(/\/profile\/[^/]+$/)) {
+          return "User Profile"
+        }
+        // Default to parent headerTitle
+        return item.headerTitle
+      }
+    }
+
+    // 4. Fallback to "Page" for unmatched routes
+    return "Page"
+  }
+
+  const currentNav = getCurrentTitle()
 
   const [isPending, setIsPending] = React.useState(false)
 

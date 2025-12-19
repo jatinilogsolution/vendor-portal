@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         port: "", // optional
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.awlindia.com",
+        port: "", // optional
+        pathname: "/**",
+      },
 
     ],
   },

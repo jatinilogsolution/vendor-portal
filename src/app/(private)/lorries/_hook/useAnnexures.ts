@@ -1,4 +1,4 @@
- 
+"use client"
 import { useEffect, useMemo, useState } from "react"
 import { getAnnexures, deleteAnnexure, Annexure } from "../_action/annexure"
 import { toast } from "sonner"
@@ -13,7 +13,7 @@ interface UseAnnexuresReturn {
   fetchAnnexures: () => Promise<void>
 }
 
-export function useAnnexures(): UseAnnexuresReturn {
+export function useAnnexures(vendorId?: string): UseAnnexuresReturn {
   const [annexures, setAnnexures] = useState<Annexure[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [search, setSearch] = useState<string>("")
@@ -21,7 +21,7 @@ export function useAnnexures(): UseAnnexuresReturn {
   const fetchAnnexures = async () => {
     setLoading(true)
     try {
-      const data = await getAnnexures()
+      const data = await getAnnexures(vendorId)
       setAnnexures(data)
     } catch {
       toast.error("Failed to load annexures")

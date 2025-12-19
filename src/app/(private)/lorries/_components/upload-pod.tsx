@@ -38,9 +38,10 @@ type UploadPodProps = {
   vendor: string;
   fileNumber: string
   whId: string
+  readOnly?: boolean
 }
 
-export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumber }: UploadPodProps) {
+export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumber, readOnly = false }: UploadPodProps) {
   const [fileUrl, setFileUrl] = useState<string | null>(initialFileUrl)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -97,6 +98,11 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
   }
 
   const handleButtonClick = () => {
+    // Read-only mode: just view the POD
+    if (readOnly) {
+      if (fileUrl) window.open(fileUrl, "_blank")
+      return
+    }
     if (fileUrl) setShowAlert(true)
     else setOpenDialog(true)
   }
@@ -120,8 +126,11 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
         onClick={handleButtonClick}
         className="gap-2 text-sm font-mono  "
       >
-        <Upload size={12} />
-        {fileUrl ? "Replace" : "Upload"}
+        {readOnly ? (
+          fileUrl ? <><Eye size={12} /> View</> : <span className="text-muted-foreground">No POD</span>
+        ) : (
+          <><Upload size={12} /> {fileUrl ? "Replace" : "Upload"}</>
+        )}
       </Button>
 
       {/* View / Replace Alert */}
@@ -139,12 +148,12 @@ export function UploadPod({ LrNumber, customer, vendor, initialFileUrl, fileNumb
             <AlertDialogAction onClick={handleView} className="gap-1 ">
               <Eye size={16} /> View
             </AlertDialogAction>
-          {session.data?.user.role === UserRoleEnum.TVENDOR  && <AlertDialogAction
+            {session.data?.user.role === UserRoleEnum.TVENDOR && <AlertDialogAction
               onClick={handleReplace}
               className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-white"
             >
               <Replace size={16} /> Replace
-            </AlertDialogAction> }
+            </AlertDialogAction>}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

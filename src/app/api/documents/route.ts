@@ -31,20 +31,26 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { label, url, linkedId, description, entryBy } = body;
+    const { label, url, linkedId, linkedCode, description, entryBy } = body;
     if (!linkedId || !url) return NextResponse.json({ error: "linkedId and url required" }, { status: 400 });
 
-    const existing = await prisma.document.findUnique({ where: { linkedId } });
+    const existing = await prisma.document.findFirst({
+      where: {
+        linkedId,
+        linkedCode: linkedCode || null
+      }
+    });
+
     if (existing) {
       const updated = await prisma.document.update({
-        where: { linkedId },
+        where: { id: existing.id },
         data: { url, label, description, entryBy },
       });
       return NextResponse.json(updated);
     }
 
     const doc = await prisma.document.create({
-      data: { label, url, linkedId, description, entryBy },
+      data: { label, url, linkedId, linkedCode, description, entryBy },
     });
     return NextResponse.json(doc);
   } catch (err: any) {

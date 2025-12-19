@@ -1,53 +1,44 @@
-'use client'
+import React from 'react'
+import { getCustomSession } from '@/actions/auth.action'
+import { redirect } from 'next/navigation'
+import { signOut } from '@/lib/auth-client'
+import { UserRoleEnum } from '@/utils/constant'
+import { prisma } from '@/lib/prisma'
+import AnnexureListContent from './_components/annexure-content'
 
-import { Separator } from "@/components/ui/separator"
-import { Table, TableHeader, TableHead, TableRow, TableBody } from "@/components/ui/table"
-import { useAnnexures } from "../_hook/useAnnexures"
-import AnnexureHeader from "../_components/annexure/annexure-header"
-import AnnexureList from "../_components/annexure/annexure-list"
-import { useAnnexureValidationContext } from "../_components/annexure/annexure-context"
-import AnnexureValidationPanel from "../_components/annexure/annexure-validation-panel"
+export default async function AnnexurePage() {
+  const { session, user } = await getCustomSession()
 
-export default function AnnexureListContent() {
-  const { filtered, loading, search, setSearch, handleDelete } = useAnnexures()
-  const { validationData } = useAnnexureValidationContext()
+  if (!session) {
+    await signOut()
+    redirect("/auth/login")
+  }
 
-  return (
-    <div className="px-4 w-full space-y-4">
+  // Only TVENDOR, TADMIN, and BOSS can access this page
+  const allowedRoles = [UserRoleEnum.TVENDOR, UserRoleEnum.TADMIN, UserRoleEnum.BOSS]
+  if (!allowedRoles.includes(user.role as UserRoleEnum)) {
+    redirect("/dashboard")
+  }
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <AnnexureHeader search={search} setSearch={setSearch} resultsCount={filtered.length} />
+  // For TVENDOR, get their vendor ID for filtering
+  let vendorId: string | undefined = undefined
 
-      </div>
+  if (user.role === UserRoleEnum.TVENDOR) {
+    const vendor = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        Vendor: {
+          select: {
+            id: true
+          }
+        }
+      }
+    })
 
-      <Separator className="my-2" />
+    vendorId = vendor?.Vendor?.id
+  }
 
-      {/* Annexure Table */}
-      <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Name</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead className="text-center">LRs</TableHead>
-              <TableHead className="text-center">Total Transecton</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <AnnexureList filtered={filtered} loading={loading} handleDelete={handleDelete} />
-          </TableBody>
-        </Table>
-      </div>
 
-      {/* Render Validation Data (if any) */}
-      {validationData && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">Validated Annexure Preview</h2>
-          <AnnexureValidationPanel validationResponse={validationData} />
-        </div>
-      )}
-    </div>
-  )
+  return <AnnexureListContent vendorId={vendorId} userRole={user.role!} />
+
 }
