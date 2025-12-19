@@ -382,7 +382,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                                 {/* Date */}
                                 <div className="flex items-center gap-2 text-muted-foreground">
                                   <Calendar className="w-4 h-4" />
-                                  <span>Date: <LazyDate date={records[0].outDate} /></span>
+                                  <span>Date: <LazyDate date={records[0].outDate.toString()} /></span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 text-sm pl-1">
                                   {records[0].isInvoiced ? (

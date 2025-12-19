@@ -93,7 +93,7 @@ export function PodStats({ data, onFilterClick }: PodStatsProps) {
                 return (
                     <Card
                         key={stat.label}
-                        className={`border ${stat.borderColor} shadow-sm transition-all ${isClickable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : 'hover:shadow-md'
+                        className={`border rounded-md  ${stat.borderColor} shadow-sm transition-all ${isClickable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : 'hover:shadow-md'
                             }`}
                         onClick={() => {
                             if (isClickable) {

@@ -20,6 +20,7 @@ import { useEffect, useState } from "react"
 import { getDashboardStats } from "../_actions/dashboard"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { LazyDate } from "@/components/lazzy-date"
 
 interface DashboardData {
     overview: {
@@ -181,7 +182,8 @@ export default function DashboardClient({ data: initialData, userName }: Dashboa
                 <div className="flex items-center gap-3">
                     <div className="text-right text-xs text-muted-foreground">
                         <div>Last updated:</div>
-                        <div className="font-medium">{lastUpdated.toLocaleTimeString()}</div>
+
+                        <LazyDate date={lastUpdated.toString()} format="medium" />
                     </div>
                     <Button
                         variant="outline"
@@ -365,7 +367,7 @@ export default function DashboardClient({ data: initialData, userName }: Dashboa
                                         <Link
                                             key={invoice.id}
                                             href={`/invoices/${invoice.id}`}
-                                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors block"
+                                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors "
                                         >
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
@@ -536,7 +538,7 @@ function QuickActionButton({
     return (
         <Link
             href={href}
-            className="flex items-start gap-3 p-4 rounded-lg border hover:bg-muted/50 hover:border-primary/50 transition-all group"
+            className="flex items-start gap-3 p-4   border hover:bg-muted/50 hover:border-primary/50 transition-all group"
         >
             <div className="p-2 rounded-md bg-primary/10 group-hover:bg-primary/20 transition-colors">
                 <Icon className="w-5 h-5 text-primary" />
