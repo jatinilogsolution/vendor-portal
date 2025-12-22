@@ -117,7 +117,7 @@ export default function Index() {
                     value={dateRange}
                     onChange={setDateRange}
                     placeholder="Select date range"
-                    className="shadow-none w-full md:w-[250px]"
+                    className="shadow-none w-full md:w-62.5"
 
                 />
 

@@ -34,9 +34,9 @@ model User {
   accounts      Account[]
   Vendor        Vendor?         @relation(fields: [vendorId], references: [id])
   PurchaseOrder PurchaseOrder[]
+  logs          Log[]
 
   @@map("users")
-  logs Log[]
 }
 
 model Vendor {
@@ -61,26 +61,9 @@ model Vendor {
   Address       Address[]
   // docs          Document[]
   LRRequest     LRRequest[]
+  logs          Log[]
 
   @@map("vendors")
-  logs Log[]
-}
-
-model Document {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  label       String //Pan Card
-  url         String
-  entryBy     String
-  description String?
-
-  linkedId   String
-  linkedCode String? //pan_card, gst_certificate
-
-  @@unique([linkedId, linkedCode])
-  @@map("documents")
 }
 
 model Address {
@@ -137,6 +120,35 @@ model LRRequest {
 
   groupId String?
   group   AnnexureFileGroup? @relation(fields: [groupId], references: [id])
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  label       String //Pan Card
+  url         String
+  entryBy     String
+  description String?
+
+  linkedId   String
+  linkedCode String? //pan_card, gst_certificate
+
+  // @@unique([linkedId, linkedCode])
+  @@map("documents")
+}
+
+model extraCostList {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  docNo       String
+  description String
+  amount      Float
+  docId       String
+
+  @@index([docNo])
 }
 
 model Annexure {
@@ -341,26 +353,24 @@ model LorryReceipt {
   @@map("lorry_receipts") // prisma table name
 }
 
-
-
 model Log {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
 
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
-  action      String   // "CREATE" | "UPDATE" | "DELETE"
-  model       String   // "LRRequest", "Invoice", etc.
-  recordId    String?  // id of the affected record
+  action   String // "CREATE" | "UPDATE" | "DELETE"
+  model    String // "LRRequest", "Invoice", etc.
+  recordId String? // id of the affected record
 
-  vendorId    String?  // to restrict vendor-scoped access
-  Vendor      Vendor?  @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  vendorId String? // to restrict vendor-scoped access
+  Vendor   Vendor? @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
-  oldData     String?  @db.NVarChar(Max) // stringified JSON
-  newData     String?  @db.NVarChar(Max) // stringified JSON
+  oldData String? @db.NVarChar(Max) // stringified JSON
+  newData String? @db.NVarChar(Max) // stringified JSON
 
-  description String?  // optional human-readable text
+  description String? // optional human-readable text
 
   @@index([model])
   @@index([recordId])
