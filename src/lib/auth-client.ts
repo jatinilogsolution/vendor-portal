@@ -16,5 +16,15 @@ const authClient = createAuthClient({
   ],
 })
 
+// import { inferAdditionalFields } from "better-auth/client/plugins";
+// export const authClient = createAuthClient({
+//   plugins: [inferAdditionalFields({
+//       user: {
+//         role: {
+//           type: "string"
+//         }
+//       }
+//   })],
+// });
 
 export const { signOut, useSession, sendVerificationEmail, resetPassword, admin, signUp, verifyEmail, requestPasswordReset } = authClient

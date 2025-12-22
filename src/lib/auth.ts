@@ -119,7 +119,8 @@ const options = {
                 // type: ["BOSS", "ADMIN", "VENDOR", "TVENDOR", "TADMIN"],
                 // defaultValue: UserRoleEnum.VENDOR,
                 type: "string",   // important
-                required: false,
+                required: true,
+                input: true
                 // defaultValue: UserRoleEnum.VENDOR,
 
             },
@@ -142,7 +143,7 @@ const options = {
 
 
     plugins: [nextCookies(), admin({
-        adminRoles: [UserRoleEnum.ADMIN],
+        adminRoles: [UserRoleEnum.BOSS, UserRoleEnum.ADMIN, UserRoleEnum.TADMIN],
         defaultRole: UserRoleEnum.VENDOR,
         ac, roles
     })
