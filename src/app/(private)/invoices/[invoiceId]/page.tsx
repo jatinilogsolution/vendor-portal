@@ -14,12 +14,15 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { BackToPage } from "@/components/back-to-page"
 import { Separator } from "@/components/ui/separator"
-import { sendInvoiceById, withdrawInvoice, deleteInvoice, saveDraftInvoice } from "../_action/invoice-list"
+import { sendInvoiceById, withdrawInvoice, saveDraftInvoice } from "../_action/invoice-list"
+import { deleteInvoice as deleteInvoiceWorkflow, requestInvoiceDeletion as requestDeletionWorkflow } from "../_action/invoice-workflow.action"
 import { useInvoiceStore } from "@/components/modules/invoice-context"
 import Link from "next/link"
 import { IconChartColumn, IconTrash, IconDeviceFloppy, IconSend, IconArrowBack } from "@tabler/icons-react"
-import { UserRoleEnum } from "@/utils/constant"
+import { InvoiceStatus, UserRoleEnum } from "@/utils/constant"
 import { useSession } from "@/lib/auth-client"
+import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge"
+import { InvoiceWorkflowPanel } from "@/components/modules/workflow/invoice-workflow-panel"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +34,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { WorkflowTimeline } from "@/components/modules/workflow/workflow-timeline"
+import { WorkflowComments } from "@/components/modules/workflow/workflow-comments"
+import { Badge } from "@/components/ui/badge"
+import { ManualNotificationDialog } from "@/components/modules/workflow/manual-notification-dialog"
+import { createAnnexureFromExistingInvoice } from "../_action/manual-workflow.action"
+import { canEditInvoice } from "@/utils/workflow-validator"
+import { AlertCircle, FilePlus } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 const InvoiceIdPage = () => {
   const params = useParams<{ invoiceId: string }>()
@@ -171,13 +184,33 @@ const InvoiceIdPage = () => {
   const handleDelete = async () => {
     try {
       setActionLoading(true)
-      const result = await deleteInvoice(invoiceId)
+      const result = await deleteInvoiceWorkflow(invoiceId, session.data?.user.id as string, role as string)
 
       if (result.success) {
-        toast.success(result.message)
+        toast.success("Invoice deleted successfully")
         router.push("/invoices")
       } else {
-        toast.error(result.message)
+        toast.error(result.error || "Failed to delete invoice")
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        toast.error(err.message)
+      }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleRequestDeletion = async () => {
+    try {
+      setActionLoading(true)
+      const result = await requestDeletionWorkflow(invoiceId, session.data?.user.id as string, role as string)
+
+      if (result.success) {
+        toast.success("Deletion request sent to Traffic Admin")
+        fetchInvoice()
+      } else {
+        toast.error(result.error || "Failed to request deletion")
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -206,100 +239,231 @@ const InvoiceIdPage = () => {
 
   return (
     <div className="relative">
-      <div className="flex w-full  items-center justify-between  px-6">
-        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight flex gap-x-4 items-center">
-          <BackToPage title="Back to Invoices" location="/invoices" /> <span>
-            Booking Cover Note </span>
-        </h4>
+      <div className="px-6 flex flex-col gap-4">
+        <div className="flex w-full items-center justify-between">
+          <h4 className="scroll-m-20 text-xl font-semibold tracking-tight flex gap-x-4 items-center">
+            <BackToPage title="Back to Invoices" location="/invoices" /> <span>
+              Booking Cover Note </span>
+            <WorkflowStatusBadge status={invoice.status || "DRAFT"} type="invoice" role={role as string} />
+            {invoice.annexure && (
+              <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 transition-colors">
+                <Link href={`/lorries/annexure/${invoice.annexureId}`} className="flex items-center gap-1">
+                  <IconChartColumn size={14} />
+                  <span>Annexure: {invoice.annexure.name}</span>
+                </Link>
+              </Badge>
+            )}
+          </h4>
 
-        {/* DRAFT Status - Show edit controls */}
-        {invoice.status === "DRAFT" && isTVendor && (
-          <div className=" flex justify-end gap-3 items-center">
-            {/* Merged Invoice Management Component */}
-            <InvoiceManagement
-              invoiceId={invoiceId}
-              referenceNumber={invoice.refernceNumber}
-              invoiceNumber={invoice.invoiceNumber}
-              initialFile={{
-                fileUrl: invoice.invoiceURI,
-                id: "1",
-                name: "Invoice"
-              }}
-              initialInvoiceDate={invoice.invoiceDate.split("T")[0]}
-              onUpdate={fetchInvoice}
-            />
-
-            {/* Commented out as per request */}
-            {/* <AddLrButtonToInvoice onClose={fetchInvoice} refernceNo={invoice.refernceNumber} vendorId={invoice.vendor.id} /> */}
-
-            {/* Save as Draft Button */}
-            <Button
-              onClick={handleSaveDraft}
-              variant="outline"
-              disabled={actionLoading}
-            >
-              <IconDeviceFloppy className="w-4 h-4 mr-2" />
-              Save Draft
-            </Button>
-
-            {/* Send Invoice Button */}
-            <Button
-              onClick={handleSendInvoice}
-              disabled={actionLoading}
-            >
-              <IconSend className="w-4 h-4 mr-2" />
-              Send Invoice
-            </Button>
-
-            {/* Delete moved to listing page */}
-          </div>
-        )}
-
-        {/* SENT Status - Show withdraw and compare buttons */}
-        {invoice.status === "SENT" && (
           <div className="flex justify-end gap-3 items-center">
-            {/* Withdraw Button (only for TVENDOR) */}
-            {isTVendor && (
+            {canEditInvoice(role as string, invoice as any).canEdit && (
+              <InvoiceManagement
+                invoiceId={invoiceId}
+                referenceNumber={invoice.refernceNumber}
+                invoiceNumber={invoice.invoiceNumber}
+                initialFile={invoice.invoiceURI ? {
+                  fileUrl: invoice.invoiceURI,
+                  id: "1",
+                  name: "Invoice"
+                } : undefined}
+                initialInvoiceDate={invoice.invoiceDate?.split("T")[0]}
+                onUpdate={fetchInvoice}
+              />
+            )}
+
+            {canEditInvoice(role as string, invoice as any).canEdit && (
+              <Button
+                onClick={handleSaveDraft}
+                variant="outline"
+                disabled={actionLoading}
+              >
+                <IconDeviceFloppy className="w-4 h-4 mr-2" />
+                Save Draft
+              </Button>
+            )}
+
+            {isAuthorized && (
+              <Button variant="link" asChild className="bg-muted">
+                <Link href={`/invoices/${invoiceId}/compare`} className="flex items-center justify-center gap-x-2">
+                  <IconChartColumn className="w-4 h-4" /> Compare
+                </Link>
+              </Button>
+            )}
+
+            {isAuthorized && (
+              <ManualNotificationDialog
+                recipientEmail={invoice.vendor?.users?.[0]?.email || ""}
+                recipientId={invoice.vendor?.users?.[0]?.id}
+                entityName={invoice.invoiceNumber || invoice.refernceNumber}
+                path={`/invoices/${invoiceId}`}
+              />
+            )}
+
+            {(isAuthorized || isTVendor) && !invoice.annexureId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                onClick={async () => {
+                  try {
+                    setActionLoading(true);
+                    const res = await createAnnexureFromExistingInvoice(invoiceId);
+                    if (res.success) {
+                      toast.success("Annexure generated successfully");
+                      fetchInvoice();
+                    } else {
+                      toast.error(typeof (res as any).data === 'string' ? (res as any).data : (res as any).error || "Failed to generate annexure");
+                    }
+                  } catch (e) {
+                    toast.error("An error occurred");
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+              >
+                <FilePlus className="w-4 h-4" />
+                Generate Source Annexure
+              </Button>
+            )}
+            {/* Deletion logic: Vendor can delete if not submitted. Admin can delete if requested. */}
+            {isTVendor && invoice.submittedAt === null && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" disabled={actionLoading}>
-                    <IconArrowBack className="w-4 h-4 mr-2" />
-                    Withdraw
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    disabled={actionLoading}
+                  >
+                    <IconTrash className="w-4 h-4" />
+                    Delete Invoice
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Withdraw Invoice?</AlertDialogTitle>
+                   <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will change the invoice status back to DRAFT, allowing you to edit it again.
-                      The invoice will need to be re-sent after making changes.
+                      This will permanently delete this draft and unlink all associated LRs.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleWithdraw}>
-                      Withdraw Invoice
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} className="bg-red-600">Delete</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             )}
 
-            {/* Compare Button (for admins) */}
-            {isAuthorized && (
-              <Button variant="link" className=" bg-muted">
-                <Link href={`/invoices/${invoiceId}/compare`} className=" flex items-center justify-center gap-x-2" >
-                  <IconChartColumn className="w-4 h-4" />  Compare
-                </Link >
-              </Button >
+            {isTVendor && invoice.submittedAt !== null && !invoice.deletionRequested && (
+                <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={handleRequestDeletion}
+                    disabled={actionLoading}
+                >
+                    <IconTrash className="w-4 h-4 mr-2" />
+                    Request Deletion
+                </Button>
             )}
-          </div >
+
+            {role === UserRoleEnum.TADMIN && invoice.deletionRequested && (
+                <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    disabled={actionLoading}
+                  >
+                    <IconTrash className="w-4 h-4" />
+                    Approve Deletion Request
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                   <AlertDialogHeader>
+                    <AlertDialogTitle>Approve Deletion Request?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      The Vendor has requested to delete this invoice. Confirming will permanently remove it.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-red-600">Confirm Deletion</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </div>
+
+        {/* Edit Restriction Alert for Vendors */}
+        {isTVendor && canEditInvoice(role as string, invoice).reason && (invoice.status.includes("REJECTED")) && (
+          <Alert variant={canEditInvoice(role as string, invoice).canEdit ? "default" : "destructive"} className={cn(
+            canEditInvoice(role as string, invoice).canEdit ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-red-50 border-red-200 text-red-800"
+          )}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{canEditInvoice(role as string, invoice).canEdit ? "Note: Linked Document" : "Action Required via Annexure"}</AlertTitle>
+            <AlertDescription>
+              {canEditInvoice(role as string, invoice).reason}
+              {invoice.annexureId && (
+                <Button variant="link" asChild className={cn("p-0 h-auto font-bold ml-1", canEditInvoice(role as string, invoice).canEdit ? "text-amber-800" : "text-red-800")}>
+                  <Link href={`/lorries/annexure/${invoice.annexureId}`}>
+                    Go to Annexure
+                  </Link>
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
-      </div >
+
+        {session.data?.user && (
+          <InvoiceWorkflowPanel
+            invoiceId={invoiceId}
+            invoiceNumber={invoice.invoiceNumber || invoice.refernceNumber}
+            currentStatus={invoice.status || "DRAFT"}
+            userRole={session.data.user.role as string}
+            userId={session.data.user.id}
+            onUpdate={fetchInvoice}
+            annexureId={invoice.annexureId}
+          />
+        )}
+      </div>
 
       <Separator className="mt-3" />
 
-      <Invoice data={invoice} />
+      <div className="grid grid-cols-1  gap-6 px-6 mt-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Invoice data={invoice} />
+        </div>
+
+        <div className="space-y-6">
+          {invoice.statusHistory && invoice.statusHistory.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3 px-4 pt-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <IconChartColumn className="h-4 w-4 text-primary" />
+                  Approval History
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <WorkflowTimeline logs={invoice.statusHistory} type="invoice" />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {session.data?.user && (
+        <WorkflowComments
+          invoiceId={invoiceId}
+          currentUser={{
+            id: session.data.user.id,
+            name: session.data.user.name || "User",
+            role: session.data.user.role as string
+          }}
+        />
+      )}
     </div >
   )
 }

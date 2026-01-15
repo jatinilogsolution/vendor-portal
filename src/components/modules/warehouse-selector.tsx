@@ -336,7 +336,7 @@ export function WarehouseSelector({ value, setValue }: { value: string; setValue
           >
             <Building2 className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
 
-            <div className="flex-1  min-w-0 max-w-[34rem]">
+            <div className="flex-1  min-w-0 max-w-96 ">
               {selectedWarehouse ? (
                 <div className="space-y-1">
                   <div className="font-medium  text-start text-foreground">{selectedWarehouse.warehouseName}</div>

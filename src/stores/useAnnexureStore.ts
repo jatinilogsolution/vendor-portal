@@ -32,7 +32,8 @@ interface AnnexureState {
   details: Annexure | null         // current annexure in use
   cache: Record<string, CacheEntry>
 
-  loadAnnexure: (id: string) => Promise<Annexure>
+  loadAnnexure: (id: string, forceRefresh?: boolean) => Promise<Annexure>
+  invalidateCache: (id: string) => void
   clearDetails: () => void
 }
 
@@ -43,12 +44,12 @@ export const useAnnexureStore = create<AnnexureState>((set, get) => ({
   // -------------------------
   // Main loader with 5-min TTL cache
   // -------------------------
-  loadAnnexure: async (id: string) => {
+  loadAnnexure: async (id: string, forceRefresh?: boolean) => {
     const { cache } = get()
     const cacheEntry = cache[id]
 
-    // 1️⃣ Check cache (TTL = 5 mins)
-    if (cacheEntry && Date.now() - cacheEntry.timestamp < 5 * 60 * 1000) {
+    // 1️⃣ Check cache (TTL = 5 mins) - skip if forceRefresh
+    if (!forceRefresh && cacheEntry && Date.now() - cacheEntry.timestamp < 5 * 60 * 1000) {
       set({ details: cacheEntry.data })
       return cacheEntry.data
     }
@@ -70,6 +71,14 @@ export const useAnnexureStore = create<AnnexureState>((set, get) => ({
     }))
 
     return payload
+  },
+
+  invalidateCache: (id: string) => {
+    set((state) => {
+      const newCache = { ...state.cache }
+      delete newCache[id]
+      return { cache: newCache }
+    })
   },
 
   clearDetails: () => set({ details: null }),

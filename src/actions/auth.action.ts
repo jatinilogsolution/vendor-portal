@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { sendEmail } from "@/services/mail"
 import { sendEmailAction } from "./email/send-email.action"
+import { auditCreate, auditAuth } from "@/lib/audit-logger"
 
 
 
@@ -70,24 +71,32 @@ export async function signUpEmailAction(data: RegisterSchema) {
 
   try {
 
-  const newUser =   await auth.api.createUser({
+    const newUser = await auth.api.createUser({
       body: {
         email: email,
         password: password,
         name: name,
-        role: role as UserRoleEnum,
+        role: role as any,
         data: {
           vendorId: vendorId || null
         }
       },
     });
 
+    // Log user registration
+    await auditCreate(
+      "User",
+      { email, name, role, vendorId },
+      `New user registered: ${name} (${email}) with role ${role}`,
+      newUser.user.id
+    );
+
     await auth.api.sendVerificationEmail({
-      body:{
+      body: {
         email: newUser.user.email,
         callbackURL: "/auth/verify",
       }
-    })
+    });
 
     // await sendEmailAction({
     //   to: email,
@@ -100,7 +109,7 @@ export async function signUpEmailAction(data: RegisterSchema) {
     //     buttonTitle: "Verify Mail"
     //   },
     // });
-    revalidatePath("/admin")
+    revalidatePath("/admin");
 
 
     return { error: null }

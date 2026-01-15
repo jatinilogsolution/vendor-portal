@@ -7,6 +7,9 @@ import { useAnnexureValidationContext, AnnexureValidationProvider } from "../../
 import { useAnnexures } from "../../_hook/useAnnexures"
 import AnnexureList from "../../_components/annexure/annexure-list"
 import AnnexureValidationPanel from "../../_components/annexure/annexure-validation-panel"
+import { WorkflowStatsDashboard, getAnnexureStats } from "@/components/modules/workflow/workflow-stats-dashboard"
+import { Progress } from "@/components/ui/progress"
+import { Clock } from "lucide-react"
 
 interface AnnexureListContentProps {
     vendorId?: string
@@ -14,7 +17,7 @@ interface AnnexureListContentProps {
 }
 
 function AnnexureListContentInternal({ vendorId, userRole }: AnnexureListContentProps) {
-    const { filtered, loading, search, setSearch, handleDelete } = useAnnexures(vendorId)
+    const { filtered, loading, search, setSearch, status, setStatus, stats, handleDelete } = useAnnexures(vendorId)
     const { validationData } = useAnnexureValidationContext()
 
     // If no vendorId, user is admin and should see vendor column
@@ -28,6 +31,11 @@ function AnnexureListContentInternal({ vendorId, userRole }: AnnexureListContent
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <AnnexureHeader search={search} setSearch={setSearch} resultsCount={filtered.length} />
             </div>
+
+            <WorkflowStatsDashboard
+                stats={getAnnexureStats(stats, status, setStatus)}
+                title="Annexure Workflow Overview"
+            />
 
             <Separator className="my-2" />
 

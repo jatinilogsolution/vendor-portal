@@ -72,7 +72,7 @@ export const getCostByFileNumber = async (fileNumber: string) => {
     const response = await request.query(query)
     const record = response.recordset?.[0]
 
-    console.log("WMS Cost Query Result:", JSON.stringify(record))
+    // console.log("WMS Cost Query Result:", JSON.stringify(record))
 
     if (!record) {
       return {

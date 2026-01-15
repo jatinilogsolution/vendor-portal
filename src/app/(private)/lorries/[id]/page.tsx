@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { ErrorCard } from "@/components/error"
 
 import { getLRInfo } from "../_action/lorry"
-import { SettlePrice } from "../_components/settle-price"
+import ExtraCostManager from "@/components/modules/extra-cost-manager"
 import { Separator } from "@/components/ui/separator"
 import { LRForFileNumber } from "../_components/lr-per-file"
 import { getCustomSession } from "@/actions/auth.action"
@@ -92,16 +92,11 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                         )}
                         {user.role === "TVENDOR" && !isAnyInvoiced && (
                             <div className="">
-                                <SettlePrice
-                                    mode={"edit"}
-                                    costView={false}
-
-                                    fileNumber={id}
-                                    label="+ Cost"
-                                    settlePrice={data[0]?.priceSettled?.toString() ?? ""}
-                                    vehicle={data[0]?.vehicleNo || ""}
-                                    extraCost={data[0]?.extraCost || null}
-                                    size="default"
+                                <ExtraCostManager
+                                    fileNumber={data[0].fileNumber}
+                                    totalExtra={data[0].extraCost ? `₹${data[0].extraCost.toLocaleString()}` : ""}
+                                    onSuccess={() => window.location.reload()}
+                                    readOnly={isAnyInvoiced}
                                 />
                             </div>
                         )}
@@ -141,12 +136,11 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                                 {data[0].extraCost ?? "—"} </span>
                             {user.role === "TADMIN" && (
                                 <div className="self-end">
-                                    <SettlePrice
-                                        mode={"view"}
-                                        fileNumber={id}
-                                        settlePrice={data[0]?.priceSettled?.toString() ?? ""}
-                                        vehicle={data[0]?.vehicleNo || ""}
-                                        extraCost={data[0]?.extraCost || 0}
+                                    <ExtraCostManager
+                                        fileNumber={data[0].fileNumber}
+                                        totalExtra={data[0].extraCost ? `₹${data[0].extraCost.toLocaleString()}` : ""}
+                                        onSuccess={() => window.location.reload()}
+                                        readOnly={true}
                                     />
                                 </div>
                             )}

@@ -294,7 +294,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                   setFromDate(e.target.value)
                   setPage(1)
                 }}
-                className="pl-8 w-[150px]"
+                className="pl-8 w-37.5"
               />
             </div>
             <span className="text-muted-foreground text-sm">to</span>
@@ -307,7 +307,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                   setToDate(e.target.value)
                   setPage(1)
                 }}
-                className="pl-8 w-[150px]"
+                className="pl-8 w-37.5"
               />
             </div>
             {(fromDate || toDate) && (
@@ -514,7 +514,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-sm min-w-[100px] text-center">
+            <span className="text-sm min-w-25 text-center">
               Page {page} of {totalPages}
             </span>
             <Button

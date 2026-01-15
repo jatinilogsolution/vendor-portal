@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 // import { revalidatePath } from "next/cache"
 import { cache } from "react"
+import { auditUpdate } from "@/lib/audit-logger"
+import { syncInvoiceFromAnnexure } from "./annexure"
 
 export const getLRInfo = cache(async (fileNumber: string, userId?: string) => {
   try {
@@ -117,13 +119,15 @@ export type LRData = Awaited<ReturnType<typeof getLRInfo>>["data"]
 
 
 export const updateOfferedPriceForFileNo = async (
-
   fileNumber: string,
   newPrice: string
-
 ) => {
   try {
-
+    // Get old LR data for logging
+    const oldLRs = await prisma.lRRequest.findMany({
+      where: { fileNumber },
+      select: { priceOffered: true, LRNumber: true }
+    });
 
     await prisma.lRRequest.updateMany({
       where: {
@@ -132,10 +136,17 @@ export const updateOfferedPriceForFileNo = async (
       data: {
         priceOffered: Number(newPrice)
       }
-    })
+    });
 
+    // Log price update
+    await auditUpdate(
+      "LRRequest",
+      fileNumber,
+      { priceOffered: oldLRs[0]?.priceOffered, fileNumber },
+      { priceOffered: Number(newPrice), fileNumber },
+      `Updated offered price to ₹${newPrice} for file ${fileNumber} (${oldLRs.length} LRs)`
+    );
 
-    // revalidatePath(`/lorries/[id]`)
     return { sucess: true, message: "Cost updated successfully" };
   } catch (e) {
     console.error("Error updating Cost:", e);
@@ -148,30 +159,110 @@ export const updateOfferedPriceForFileNo = async (
 export async function setLrPrice({
   lrNumber,
   lrPrice,
-
-  // extraCost = 0,
 }: {
   lrNumber: string;
   lrPrice: number;
-  // extraCost?: number;
-  // pathToRevalidate?: string;
 }) {
   try {
+    // Get old LR data for logging
+    const oldLR = await prisma.lRRequest.findUnique({
+      where: { LRNumber: lrNumber },
+      select: { lrPrice: true, fileNumber: true }
+    });
+
     // update LRRequest based on LRNumber
     const updatedLR = await prisma.lRRequest.update({
       where: { LRNumber: lrNumber },
       data: {
         lrPrice: lrPrice
-        // priceSettled: settledPrice,
-        // extraCost: extraCost,
       },
     });
 
+    // Log LR price change
+    await auditUpdate(
+      "LRRequest",
+      lrNumber,
+      { lrPrice: oldLR?.lrPrice },
+      { lrPrice },
+      `Updated LR price from ₹${oldLR?.lrPrice || 0} to ₹${lrPrice} for LR ${lrNumber}`
+    );
 
+    // 🔗 SYNC LINKED INVOICE if LR is part of an annexure
+    const lr = await prisma.lRRequest.findUnique({
+        where: { LRNumber: lrNumber },
+        select: { annexureId: true }
+    });
+    if (lr?.annexureId) {
+        await syncInvoiceFromAnnexure(lr.annexureId);
+    }
 
     return { success: true, data: updatedLR };
   } catch (err: any) {
     console.error("Error Settling LR:", err);
     return { success: false, message: err.message };
   }
+}
+
+/**
+ * TADMIN individual LR verification
+ */
+export async function updateLRVerificationStatus({
+    lrNumber,
+    status,
+    remark,
+    userId,
+}: {
+    lrNumber: string;
+    status: "VERIFIED" | "WRONG" | "PENDING";
+    remark?: string;
+    userId: string;
+}) {
+    try {
+        const lr = await prisma.lRRequest.findUnique({
+            where: { LRNumber: lrNumber },
+            include: { tvendor: true }
+        });
+
+        if (!lr) throw new Error("LR not found");
+
+        const updatedLR = await prisma.lRRequest.update({
+            where: { LRNumber: lrNumber },
+            data: {
+                status: status,
+                remark: remark || lr.remark,
+            }
+        });
+
+        // Audit log
+        await auditUpdate(
+            "LRRequest",
+            lrNumber,
+            { status: lr.status, remark: lr.remark },
+            { status, remark },
+            `TADMIN marked LR ${lrNumber} as ${status}${remark ? `: ${remark}` : ""}`
+        );
+
+        // If WRONG, post a public comment for visibility
+        if (status === "WRONG" && remark) {
+            const user = await prisma.user.findUnique({ where: { id: userId } });
+            await prisma.workflowComment.create({
+                data: {
+                    content: `LR verification failed for ${lrNumber}: ${remark}`,
+                    authorId: userId,
+                    authorRole: user?.role || "TADMIN",
+                    annexureId: lr.annexureId,
+                    invoiceId: lr.invoiceId,
+                    isPrivate: false // Public for vendor to see and fix
+                }
+            });
+        }
+
+        revalidatePath(`/lorries/annexure/${lr.annexureId}`);
+        if(lr.invoiceId) revalidatePath(`/invoices/${lr.invoiceId}`);
+
+        return { success: true, data: updatedLR };
+    } catch (error) {
+        console.error("Error in updateLRVerificationStatus:", error);
+        return { success: false, error: error instanceof Error ? error.message : "Failed to update verification status" };
+    }
 }

@@ -1,8 +1,8 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextRequest, NextResponse } from "next/server";
- 
- 
-const protectedPages = ["/dashboard", "/profile", "/settings", "/admin", "/invoices", "/lorries", "/pod", "/profile", "/settings"];
+
+
+const protectedPages = ["/dashboard", "/profile", "/settings", "/admin", "/invoices", "/lorries", "/pod", "/profile", "/settings", "/api"];
 
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
@@ -11,19 +11,9 @@ export async function proxy(req: NextRequest) {
   const sessionCookie = getSessionCookie(req);
   const isLoggedIn = !!sessionCookie;
 
-//   const isApiRoute = pathname.startsWith("/api");
+  //   const isApiRoute = pathname.startsWith("/api");
   const isAuthPage = pathname.startsWith("/auth/");
   const isProtectedPage = protectedPages.includes(pathname);
-
-  // ✅ Allow unauthenticated access only for /api/cron-task
-//   const isCronTask = pathname === "/api/cron-task";
-//   const isBetterAuth = pathname === "/api/auth";
-
-
-  // 🔒 API routes (except /api/cron-task) must be authenticated
-//   if (isApiRoute && !isCronTask && !isBetterAuth && !isLoggedIn) {
-//     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-//   }
 
   // 🔒 Protected pages must be authenticated
   if (isProtectedPage && !isLoggedIn) {
@@ -38,9 +28,9 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
- 
+
 export const config = {
   matcher: [
-      "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ]
 };

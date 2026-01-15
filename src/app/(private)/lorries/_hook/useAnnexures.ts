@@ -8,7 +8,10 @@ interface UseAnnexuresReturn {
   filtered: Annexure[]
   loading: boolean
   search: string
+  status: string
+  stats: Record<string, number>
   setSearch: (value: string) => void
+  setStatus: (value: string) => void
   handleDelete: (id: string) => Promise<void>
   fetchAnnexures: () => Promise<void>
 }
@@ -17,12 +20,22 @@ export function useAnnexures(vendorId?: string): UseAnnexuresReturn {
   const [annexures, setAnnexures] = useState<Annexure[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [search, setSearch] = useState<string>("")
+  const [status, setStatus] = useState<string>("ALL")
+  const [stats, setStats] = useState<Record<string, number>>({})
 
   const fetchAnnexures = async () => {
     setLoading(true)
     try {
-      const data = await getAnnexures(vendorId)
-      setAnnexures(data)
+      const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures`);
+      if (vendorId) url.searchParams.set("vendorId", vendorId);
+      if (status && status !== "ALL") url.searchParams.set("status", status);
+
+      const res = await fetch(url.toString(), { cache: "no-store" })
+      if (!res.ok) throw new Error("Failed to fetch annexures")
+
+      const result = await res.json()
+      setAnnexures(result.annexures || [])
+      setStats(result.stats || {})
     } catch {
       toast.error("Failed to load annexures")
     } finally {
@@ -52,7 +65,18 @@ export function useAnnexures(vendorId?: string): UseAnnexuresReturn {
 
   useEffect(() => {
     fetchAnnexures()
-  }, [])
+  }, [status])
 
-  return { annexures, filtered, loading, search, setSearch, handleDelete, fetchAnnexures }
+  return {
+    annexures,
+    filtered,
+    loading,
+    search,
+    status,
+    stats,
+    setSearch,
+    setStatus,
+    handleDelete,
+    fetchAnnexures
+  }
 }

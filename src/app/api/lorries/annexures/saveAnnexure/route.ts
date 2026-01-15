@@ -1,4 +1,4 @@
- 
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -13,12 +13,19 @@ export async function POST(req: Request) {
     if (!Array.isArray(validatedLrs) || validatedLrs.length === 0)
       return NextResponse.json({ error: "No LRs to save" }, { status: 400 });
 
+    // fetch vendorId from first LR
+    const firstLR = await prisma.lRRequest.findUnique({
+      where: { LRNumber: validatedLrs[0] },
+    });
+    const vendorId = firstLR?.tvendorId;
+
     // create Annexure
     const annexure = await prisma.annexure.create({
       data: {
         name,
         fromDate: new Date(fromDate),
         toDate: new Date(toDate),
+        vendorId,
       },
     });
 

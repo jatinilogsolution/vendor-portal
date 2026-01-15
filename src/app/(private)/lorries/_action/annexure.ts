@@ -1,6 +1,7 @@
 "use server"
 import { prisma } from "@/lib/prisma"
 import { getExtraCostDocumentByFileNumber } from "./pod"
+import { UserRoleEnum } from "@/utils/constant"
 
 export interface Annexure {
   id: string
@@ -154,11 +155,11 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
       );
     }
 
-    if (missingExtraCostDocs.length > 0) {
-      throw new Error(
-        `Missing Extra Cost Document for file(s): ${missingExtraCostDocs.join(", ")}`
-      );
-    }
+    // if (missingExtraCostDocs.length > 0) {
+    //   throw new Error(
+    //     `Missing Extra Cost Document for file(s): ${missingExtraCostDocs.join(", ")}`
+    //   );
+    // }
 
     // 5️⃣ Everything is valid → Update LRs to DRAFT + update priceSettled
     await prisma.$transaction(
@@ -176,29 +177,55 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
       )
     );
 
-    // 6️⃣ Generate Reference Number
-    const now = new Date();
-    const refNo = `${vendorId.substring(0, 3).toUpperCase()}-${now.getFullYear()}${(
-      now.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${Math.floor(
-        Math.random() * 1000
-      )
-        .toString()
-        .padStart(3, "0")}`;
-
-    // 7️⃣ Create invoice
-    const invoice = await prisma.invoice.create({
-      data: {
-        refernceNumber: refNo,
-        invoiceDate: new Date(),
-        vendorId,
-        status: "DRAFT",
-      },
+    // 6️⃣ Check for existing invoice
+    let existingInvoice = await prisma.invoice.findFirst({
+      where: { annexureId: annexureId }
     });
 
-    // 8️⃣ Attach all LRs to invoice
+    const vendor = await prisma.vendor.findFirst({
+        where: { id: vendorId },
+        include: { users: { take: 1 } }
+    });
+
+    const authorId = vendor?.users[0]?.id || "";
+    let invoice: any;
+
+    if (existingInvoice) {
+      // 7️⃣ Update existing invoice
+      invoice = await prisma.invoice.update({
+        where: { id: existingInvoice.id },
+        data: {
+          status: "DRAFT",
+          invoiceDate: new Date(),
+          // We keep the same refernceNumber as requested by user
+        },
+      });
+    } else {
+      // 7️⃣ Generate Reference Number (only if new)
+      const now = new Date();
+      const refNo = `${vendorId.substring(0, 3).toUpperCase()}-${now.getFullYear()}${(
+        now.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${Math.floor(
+          Math.random() * 1000
+        )
+          .toString()
+          .padStart(3, "0")}`;
+
+      // 8️⃣ Create new invoice
+      invoice = await prisma.invoice.create({
+        data: {
+          refernceNumber: refNo,
+          invoiceDate: new Date(),
+          vendorId,
+          status: "DRAFT",
+          annexureId: annexureId, // Link to source annexure
+        },
+      });
+    }
+
+    // 9️⃣ Attach all LRs to invoice
     await prisma.lRRequest.updateMany({
       where: { annexureId },
       data: {
@@ -207,6 +234,23 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
       },
     });
 
+    // 💬 CHAT INTEGRATION: Post update message if reused
+    if (invoice && authorId) {
+       const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoice.id}`;
+       const statusText = existingInvoice ? "UPDATED" : "GENERATED";
+
+       await prisma.workflowComment.create({
+          data: {
+              content: `[SYSTEM] Invoice ${statusText} | Reference: ${invoice.refernceNumber} | Status: DRAFT. [View Document](${invoiceLink})`,
+              authorId: authorId,
+              authorRole: UserRoleEnum.TVENDOR,
+              annexureId: annexureId,
+              invoiceId: invoice.id,
+              isPrivate: false
+          }
+      });
+    }
+
     return {
       success: true,
       invoice,
@@ -214,6 +258,44 @@ export const generateInvoiceFromAnnexure = async (annexureId: string) => {
   } catch (err) {
     console.error("❌ Invoice Error:", err);
     return { error: err instanceof Error ? err.message : "Unknown error" };
+  }
+};
+
+export const syncInvoiceFromAnnexure = async (annexureId: string) => {
+  try {
+    const invoice = await prisma.invoice.findFirst({
+      where: { annexureId },
+      include: { 
+        LRRequest: {
+          select: {
+            lrPrice: true,
+            extraCost: true
+          }
+        }
+      }
+    });
+
+    if (!invoice) return { success: false, message: "No linked invoice found" };
+
+    const subtotal = invoice.LRRequest.reduce((acc, lr) => acc + (lr.lrPrice || 0), 0);
+    const totalExtra = invoice.LRRequest.reduce((acc, lr) => acc + (lr.extraCost || 0), 0);
+    const taxAmount = (subtotal + totalExtra) * (invoice.taxRate / 100);
+    const grandTotal = subtotal + totalExtra + taxAmount;
+
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        subtotal,
+        totalExtra,
+        taxAmount,
+        grandTotal,
+      }
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Sync Error:", err);
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 };
 
@@ -291,4 +373,79 @@ export async function validateFileAdd(
       remark: lr.remark ?? "",
     })),
   };
+}
+
+/**
+ * Generate an Annexure for an existing standalone Invoice
+ */
+export async function generateAnnexureFromInvoice(invoiceId: string, vendorId: string) {
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { LRRequest: true }
+    });
+
+    if (!invoice) throw new Error("Invoice not found");
+    if (invoice.annexureId) throw new Error("This invoice already has an associated Annexure");
+    if (invoice.LRRequest.length === 0) throw new Error("No LRs found for this invoice to generate an Annexure");
+
+    const now = new Date();
+    const annexureName = `Annexure for ${invoice.invoiceNumber || invoice.refernceNumber}`;
+
+    const annexure = await prisma.annexure.create({
+      data: {
+        name: annexureName,
+        status: "DRAFT",
+        fromDate: new Date(), // Defaulting to now, might need refinement
+        toDate: new Date(),
+        vendorId: vendorId,
+        LRRequest: {
+          connect: invoice.LRRequest.map(lr => ({ id: lr.id }))
+        }
+      }
+    });
+
+    // Link Invoice to Annexure
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { annexureId: annexure.id }
+    });
+
+    // Create File Group for the new Annexure (Basic implementation)
+    // Grouping LRs by fileNumber if they have one
+    const fileNumbers = [...new Set(invoice.LRRequest.map(lr => lr.fileNumber).filter(Boolean))];
+    
+    for (const [index, fileNo] of fileNumbers.entries()) {
+      const group = await prisma.annexureFileGroup.create({
+        data: {
+          fileNumber: fileNo as string,
+          status: "PENDING",
+          annexureId: annexure.id,
+          // Update LRs to this group
+        }
+      });
+
+      await prisma.lRRequest.updateMany({
+        where: { fileNumber: fileNo as string, invoiceId: invoiceId },
+        data: { groupId: group.id, annexureId: annexure.id }
+      });
+    }
+
+    // 💬 CHAT INTEGRATION
+    await prisma.workflowComment.create({
+        data: {
+            content: `Annexure generated from existing Invoice. Name: ${annexureName}`,
+            authorId: vendorId,
+            authorRole: "TVENDOR",
+            annexureId: annexure.id,
+            invoiceId: invoiceId,
+            isPrivate: false
+        }
+    });
+
+    return { success: true, annexureId: annexure.id };
+  } catch (err) {
+    console.error("❌ Generate Annexure Error:", err);
+    return { error: err instanceof Error ? err.message : "Unknown error" };
+  }
 }

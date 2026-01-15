@@ -1,6 +1,7 @@
 // save-edit
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { syncInvoiceFromAnnexure } from "../../../../../(private)/lorries/_action/annexure";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,6 +46,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: { totalPrice },
       });
     }
+
+    // 🔗 SYNC LINKED INVOICE
+    const { id: annexureId } = await params;
+    await syncInvoiceFromAnnexure(annexureId);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

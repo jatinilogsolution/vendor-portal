@@ -11,6 +11,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const annexure = await prisma.annexure.findUnique({
       where: { id },
       include: {
+        vendor: true,
+        statusHistory: {
+          include: {
+            changedByUser: {
+              select: { name: true, email: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        },
         groups: {
           include: {
             LRs: {

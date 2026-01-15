@@ -439,7 +439,8 @@ export default function AnnexureValidationPanel({ validationResponse }: { valida
                             />
                           </td>
                           <td className="p-2 font-mono font-medium">
-                            {r.status === "WRONG_VENDOR" ? "********" : r.lrNumber}
+                              {/* {r.status === "WRONG_VENDOR" ? "********" : */}
+                           {r.lrNumber}
                           </td>
                           <td className="p-2">
                             <div className="flex items-center gap-1">

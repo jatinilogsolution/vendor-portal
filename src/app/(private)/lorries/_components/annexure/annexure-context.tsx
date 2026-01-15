@@ -69,7 +69,7 @@ export function AnnexureValidationProvider({ children, vendorId, userRole }: { c
       const res = await validateAnnexure(rows, vendorId, userRole)
       setValidationData(res)
       setExpanded(true)
-      toast.success("Validation completed successfully")
+      toast.success("✅ Done! Upload and validation successful.")
     } catch (err: any) {
       console.error("Validation error:", err)
       toast.error(err.message || "Failed to parse or validate file")

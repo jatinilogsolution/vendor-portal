@@ -40,13 +40,13 @@ export default function RootLayout({
       <div className="relative hidden lg:flex flex-col items-center justify-center bg-muted text-white p-10 overflow-hidden">
         {/* Background with overlay */}
         <div className="absolute inset-0 bg-zinc-900">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/80 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-size-[14px_24px] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+          <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-zinc-900/80 to-transparent" />
         </div>
         {/* Content */}
         <div className="relative z-20 flex flex-col items-center text-center max-w-lg space-y-8">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-red-600 to-rose-600 opacity-75 blur-lg" />
+            <div className="absolute -inset-1 rounded-full bg-linear-to-r from-red-600 to-rose-600 opacity-75 blur-lg" />
             <div className="relative p-2 flex h-24 w-24 items-center justify-center rounded-full bg-zinc-900 backdrop-blur-2xl border-2 border-red-500 shadow-xl">
               <Image
                 src="https://www.awlindia.com/assets/images/heaer-logo.webp"
@@ -83,7 +83,7 @@ export default function RootLayout({
                 &quot;This portal has completely transformed how we handle our supply chain. The insights are invaluable and the interface is incredibly intuitive.&quot;
               </p>
               <div className="flex items-center justify-center gap-3 pt-2">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0" />
+                <div className="h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 shrink-0" />
                 <div className="text-left">
                   <p className="text-sm font-semibold text-white">Sarah Chen</p>
                   <p className="text-xs text-zinc-500">Operations Director, xyz.com</p>

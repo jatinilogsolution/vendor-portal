@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   if ("error" in dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-destructive">Error Loading Dashboard</h2>
           <p className="text-muted-foreground mt-2">{dashboardData.error}</p>

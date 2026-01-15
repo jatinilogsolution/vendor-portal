@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAWLWMSDBPOOLFINS } from "@/services/db";
+import { auditCreate, auditUpdate } from "@/lib/audit-logger";
 
 interface LR {
   LRNumber: string;
@@ -80,6 +81,14 @@ export const generateSingleInvoiceFromLorryPage = async (
         include: { LRRequest: true },
       });
 
+      // Log invoice creation
+      await auditCreate(
+        "Invoice",
+        reference,
+        `Created new invoice ${refNo}`,
+        reference.id
+      );
+
     }
 
     const existingLRNumbers = reference.LRRequest.map((lr: any) => lr.LRNumber);
@@ -96,6 +105,15 @@ export const generateSingleInvoiceFromLorryPage = async (
           invoiceId: reference.id,
         },
       });
+
+      // Log LR association with invoice
+      await auditUpdate(
+        "Invoice",
+        reference.id,
+        { LRCount: existingLRNumbers.length },
+        { LRCount: existingLRNumbers.length + newLRs.length },
+        `Added ${newLRs.length} LR(s) to invoice ${reference.refernceNumber}`
+      );
 
     }
 
@@ -142,6 +160,12 @@ export const updateTaxRateForInvoice = async (invoiceId: string, taxRate: number
 
 
   try {
+    // Get old invoice data before update
+    const oldInvoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { taxRate: true, refernceNumber: true }
+    });
+
     await prisma.invoice.updateMany({
       where: {
         id: invoiceId
@@ -149,11 +173,23 @@ export const updateTaxRateForInvoice = async (invoiceId: string, taxRate: number
       data: {
         taxRate: taxRate
       }
-    })
-    return { sucess: true, message: "Tax rate updated" }
+    });
+
+    // Log tax rate change
+    if (oldInvoice) {
+      await auditUpdate(
+        "Invoice",
+        invoiceId,
+        { taxRate: oldInvoice.taxRate },
+        { taxRate },
+        `Updated tax rate from ${oldInvoice.taxRate}% to ${taxRate}% for invoice ${oldInvoice.refernceNumber}`
+      );
+    }
+
+    return { sucess: true, message: "Tax rate updated" };
   } catch (e) {
-    console.log("Error in updateTaxRateForInvoice", e)
-    return { sucess: false, message: "Failed updated tax rate" }
+    console.log("Error in updateTaxRateForInvoice", e);
+    return { sucess: false, message: "Failed updated tax rate" };
 
   }
 }
@@ -177,18 +213,35 @@ export const updateInvoiceNumberForInvoice = async (
       return { sucess: false, message: "Invoice Number already exists for this vendor" };
     }
 
+    // Get old invoice data
+    const oldInvoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { invoiceNumber: true, refernceNumber: true }
+    });
+
     // 2️⃣ Update the invoice
     await prisma.invoice.update({
       where: { id: invoiceId },
       data: { invoiceNumber },
     });
 
+    // Log invoice number change
+    if (oldInvoice) {
+      await auditUpdate(
+        "Invoice",
+        invoiceId,
+        { invoiceNumber: oldInvoice.invoiceNumber },
+        { invoiceNumber },
+        `Updated invoice number from "${oldInvoice.invoiceNumber}" to "${invoiceNumber}" for ${oldInvoice.refernceNumber}`
+      );
+    }
+
     return { sucess: true, message: "Invoice Number updated successfully" };
   } catch (e) {
     console.error("Error updating Invoice Number:", e);
     return { sucess: false, message: "Failed to update Invoice Number" };
   }
-};
 
 
 
+}

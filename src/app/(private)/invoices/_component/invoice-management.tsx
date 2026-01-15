@@ -152,7 +152,7 @@ export const InvoiceManagement = ({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogContent className="max-w-6xl w-full max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle>Manage Invoice - {referenceNumber}</DialogTitle>
                 </DialogHeader>

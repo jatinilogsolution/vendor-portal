@@ -5,7 +5,7 @@ import { redirect, RedirectType, useParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Upload, Trash2, Plus, FilePlus, Save, AlertCircle, CheckCircle, XCircle, Link2, FileQuestion } from 'lucide-react'
+import { Upload, Trash2, Plus, FilePlus, Save, AlertCircle, CheckCircle, XCircle, Link2, FileQuestion, Loader2, CircleCheckBig } from 'lucide-react'
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -15,7 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadPod } from "../../../_components/upload-pod"
 import { SettlePrice } from "../../../_components/settle-price"
 import { useSession } from "@/lib/auth-client"
-import { UserRoleEnum } from "@/utils/constant"
+import { UserRoleEnum, AnnexureStatus } from "@/utils/constant"
+import { setLrPrice } from "../../../_action/lorry"
+import ExtraCostManager from "@/components/modules/extra-cost-manager"
+import { Label } from "@/components/ui/label"
+import { canEditAnnexure } from "@/utils/workflow-validator"
 
 type LR = {
     id: string
@@ -29,6 +33,8 @@ type LR = {
     fileNumber?: string | null
     remark?: string | null
     isInvoiced?: boolean | null
+    CustomerName: string
+    origin: string
 }
 
 type FileGroup = {
@@ -37,6 +43,7 @@ type FileGroup = {
     totalPrice?: number | null
     extraCost?: number | null
     remark?: string | null
+    vendorName: string
     LRs: LR[]
 }
 
@@ -67,7 +74,7 @@ function ValidationIssuesDialog({
     const typeConfig: Record<string, { icon: React.ReactNode; color: string; title: string }> = {
         not_found: { icon: <FileQuestion className="w-4 h-4" />, color: "text-gray-600", title: "Not Found in Database" },
         already_annexed: { icon: <Link2 className="w-4 h-4" />, color: "text-blue-600", title: "Already in Another Annexure" },
-        already_invoiced: { icon: <XCircle className="w-4 h-4" />, color: "text-red-600", title: "Already Invoiced" },
+        already_invoiced: { icon: <XCircle className="w-4 h-4" />, color: "text-green-600", title: "Already Invoiced" },
         missing_pod: { icon: <AlertCircle className="w-4 h-4" />, color: "text-amber-600", title: "POD Not Uploaded" },
         duplicate_in_file: { icon: <AlertCircle className="w-4 h-4" />, color: "text-orange-600", title: "Duplicate in File" },
         wrong_vendor: { icon: <XCircle className="w-4 h-4" />, color: "text-red-600", title: "Wrong Vendor (Not Yours)" },
@@ -137,7 +144,7 @@ function StatusBadge({ status, message }: { status: string; message: string }) {
             color: "text-green-500",
             bgColor: "bg-green-50 border-green-200  dark:bg-green-500/30 border-green-950",
         },
-        invoiced: { icon: <XCircle className="w-4 h-4" />, color: "text-red-500", bgColor: "bg-red-50 border-red-200 dark:bg-red-500/30 border-red-950" },
+        invoiced: { icon: <CircleCheckBig className="w-4 h-4" />, color: "text-green-500", bgColor: "bg-green-50 border-green-200 dark:bg-green-500/30 border-green-950" },
         annexed: { icon: <Link2 className="w-4 h-4" />, color: "text-blue-500", bgColor: "bg-blue-50 border-blue-200  dark:bg-blue-500/30 border-blue-950" },
     }
     const config = variants[status] || variants.pod_missing
@@ -188,20 +195,26 @@ export default function AnnexureEditPage() {
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || "Failed to load")
 
-            // Check if invoiced - redirect to view page
-            if (data.isInvoiced) {
-                setIsInvoiced(true)
-                toast.error("This annexure has been invoiced and cannot be edited.")
-                router.replace(`/lorries/annexure/${id}`)
-                return
-            }
-
             setAnnexureName(data.name || "")
+
             // Extract vendorId from first LR for validation
             const firstVendorId = data.groups?.[0]?.LRs?.[0]?.tvendor?.id
             if (firstVendorId) {
                 setVendorId(firstVendorId)
             }
+
+            // Check if vendor can edit based on status using central validator
+            const editCheck = canEditAnnexure(role as string, { 
+                status: data.status as AnnexureStatus, 
+                isInvoiced: data.isInvoiced 
+            })
+
+            if (!editCheck.canEdit) {
+                toast.error(editCheck.reason || `Annexure in ${data.status} status cannot be edited.`)
+                router.replace(`/lorries/annexure/${id}`)
+                return
+            }
+            console.log(data.groups[0].LRs[0])
 
             const g: FileGroup[] = (data.groups || []).map((grp: any) => ({
                 id: grp.id,
@@ -209,6 +222,7 @@ export default function AnnexureEditPage() {
                 totalPrice: grp.totalPrice,
                 extraCost: grp.extraCost,
                 remark: grp.remark ?? "",
+                vendorName: grp.LRs[0].tvendor.name,
                 LRs: (grp.LRs || []).map((l: any) => ({
                     id: l.id,
                     LRNumber: l.LRNumber,
@@ -221,6 +235,8 @@ export default function AnnexureEditPage() {
                     fileNumber: grp.fileNumber,
                     remark: l.remark,
                     isInvoiced: l.isInvoiced,
+                    CustomerName: l.CustomerName,
+                    origin: l.origin
                 })),
             }))
             setGroups(g)
@@ -497,7 +513,12 @@ export default function AnnexureEditPage() {
             <ValidationIssuesDialog open={showValidationDialog} onOpenChange={setShowValidationDialog} issues={validationIssues} />
 
             <div className="space-y-4">
-                {groups.length === 0 ? (
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-card">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                        <p className="text-sm text-muted-foreground">Loading annexure LRs...</p>
+                    </div>
+                ) : groups.length === 0 ? (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>No LRs added yet. Start by uploading a file or adding LR numbers above.</AlertDescription>
@@ -514,9 +535,18 @@ export default function AnnexureEditPage() {
                                         <span>Extra per LR: ₹{(g.extraCost ?? 0).toLocaleString()}</span>
                                     </div>
                                 </div>
+
+                                <ExtraCostManager
+                                    fileNumber={g.fileNumber}
+                                    totalExtra={g.extraCost ? `₹${g.extraCost.toLocaleString()}` : ""}
+                                    onSuccess={fetchAnnexure}
+                                />
+
                                 <Button variant="destructive" size="sm" onClick={() => handleDeleteGroup(g.id)}>
-                                    <Trash2 className="w-4 h-4 mr-2" /> Delete Group
+                                    <Trash2 className="w-4 h-4 mr-2" /> Delete
                                 </Button>
+
+
                             </div>
 
                             {/* <div className="space-y-3 border-t pt-4">
@@ -578,34 +608,75 @@ export default function AnnexureEditPage() {
                                                     <TableCell className="text-sm">
                                                         {lr.outDate ? new Date(lr.outDate).toLocaleDateString() : "-"}
                                                     </TableCell>
-                                                    <TableCell className="font-medium">₹{(lr.lrPrice ?? 0).toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right font-medium">
+                                                        <form
+                                                            onSubmit={async (e) => {
+                                                                e.preventDefault();
+
+                                                                const form = e.currentTarget;
+                                                                const input = form.querySelector("input");
+                                                                const rawValue = input?.value ?? "0";
+                                                                const lrPrice = Number(rawValue.replace(/,/g, ""));
+
+                                                                if (form.dataset.submitting === "true") return;
+                                                                form.dataset.submitting = "true";
+                                                                if (lr.lrPrice === lrPrice) {
+                                                                    return
+                                                                }
+                                                                try {
+                                                                    await setLrPrice({
+                                                                        lrNumber: lr.LRNumber as any,
+                                                                        lrPrice,
+                                                                    });
+
+                                                                    toast.success(`Price for LR ${lr.LRNumber} updated successfully.`);
+                                                                    fetchAnnexure();
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                    toast.error(`Failed to update price for LR ${lr.LRNumber}.`);
+                                                                } finally {
+                                                                    form.dataset.submitting = "false";
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Label htmlFor={`${lr.LRNumber}-limit`} className="sr-only">
+                                                                Freight
+                                                            </Label>
+
+                                                            <Input
+                                                                id={`${lr.LRNumber}-limit`}
+                                                                name="lrPrice"
+                                                                defaultValue={(lr.lrPrice || 0).toLocaleString()}
+                                                                onBlur={(e) => e.currentTarget.form?.requestSubmit()}
+                                                                className="hover:bg-input/30 focus-visible:bg-background 
+                                                                    h-8 w-24 border-transparent bg-primary/10 border text-right 
+                                                                    shadow-none focus-visible:border "
+                                                            />
+                                                        </form>
+                                                    </TableCell>
                                                     <TableCell>
                                                         <StatusBadge status={status.status} message={status.message} />
                                                     </TableCell>
                                                     <TableCell>
-                                                        {lr.podlink ? (
-                                                            <a
-                                                                href={lr.podlink}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                                                            >
-                                                                <Link2 className="w-4 h-4" /> View
-                                                            </a>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground">-</span>
-                                                        )}
+
+                                                        <UploadPod
+                                                            LrNumber={lr.LRNumber}
+                                                            customer={lr.CustomerName}
+                                                            fileNumber={lr.fileNumber!}
+                                                            initialFileUrl={lr.podlink || null}
+                                                            vendor={groups[0].vendorName || ""}
+                                                            whId={lr.origin}
+
+                                                        />
+
+
                                                     </TableCell>
-                                                    {/* <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveLr(lr.LRNumber)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell> */}
+
+                                                    <TableCell>
+
+                                                        -
+
+                                                    </TableCell>
                                                 </TableRow>
                                             )
                                         })}

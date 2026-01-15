@@ -3,36 +3,31 @@
 import { useEffect, useState } from "react"
 
 interface LazyDateProps {
-  date: string | Date
+  date: string
   format?: "short" | "medium" | "long"
 }
 
 export function LazyDate({ date, format = "medium" }: LazyDateProps) {
-  const [formatted, setFormatted] = useState<string>(date.toString())
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    try {
-      const dateObj = new Date(date)
+    setMounted(true)
+  }, [])
 
-      if (isNaN(dateObj.getTime())) {
-        setFormatted(date.toString())
-        return
-      }
+  if (!mounted) return null
 
-      const optionsMap: Record<string, Intl.DateTimeFormatOptions> = {
-        short: { month: "short", day: "numeric", year: "numeric" },
-        medium: { month: "short", day: "numeric", year: "numeric" },
-        long: { month: "long", day: "numeric", year: "numeric" },
-      }
-      const options = optionsMap[format]
+  const dateObj = new Date(date)
 
-      setFormatted(
-        new Intl.DateTimeFormat("en-US", options).format(dateObj)
-      )
-    } catch {
-      setFormatted(date.toString())
-    }
-  }, [date, format])
+  const options: Intl.DateTimeFormatOptions =
+    format === "short"
+      ? { dateStyle: "short" }
+      : format === "long"
+        ? { dateStyle: "full", timeStyle: "medium" }
+        : { dateStyle: "medium", timeStyle: "short" }
 
-  return <span>{formatted}</span>
+  return (
+    <span>
+      {new Intl.DateTimeFormat("en-IN", options).format(dateObj)}
+    </span>
+  )
 }

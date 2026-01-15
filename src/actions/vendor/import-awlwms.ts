@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAWLWMSDBPOOL } from "@/services/db";
 
- 
+
 export async function vendorImport() {
   try {
     const pool = await getAWLWMSDBPOOL();
@@ -132,10 +132,10 @@ export async function vendorImport() {
 //         Tdoe  
 //       FROM tbl_transporter 
 //       WHERE Tactive='1' 
-       
+
 //     `;
 // // ${fiveDaysAgoStr}
-    
+
 //     const response = await request.query(query);
 //     const vendors = response.recordset;
 
@@ -160,13 +160,13 @@ export async function vendorImport() {
 //                 country: "India", // default
 //               },
 //               create: {
-                
+
 //                 line1: v.Tadd || "N/A",
 //                 city: v.Tcity || "Unknown",
 //                 state: v.Tstate || null,
 //                 postal: v.Tpin?.toString() || null,
 //                 country: "India",
-                
+
 //               },
 //             },
 //           },
@@ -299,7 +299,7 @@ export async function LRIMPORT() {
     const today = new Date();
 
     const secondLastDay = new Date();
-    secondLastDay.setDate(today.getDate() - 2);
+    secondLastDay.setDate(today.getDate() - 60);
 
     const year = secondLastDay.getFullYear();
     const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");
@@ -396,7 +396,7 @@ export async function PODIMPORT() {
     const today = new Date();
 
     const secondLastDay = new Date();
-    secondLastDay.setDate(today.getDate() - 20);
+    secondLastDay.setDate(today.getDate() - 30);
 
     const year = secondLastDay.getFullYear();
     const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");
@@ -428,6 +428,7 @@ export async function PODIMPORT() {
         });
 
         if (existing) {
+
           await prisma.lRRequest.update({
             where: { LRNumber: r.OUTLRNO },
             data: {

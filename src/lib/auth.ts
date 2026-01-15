@@ -120,7 +120,7 @@ const options = {
                 // defaultValue: UserRoleEnum.VENDOR,
                 type: "string",   // important
                 required: true,
-                input: true
+                // input: true
                 // defaultValue: UserRoleEnum.VENDOR,
 
             },

@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Search } from "lucide-react"
-import { SettlePrice } from "../../lorries/_components/settle-price"
+import ExtraCostManager from "@/components/modules/extra-cost-manager"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
@@ -124,23 +124,12 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
-                                        {status === "SENT" ? (
-                                            <span className={vehicleLRs[0].extraCost && Number(vehicleLRs[0].extraCost) > 0 ? "text-green-600 font-semibold" : "text-muted-foreground"}>
-                                                ₹ {vehicleLRs[0].extraCost || 0}
-                                            </span>
-                                        ) : (
-                                            <SettlePrice
-                                                costView
-                                                size="sm"
-                                                label="+ Cost"
-                                                disbleCost={false}
-                                                mode="edit"
-                                                fileNumber={vehicleLRs[0].fileNumber}
-                                                vehicle={vehicleLRs[0].vehicleNo}
-                                                extraCost={vehicleLRs[0].extraCost || ""}
-                                                settlePrice={vehicleLRs[0].priceSettled || ""}
-                                            />
-                                        )}
+                                        <ExtraCostManager
+                                            fileNumber={vehicleLRs[0].fileNumber}
+                                            totalExtra={vehicleLRs[0].extraCost ? `₹${vehicleLRs[0].extraCost.toLocaleString()}` : ""}
+                                            onSuccess={() => window.location.reload()}
+                                            readOnly={status === "SENT"}
+                                        />
                                     </TableCell>
                                     {/* {status !== "SENT" && (
                                         <TableCell className="text-center">

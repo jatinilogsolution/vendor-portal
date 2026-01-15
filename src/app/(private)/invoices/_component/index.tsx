@@ -22,16 +22,19 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from "@/components/ui/input-group"
-import { Search } from "lucide-react"
+import { Search, Filter } from "lucide-react"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
+import { WorkflowStatsDashboard, getInvoiceStats } from "@/components/modules/workflow/workflow-stats-dashboard"
 
 export default function Index() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
     const [search, setSearch] = useState("")
+    const [status, setStatus] = useState("ALL")
     const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({})
     const [data, setData] = useState<any[]>([])
+    const [stats, setStats] = useState<Record<string, number>>({})
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const [limit] = useState(10)
@@ -40,6 +43,7 @@ export default function Index() {
     // 🧭 Load from URL on mount
     useEffect(() => {
         const searchParam = searchParams.get("search") || ""
+        const statusParam = searchParams.get("status") || "ALL"
         const fromParam = searchParams.get("from")
         const toParam = searchParams.get("to")
         const pageParam = parseInt(searchParams.get("page") || "1", 10)
@@ -49,22 +53,25 @@ export default function Index() {
         if (toParam) initDateRange.to = new Date(toParam)
 
         setSearch(searchParam)
+        setStatus(statusParam)
         setDateRange(initDateRange)
         setPage(pageParam)
 
-        fetchInvoices(searchParam, initDateRange, pageParam)
+        fetchInvoices(searchParam, statusParam, initDateRange, pageParam)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     // 📦 Core fetch function with URL sync
     const fetchInvoices = (
         searchValue = search,
+        statusValue = status,
         date = dateRange,
         p = page
     ) => {
         // ✨ Update URL
         const params = new URLSearchParams()
         if (searchValue) params.set("search", searchValue)
+        if (statusValue && statusValue !== "ALL") params.set("status", statusValue)
         if (date.from) params.set("from", date.from.toISOString())
         if (date.to) params.set("to", date.to.toISOString())
         params.set("page", String(p))
@@ -74,6 +81,7 @@ export default function Index() {
         startTransition(async () => {
             const res = await getInvoices({
                 search: searchValue,
+                status: statusValue,
                 fromDate: date.from,
                 toDate: date.to,
                 page: p,
@@ -82,6 +90,7 @@ export default function Index() {
 
             if (res.success && res.data) {
                 setData(res.data)
+                setStats(res.stats || {})
                 setTotal(res.total || 0)
                 setPage(p)
             } else {
@@ -102,7 +111,7 @@ export default function Index() {
                         placeholder="Search by Invoice No, Reference No, Vendor Name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && fetchInvoices(search, dateRange, 1)}
+                        onKeyDown={(e) => e.key === "Enter" && fetchInvoices(search, status, dateRange, 1)}
                         className="w-full shadow-none"
                     />
                     <InputGroupAddon>
@@ -117,16 +126,25 @@ export default function Index() {
                     value={dateRange}
                     onChange={setDateRange}
                     placeholder="Select date range"
-                    className="shadow-none w-full md:w-[250px]"
+                    className="shadow-none w-full md:w-62.5"
 
                 />
 
-                <Button className=" w-full md:w-fit" onClick={() => fetchInvoices(search, dateRange, 1)} disabled={isPending}>
+                <Button className=" w-full md:w-fit" onClick={() => fetchInvoices(search, status, dateRange, 1)} disabled={isPending}>
                     {isPending ? <Spinner /> : "Search"}
                 </Button>
             </div>
 
             <Separator className="bg-primary" />
+
+            {/* 📊 Dashboard */}
+            <WorkflowStatsDashboard
+                stats={getInvoiceStats(stats, status, (newStatus) => {
+                    setStatus(newStatus);
+                    fetchInvoices(search, newStatus, dateRange, 1);
+                })}
+                title="Invoice Approval Overview"
+            />
 
             {/* 💾 Content */}
             {isPending ? (
@@ -144,7 +162,7 @@ export default function Index() {
                             <PaginationContent>
                                 <PaginationItem>
                                     <PaginationPrevious
-                                        onClick={() => page > 1 && fetchInvoices(search, dateRange, page - 1)}
+                                        onClick={() => page > 1 && fetchInvoices(search, status, dateRange, page - 1)}
                                         className={page === 1 ? "pointer-events-none opacity-50" : ""}
                                     />
                                 </PaginationItem>
@@ -152,7 +170,7 @@ export default function Index() {
                                 {Array.from({ length: totalPages }).map((_, i) => (
                                     <PaginationItem key={i}>
                                         <PaginationLink
-                                            onClick={() => fetchInvoices(search, dateRange, i + 1)}
+                                            onClick={() => fetchInvoices(search, status, dateRange, i + 1)}
                                             isActive={page === i + 1}
                                         >
                                             {i + 1}
@@ -163,7 +181,7 @@ export default function Index() {
                                 <PaginationItem>
                                     <PaginationNext
                                         onClick={() =>
-                                            page < totalPages && fetchInvoices(search, dateRange, page + 1)
+                                            page < totalPages && fetchInvoices(search, status, dateRange, page + 1)
                                         }
                                         className={
                                             page === totalPages ? "pointer-events-none opacity-50" : ""

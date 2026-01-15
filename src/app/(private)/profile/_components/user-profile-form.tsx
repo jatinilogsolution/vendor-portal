@@ -324,11 +324,12 @@ export function UserProfileForm({ user, isEditing, onUpdate, onCancel, readOnly 
           placeholder="Enter your full name"
         />
         <FormField
+
           id="email"
           label="Email Address *"
           value={formData.email}
           onChange={handleChange}
-          disabled={isSubmitting}
+          disabled={true}
           error={errors.email}
           placeholder="Enter your email"
           type="email"

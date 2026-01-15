@@ -10,10 +10,10 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// const geistMono = Geist_Mono({
+//   variable: "--font-geist-mono",
+//   subsets: ["latin"],
+// });
 
 export const metadata: Metadata = {
   title: "Vendor Portal",
@@ -28,11 +28,11 @@ export default function RootLayout({
   // const theme = useThem
   return (
     <html lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${geistSans.variable}  antialiased`}
       suppressHydrationWarning
     >
       <body
-        className={`antialiased`}
+
       >
         <ThemeProvider
           attribute="class"

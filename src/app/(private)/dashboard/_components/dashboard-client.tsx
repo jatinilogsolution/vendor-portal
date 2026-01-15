@@ -432,7 +432,7 @@ export default function DashboardClient({ data: initialData, userName }: Dashboa
             )}
 
             {/* Quick Actions */}
-            <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
+            <Card className="bg-linear-to-br from-primary/5 via-background to-background border-primary/20">
                 <CardHeader>
                     <CardTitle>Quick Actions</CardTitle>
                     <CardDescription>Shortcuts to common tasks</CardDescription>

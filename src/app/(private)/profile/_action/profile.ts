@@ -4,6 +4,7 @@ import { Address, User, Vendor } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
 import { revalidateTag } from "next/cache"
+import { auditUpdate } from "@/lib/audit-logger"
 
 // Types matching your Prisma schema
 
@@ -95,6 +96,12 @@ export async function updateUserProfile(
       return { success: false, error: "Invalid phone format" }
     }
 
+    // Get old user data for logging
+    const oldUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, phone: true }
+    });
+
     // Replace with your actual database update
     // Example using Prisma:
     const updatedUser = await prisma.user.update({
@@ -105,9 +112,18 @@ export async function updateUserProfile(
         phone: data.phone,
         updatedAt: new Date(),
       },
-    })
+    });
 
-    revalidateTag(`user-${userId}`, 'max')
+    // Log user profile update
+    await auditUpdate(
+      "User",
+      userId,
+      oldUser,
+      { name: data.name, email: data.email, phone: data.phone },
+      `Updated user profile for ${data.name || oldUser?.name}`
+    );
+
+    revalidateTag(`user-${userId}`, 'max');
 
     return { success: true, user: updatedUser }
   } catch (error) {
@@ -134,6 +150,20 @@ export async function updateVendorProfile(
       return { success: false, error: "Invalid email format" }
     }
 
+    // Get old vendor data for logging
+    const oldVendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: {
+        name: true,
+        contactEmail: true,
+        contactPhone: true,
+        gstNumber: true,
+        panNumber: true,
+        taxId: true,
+        paymentTerms: true
+      }
+    });
+
     // Replace with your actual database update
     // Example using Prisma:
     const updatedVendor = await prisma.vendor.update({
@@ -147,7 +177,16 @@ export async function updateVendorProfile(
         taxId: data.taxId,
         paymentTerms: data.paymentTerms,
       },
-    })
+    });
+
+    // Log vendor profile update
+    await auditUpdate(
+      "Vendor",
+      vendorId,
+      oldVendor,
+      data,
+      `Updated vendor profile for ${data.name || oldVendor?.name}`
+    );
 
     // TODO: Replace with actual database update
     // const updatedVendor: VendorProfile = {
@@ -192,6 +231,12 @@ export async function updateAddress(
       return { success: false, error: "Country is required" }
     }
 
+    // Get old address for logging
+    const oldAddress = await prisma.address.findUnique({
+      where: { vendorId },
+      select: { line1: true, line2: true, city: true, state: true, postal: true, country: true }
+    });
+
     // Replace with your actual database update
     // Example using Prisma:
     const updatedAddress = await prisma.address.upsert({
@@ -214,7 +259,16 @@ export async function updateAddress(
         postal: data.postal,
         country: data.country,
       },
-    })
+    });
+
+    // Log address update/creation
+    await auditUpdate(
+      "Address",
+      vendorId,
+      oldAddress,
+      data,
+      oldAddress ? `Updated address for vendor ${vendorId}` : `Created address for vendor ${vendorId}`
+    );
 
     // TODO: Replace with actual database upsert
     // const updatedAddress: AddressProfile = {

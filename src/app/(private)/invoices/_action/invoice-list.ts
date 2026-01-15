@@ -4,16 +4,17 @@ import { getCustomSession } from "@/actions/auth.action"
 import { Invoice } from "@/generated/prisma/client"
 import { signOut } from "@/lib/auth-client"
 import { prisma } from "@/lib/prisma"
-import { UserRoleEnum } from "@/utils/constant"
+import { InvoiceStatus, UserRoleEnum } from "@/utils/constant"
 import { redirect } from "next/navigation"
 
 
 export type InvoiceWithVendor = Invoice & { vendor: { name: string } }
 
-type GetInvoicesResult = {
+export type GetInvoicesResult = {
   success: boolean
   data?: InvoiceWithVendor[]
   total?: number
+  stats?: Record<string, number>
   page?: number
   limit?: number
   message?: string
@@ -21,12 +22,14 @@ type GetInvoicesResult = {
 
 export const getInvoices = async ({
   search,
+  status,
   fromDate,
   toDate,
   page = 1,
   limit = 10,
 }: {
   search?: string
+  status?: string
   fromDate?: Date
   toDate?: Date
   page?: number
@@ -57,6 +60,18 @@ export const getInvoices = async ({
       ]
     }
 
+    // 🔍 Status filter
+    if (status && status !== "ALL") {
+      if (status === "REJECTED") {
+        baseFilter.OR = [
+          { status: "REJECTED_BY_TADMIN" },
+          { status: "REJECTED_BY_BOSS" }
+        ];
+      } else {
+        baseFilter.status = status;
+      }
+    }
+
     let whereClause: any = {}
     if (user.role === UserRoleEnum.TVENDOR) {
       const vendor = await prisma.vendor.findFirst({
@@ -65,7 +80,14 @@ export const getInvoices = async ({
       if (!vendor) return { success: false, message: "Vendor not found." }
       whereClause = { vendorId: vendor.id, ...baseFilter }
     } else if ([UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(user?.role as any)) {
-      whereClause = { status: "SENT", ...baseFilter }
+      // Admins/Boss see items needing review or those that are approved
+      // If no explicit status filter, show everything relevant for workflow
+      whereClause = { ...baseFilter }
+      if (!status || status === "ALL") {
+        // Default view for admins: things to review or recently approved?
+        // Actually, better to show all sent ones initially
+        whereClause.NOT = { status: "DRAFT" }
+      }
     } else {
       return { success: false, message: "Unauthorized access." }
     }
@@ -73,7 +95,7 @@ export const getInvoices = async ({
     // ⚙️ Pagination
     const skip = (page - 1) * limit
 
-    const [total, invoices] = await Promise.all([
+    const [total, invoices, statusCounts] = await Promise.all([
       prisma.invoice.count({ where: whereClause }),
       prisma.invoice.findMany({
         where: whereClause,
@@ -89,12 +111,25 @@ export const getInvoices = async ({
         skip,
         take: limit,
       }),
+      prisma.invoice.groupBy({
+        by: ['status'],
+        where: user.role === UserRoleEnum.TVENDOR ? {
+          vendor: { users: { some: { id: user.id } } }
+        } : { NOT: { status: "DRAFT" } },
+        _count: { id: true }
+      })
     ])
+
+    const stats: Record<string, number> = {}
+    statusCounts.forEach(c => {
+      stats[c.status] = c._count.id;
+    })
 
     return {
       success: true,
       data: invoices,
       total,
+      stats,
       page,
       limit,
     }
@@ -199,15 +234,15 @@ export const withdrawInvoice = async (invoiceId: string) => {
       return { success: false, message: "Unauthorized. This invoice does not belong to you." };
     }
 
-    // Check if invoice is in SENT status
-    if (invoice.status !== "SENT") {
+    // Check if invoice is in SENT status (now PENDING_TADMIN_REVIEW)
+    if (invoice.status !== InvoiceStatus.PENDING_TADMIN_REVIEW && invoice.status !== "SENT") {
       return { success: false, message: "Only sent invoices can be withdrawn." };
     }
 
     // Update status to DRAFT
     await prisma.invoice.update({
       where: { id: invoiceId },
-      data: { status: "DRAFT" },
+      data: { status: InvoiceStatus.DRAFT },
     });
 
     return {
@@ -267,9 +302,30 @@ export const deleteInvoice = async (invoiceId: string) => {
       return { success: false, message: "Unauthorized. This invoice does not belong to you." };
     }
 
-    // Check if invoice is in DRAFT status
-    if (invoice.status !== "DRAFT") {
-      return { success: false, message: "Only draft invoices can be deleted." };
+    const isVendor = (user.role as any) === UserRoleEnum.TVENDOR;
+    const isAdmin = (user.role as any) === UserRoleEnum.TADMIN;
+
+    // --- NEW PERMISSION LOGIC ---
+    // 1. Vendor can only delete if it's DRAFT and NEVER submitted
+    if (isVendor) {
+        if (invoice.submittedAt !== null) {
+            return { success: false, message: "This invoice has already been submitted. Please 'Request Deletion' so that Traffic Admin can process it." };
+        }
+        if (invoice.status !== InvoiceStatus.DRAFT) {
+            return { success: false, message: "Only DRAFT invoices that have not been submitted can be deleted by Vendors." };
+        }
+    }
+
+    // 2. Admin can only delete if Vendor has requested deletion
+    if (isAdmin) {
+        if (!invoice.deletionRequested) {
+            return { success: false, message: "Deletion can only be processed by Admin if the Vendor has requested it." };
+        }
+    }
+
+    // 3. Block for other roles (BOSS etc)
+    if (!isVendor && !isAdmin) {
+        return { success: false, message: "Unauthorized to delete invoice." };
     }
 
     // Free all linked LR requests in a transaction
@@ -285,7 +341,19 @@ export const deleteInvoice = async (invoiceId: string) => {
         },
       });
 
-      // 2. Delete the invoice (this will cascade delete InvoiceItems and InvoiceReferences)
+      // 2. Delete Workflow Comments
+      await tx.workflowComment.deleteMany({
+        where: { invoiceId: invoiceId },
+      });
+
+      // 3. Delete Invoice References
+      if (invoice.refernceNumber) {
+        await tx.invoiceReference.deleteMany({
+          where: { refernceId: invoice.refernceNumber },
+        });
+      }
+
+      // 4. Delete the invoice (this will cascade delete InvoiceItems)
       await tx.invoice.delete({
         where: { id: invoiceId },
       });
@@ -396,6 +464,7 @@ export const getInvoiceById = async ({ id }: { id: string }) => {
       include: {
         vendor: true, // include vendor details
         LRRequest: true, // include all linked LRs
+        annexure: true, // include linked annexure
       },
     })
 
@@ -506,21 +575,47 @@ export const sendInvoiceById = async ({
     }
 
 
+    // Recalculate totals to ensure integrity
+    const calculatedTaxAmount = Number(((subTotal + totalExtra) * (taxRate / 100)).toFixed(2));
+    const calculatedGrandTotal = Number((subTotal + totalExtra + calculatedTaxAmount).toFixed(2));
+
     await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
-        status: "SENT",
-        grandTotal: grandTotal,
+        status: InvoiceStatus.PENDING_TADMIN_REVIEW,
+        submittedAt: new Date(),
+        grandTotal: calculatedGrandTotal,
         subtotal: subTotal,
-        taxAmount: taxAmount,
+        taxAmount: calculatedTaxAmount,
         taxRate: taxRate,
-        totalExtra: totalExtra
+        totalExtra: totalExtra,
+        statusHistory: {
+          create: {
+            fromStatus: invoice.status,
+            toStatus: InvoiceStatus.PENDING_TADMIN_REVIEW,
+            changedBy: (await getCustomSession()).user.id,
+            notes: "Invoice submitted for review"
+          }
+        }
       },
     })
 
+    // 💬 CHAT INTEGRATION: Post professional submission message
+    const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
+    await prisma.workflowComment.create({
+      data: {
+        content: `[SUBMITTED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber} has been submitted for review. [View Document](${invoiceLink})`,
+        authorId: (await getCustomSession()).user.id,
+        authorRole: UserRoleEnum.TVENDOR,
+        invoiceId: invoiceId,
+        annexureId: invoice.annexureId,
+        isPrivate: false
+      }
+    });
+
     return {
       success: true,
-      message: `${failedThings[0].invoiceNumber}: Invoice sent successfully`,
+      message: `Invoice ${invoice.invoiceNumber || invoice.refernceNumber} submitted successfully.`,
     }
   } catch (error: unknown) {
     const errMsg =
