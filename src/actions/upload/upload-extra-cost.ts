@@ -18,7 +18,7 @@ export async function uploadExtraCost(
         // Generate unique file path using fileNumber and timestamp
         const timestamp = Date.now()
         const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-        const filePath = `extra-costs/${fileNumber}/${description}_${timestamp}_${fileName}`
+        const filePath = `invoices/extra-cost-docs/${fileNumber}/${description}_${timestamp}_${fileName}`
 
         // Use the provided uploadAttachmentToAzure function
         const uploadUrl = await uploadAttachmentToAzure(filePath, formData)

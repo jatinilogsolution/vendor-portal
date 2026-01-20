@@ -133,85 +133,7 @@ interface WorkflowCommentsProps {
   availableRecipients?: Array<{ email: string; name: string; id?: string }>;
 }
 
-// Status badge component
-const StatusBadge = ({
-  status,
-  isAuthor,
-}: {
-  status: string;
-  isAuthor: boolean;
-}) => {
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "SUBMITTED":
-        return {
-          icon: <CheckCircle2 className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-          textClass: isAuthor ? "text-white" : "text-emerald-700 dark:text-emerald-400",
-          borderClass: isAuthor ? "border-white/30" : "border-emerald-500/20",
-        };
-      case "REJECTED":
-        return {
-          icon: <AlertCircle className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-rose-500/10 text-rose-700 dark:text-rose-400",
-          textClass: isAuthor ? "text-white" : "text-rose-700 dark:text-rose-400",
-          borderClass: isAuthor ? "border-white/30" : "border-rose-500/20",
-        };
-      case "APPROVED":
-        return {
-          icon: <CheckCircle2 className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-sky-500/10 text-sky-700 dark:text-sky-400",
-          textClass: isAuthor ? "text-white" : "text-sky-700 dark:text-sky-400",
-          borderClass: isAuthor ? "border-white/30" : "border-sky-500/20",
-        };
-      case "SYSTEM":
-        return {
-          icon: <Info className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-slate-500/10 text-slate-700 dark:text-slate-400",
-          textClass: isAuthor ? "text-white" : "text-slate-700 dark:text-slate-400",
-          borderClass: isAuthor ? "border-white/30" : "border-slate-500/20",
-        };
-      case "QUERY":
-      case "UPDATED":
-        return {
-          icon: <History className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-          textClass: isAuthor ? "text-white" : "text-indigo-700 dark:text-indigo-400",
-          borderClass: isAuthor ? "border-white/30" : "border-indigo-500/20",
-        };
-      case "DISPUTE":
-        return {
-          icon: <AlertCircle className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-          textClass: isAuthor ? "text-white" : "text-orange-700 dark:text-orange-400",
-          borderClass: isAuthor ? "border-white/30" : "border-orange-500/20",
-        };
-      default:
-        return {
-          icon: <History className="w-3 h-3" />,
-          bgClass: isAuthor ? "bg-white/20" : "bg-muted text-muted-foreground",
-          textClass: isAuthor ? "text-white" : "text-muted-foreground",
-          borderClass: isAuthor ? "border-white/30" : "border-border",
-        };
-    }
-  };
-
-  const config = getStatusConfig(status);
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider border uppercase",
-        config.bgClass,
-        config.textClass,
-        config.borderClass
-      )}
-    >
-      <span className="opacity-80">{config.icon}</span>
-      {status}
-    </span>
-  );
-};
+ 
 
 import { FormattedWorkflowContent } from "../../formatted-workflow-content";
 
@@ -567,7 +489,7 @@ export function WorkflowComments({
         setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("path", "workflow/comments");
+        formData.append("path", `invoices/${invoiceId}/workflow/`);
 
         const uploadRes = await fetch("/api/upload", {
           method: "POST",

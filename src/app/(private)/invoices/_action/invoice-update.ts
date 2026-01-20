@@ -58,36 +58,7 @@ export const updateBillToAddress = async (invoiceId: string, billToId: string) =
 
 import { uploadAttachmentToAzure, deleteAttachmentFromAzure } from "@/services/azure-blob"
 
-
-// export async function saveInvoiceFile(invoiceId: string, invoiceNumber: string, file: File) {
-//   if (!invoiceId) throw new Error("Invoice ID is required")
-//   if (!file) throw new Error("File is required")
-
-//   try {
-//     const path = `invoices/${invoiceId}/${file.name}`
-
-//     // Prepare FormData
-//     const formData = new FormData()
-//     formData.append("file", file)
-
-//     // Upload to Azure
-//     const fileUrl = await uploadAttachmentToAzure(path, formData)
-
-//     // Save file URL to invoice
-//     await prisma.invoice.update({
-//       where: { id: invoiceId },
-//       data: {
-//         invoiceURI: fileUrl,
-//         invoiceNumber: invoiceNumber
-//       },
-//     })
-
-//     return { id: path, name: file.name, fileUrl }
-//   } catch (err) {
-//     console.error("Error saving invoice file:", err)
-//     throw new Error("Failed to save invoice file")
-//   }
-// }
+ 
 
 
 export async function saveInvoiceFile(

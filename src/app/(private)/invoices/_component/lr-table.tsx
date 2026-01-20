@@ -10,8 +10,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { useSession } from "@/lib/auth-client"
-import { UserRoleEnum } from "@/utils/constant"
-
+ 
 interface LR {
     id: string
     LRNumber: string
@@ -88,7 +87,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
 
 
             <div className="overflow-x-auto">
-                <Table className="min-w-[600px]">
+                <Table className="min-w-150">
                     <TableHeader>
                         <TableRow>
                             <TableHead className="text-left font-semibold py-2">LR Number</TableHead>
@@ -116,11 +115,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                     <TableCell className="text-center font-medium">
                                         <div className="flex flex-col items-center">
                                             <span>₹ {vehicleLRs[0].priceSettled || "-"}</span>
-                                            {/* {vehicleLRs[0].extraCost && vehicleLRs[0].extraCost > 0 && (
-                                                <span className="text-xs text-green-600 font-medium">
-                                                    + ₹ {vehicleLRs[0].extraCost}
-                                                </span>
-                                            )} */}
+                                          
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
@@ -131,33 +126,10 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                             readOnly={true}
                                         />
                                     </TableCell>
-                                    {/* {status !== "SENT" && (
                                         <TableCell className="text-center">
-                                            <SettlePrice
-                                                size="sm"
-                                                label="+ Cost"
-                                                fileNumber={vehicleLRs[0].fileNumber}
-                                                vehicle={vehicleLRs[0].vehicleNo}
-                                                extraCost={vehicleLRs[0].extraCost || ""}
-                                                settlePrice={vehicleLRs[0].priceSettled || ""}
-                                            />
-                                        </TableCell>
-                                    )} */}
-                                    {/* {(status === "SENT" || session.data?.user.role === UserRoleEnum.TADMIN) && ( */}
-                                    <TableCell className="text-center">
-                                        {/* <SettlePrice
-                                            // costView
-                                            size="sm"
-                                            label="+ Cost"
-                                            disbleCost={status !== "SENT"}
-                                            mode={status === "SENT" ? "view" : "edit"}
-                                            fileNumber={vehicleLRs[0].fileNumber}
-                                            vehicle={vehicleLRs[0].vehicleNo}
-                                            extraCost={vehicleLRs[0].extraCost || ""}
-                                            settlePrice={vehicleLRs[0].priceSettled || ""}
-                                        /> */}
+                                      
                                     </TableCell>
-                                    {/* )} */}
+                                   
                                 </TableRow>
 
                                 {vehicleLRs.map((lr) => (

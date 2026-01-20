@@ -5,7 +5,7 @@ import { redirect, RedirectType, useParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Upload, Trash2, Plus, FilePlus, Save, AlertCircle, CheckCircle, XCircle, Link2, FileQuestion, Loader2, CircleCheckBig } from 'lucide-react'
+import {  Trash2, Plus, FilePlus, Save, AlertCircle, CheckCircle, XCircle, Link2, FileQuestion, Loader2, CircleCheckBig } from 'lucide-react'
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -13,8 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UploadPod } from "../../../_components/upload-pod"
-import { SettlePrice } from "../../../_components/settle-price"
-import { useSession } from "@/lib/auth-client"
+ import { useSession } from "@/lib/auth-client"
 import { UserRoleEnum, AnnexureStatus } from "@/utils/constant"
 import { setLrPrice } from "../../../_action/lorry"
 import ExtraCostManager from "@/components/modules/extra-cost-manager"

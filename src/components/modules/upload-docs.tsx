@@ -95,7 +95,7 @@ export default function DocumentUpload({
             formData.append("file", file);
 
             // Create a unique path: vendor-docs/{linkedId}/{linkedCode}_{timestamp}_{filename}
-            const azurePath = `vendor-docs/${linkedId}/${linkedCode}_${Date.now()}_${file.name}`;
+            const azurePath = `user/vendor-docs/${linkedId}/${linkedCode}_${Date.now()}_${file.name}`;
 
             const url = await uploadAttachmentToAzure(azurePath, formData);
 

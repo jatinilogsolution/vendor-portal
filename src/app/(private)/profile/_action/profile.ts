@@ -5,37 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
 import { revalidateTag } from "next/cache"
 import { auditUpdate } from "@/lib/audit-logger"
-
-// Types matching your Prisma schema
-
-
-// interface VendorProfile {
-//   id: string
-//   name: string
-//   contactEmail?: string
-//   contactPhone?: string
-//   gstNumber?: string
-//   panNumber?: string
-//   profileCompleted: boolean
-//   taxId?: string
-//   paymentTerms?: string
-//   isActive: boolean
-//   createdAt: Date
-// }
-
-// interface AddressProfile {
-//   id: string
-//   line1: string
-//   line2?: string
-//   city: string
-//   state?: string
-//   postal?: string
-//   country: string
-//   vendorId: string
-//   createdAt: Date
-//   updatedAt: Date
-// }
-
+ 
 export async function getUserProfile(userId: string) {
   try {
 
@@ -314,7 +284,7 @@ export async function uploadUserImage(formData: FormData) {
     const oldImage = user?.image
 
     // Upload new file to Azure
-    const path = `profile-images/${userId}/${file.name}`
+    const path = `user/profile-images/${userId}/${file.name}`
     const url = await uploadAttachmentToAzure(path, formData)
 
     // Update in DB
