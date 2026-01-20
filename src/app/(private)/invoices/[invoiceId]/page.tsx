@@ -246,12 +246,15 @@ const InvoiceIdPage = () => {
               Booking Cover Note </span>
             <WorkflowStatusBadge status={invoice.status || "DRAFT"} type="invoice" role={role as string} />
             {invoice.annexure && (
-              <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 transition-colors">
-                <Link href={`/lorries/annexure/${invoice.annexureId}`} className="flex items-center gap-1">
-                  <IconChartColumn size={14} />
-                  <span>Annexure: {invoice.annexure.name}</span>
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l">
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Annexure Status</span>
+                <Link href={`/lorries/annexure/${invoice.annexureId}`} className="flex items-center gap-2 group">
+                   <WorkflowStatusBadge status={invoice.annexure.status} type="annexure" role={role as string} />
+                   <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all">
+                    {invoice.annexure.name}
+                   </span>
                 </Link>
-              </Badge>
+              </div>
             )}
           </h4>
 
@@ -296,6 +299,12 @@ const InvoiceIdPage = () => {
                 recipientId={invoice.vendor?.users?.[0]?.id}
                 entityName={invoice.invoiceNumber || invoice.refernceNumber}
                 path={`/invoices/${invoiceId}`}
+                currentUserRole={role as string}
+                availableRecipients={invoice.vendor?.users?.map((u: any) => ({
+                  email: u.email,
+                  name: u.name || u.email,
+                  id: u.id
+                })) || []}
               />
             )}
 
@@ -355,7 +364,8 @@ const InvoiceIdPage = () => {
               </AlertDialog>
             )}
 
-            {isTVendor && invoice.submittedAt !== null && !invoice.deletionRequested && (
+            {isTVendor && invoice.submittedAt !== null && !invoice.deletionRequested && 
+              (invoice.status === InvoiceStatus.PENDING_TADMIN_REVIEW || invoice.status === InvoiceStatus.REJECTED_BY_TADMIN) && (
                 <Button 
                     variant="destructive" 
                     size="sm" 
@@ -426,6 +436,8 @@ const InvoiceIdPage = () => {
             userId={session.data.user.id}
             onUpdate={fetchInvoice}
             annexureId={invoice.annexureId}
+            annexureStatus={invoice.annexure?.status}
+            annexureName={invoice.annexure?.name}
           />
         )}
       </div>
@@ -437,7 +449,7 @@ const InvoiceIdPage = () => {
           <Invoice data={invoice} />
         </div>
 
-        <div className="space-y-6">
+        <div  className="space-y-6">
           {invoice.statusHistory && invoice.statusHistory.length > 0 && (
             <Card>
               <CardHeader className="pb-3 px-4 pt-4">
@@ -462,6 +474,11 @@ const InvoiceIdPage = () => {
             name: session.data.user.name || "User",
             role: session.data.user.role as string
           }}
+          availableRecipients={invoice.vendor?.users?.map((u: any) => ({
+            email: u.email,
+            name: u.name || u.email,
+            id: u.id
+          })) || []}
         />
       )}
     </div >

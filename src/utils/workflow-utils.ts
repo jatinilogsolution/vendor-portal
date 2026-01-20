@@ -1,4 +1,12 @@
-import { InvoiceStatus, UserRoleEnum, AnnexureStatus } from "./constant";
+import { 
+    InvoiceStatus, 
+    UserRoleEnum, 
+    AnnexureStatus, 
+    InvoiceStatusLabels, 
+    AnnexureStatusLabels, 
+    FileGroupStatusLabels, 
+    FileGroupStatus 
+} from "./constant";
 
 /**
  * Returns a role-specific status label for display in the UI.
@@ -25,9 +33,10 @@ export function getRoleSpecificStatusLabel(
                 case InvoiceStatus.REJECTED_BY_BOSS:
                     return "Needs Revision";
                 default:
-                    return status.replace(/_/g, " ");
+                    return (InvoiceStatusLabels[status as InvoiceStatus] || status.replace(/_/g, " ")).replace(/\b\w/g, (l: string) => l.toUpperCase());
             }
         }
+        return InvoiceStatusLabels[status as InvoiceStatus] || status.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
     }
 
     if (type === "annexure") {
@@ -39,12 +48,19 @@ export function getRoleSpecificStatusLabel(
                 case AnnexureStatus.HAS_REJECTIONS:
                 case AnnexureStatus.REJECTED_BY_BOSS:
                     return "Needs Revision";
+                case AnnexureStatus.APPROVED:
+                    return "Approved";
                 default:
-                    return status.replace(/_/g, " ");
+                    return (AnnexureStatusLabels[status as AnnexureStatus] || status.replace(/_/g, " ")).replace(/\b\w/g, (l: string) => l.toUpperCase());
             }
         }
+        return AnnexureStatusLabels[status as AnnexureStatus] || status.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
     }
 
-    // Default: format the enum key nicely
-    return status.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+    if (type === "fileGroup") {
+        return FileGroupStatusLabels[status as FileGroupStatus] || status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+    }
+
+    // Default fallback
+    return status.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase());
 }

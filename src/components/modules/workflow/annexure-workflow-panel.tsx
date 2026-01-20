@@ -22,9 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { RejectionDialog } from "./rejection-dialog";
-import {
-    canTransitionAnnexure
-} from "@/utils/workflow-validator";
+ 
 import {
     Card,
     CardContent,
@@ -37,22 +35,23 @@ import { WorkflowStatusBadge } from "./workflow-status-badge";
 
 interface AnnexureWorkflowPanelProps {
     annexureId: string;
-    annexureName: string;
     currentStatus: string;
     userRole: string;
     userId: string;
     allGroupsApproved: boolean;
     onUpdate: () => void;
+    invoiceId?: string;
 }
 
 export function AnnexureWorkflowPanel({
     annexureId,
-    annexureName,
+ 
     currentStatus,
     userRole,
     userId,
     allGroupsApproved,
-    onUpdate
+    onUpdate,
+    invoiceId
 }: AnnexureWorkflowPanelProps) {
     const router = useRouter();
     const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
@@ -83,9 +82,10 @@ export function AnnexureWorkflowPanel({
             const res = await submitAnnexureForReview(annexureId, userId, userRole);
             if (res.success) {
                 toast.success("Annexure resubmitted successfully");
-                // Navigate to invoice page if invoiceId is returned
-                if (res.invoiceId) {
-                    router.push(`/invoices/${res.invoiceId}`);
+                // Navigate to invoice page if invoiceId is returned from action OR passed as prop
+                const targetInvoiceId = res.invoiceId || invoiceId;
+                if (targetInvoiceId) {
+                    router.push(`/invoices/${targetInvoiceId}`);
                 } else {
                     onUpdate();
                 }
@@ -124,7 +124,7 @@ export function AnnexureWorkflowPanel({
     const showBossActions = userRole === UserRoleEnum.BOSS &&
         status === AnnexureStatus.PENDING_BOSS_REVIEW;
 
-    if (!showSubmit && !showForward && !showBossActions && !showReviewMessage && status === AnnexureStatus.DRAFT) return null;
+    if (!showSubmit && !showForward && !showBossActions && !showReviewMessage) return null;
 
     return (
         <Card className="border-primary/20 bg-primary/5">

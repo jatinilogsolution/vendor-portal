@@ -11,6 +11,7 @@ export interface Annexure {
   _count?: { LRRequest: number }
   groups?: any[]
   isInvoiced?: boolean
+  status?: string
   invoiceDetails?: {
     id: string
     refernceNumber: string

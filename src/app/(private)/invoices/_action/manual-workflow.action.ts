@@ -1,9 +1,8 @@
-
 "use server";
 
 import { getCustomSession } from "@/actions/auth.action";
 import { UserRoleEnum } from "@/utils/constant";
-import { sendManualEmail } from "@/services/email.service";
+import { sendManualEmail } from "@/services/mail";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -11,39 +10,128 @@ import { revalidatePath } from "next/cache";
  * Send a manual notification (Email)
  */
 export async function sendManualNotification({
-    to,
+    to, // Can be comma-separated or a single email
     recipientId,
     title,
     description,
     type,
-    path
+    path,
+    notifyInternal, // Legacy for Vendors
+    notifyBoss,
+    notifyTAdmin,
+    notifyVendor, // Notifies all users linked to the same vendor as initialRecipientId
+    extraEmails
 }: {
-    to: string;
+    to?: string;
     recipientId?: string;
     title: string;
     description: string;
     type: string;
     path?: string;
+    notifyInternal?: boolean;
+    notifyBoss?: boolean;
+    notifyTAdmin?: boolean;
+    notifyVendor?: boolean;
+    extraEmails?: string;
 }) {
     try {
-        const { user } = await getCustomSession();
+        const { user: currentUser } = await getCustomSession();
 
-        if (!user || ![UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(user.role as any)) {
-            throw new Error("Unauthorized. Only Admins or Boss can send manual notifications.");
+        if (!currentUser || ![UserRoleEnum.BOSS, UserRoleEnum.TADMIN, UserRoleEnum.TVENDOR].includes(currentUser.role as any)) {
+            throw new Error("Unauthorized. Insufficient permissions to send notifications.");
         }
 
-        const result = await sendManualEmail(to, recipientId || null, {
-            title,
-            description,
-            type,
-            fromUser: user.name || user.email || "System User"
-        });
+        const recipientList: string[] = [];
+
+        // 1. Add specific to email if provided
+        if (to) {
+            to.split(',').forEach(email => {
+                if (email.trim()) recipientList.push(email.trim());
+            });
+        }
+
+        // 2. Add extra emails if provided (Restricted to Admin in UI, but good to have safeguard)
+        if (extraEmails) {
+            extraEmails.split(',').forEach(email => {
+                if (email.trim()) recipientList.push(email.trim());
+            });
+        }
+
+        // 3. Automated internal notification (Legacy for Vendors)
+        if (notifyInternal) {
+            const internalUsers = await prisma.user.findMany({
+                where: {
+                    role: { in: [UserRoleEnum.BOSS, UserRoleEnum.TADMIN] as any }
+                },
+                select: { email: true }
+            });
+            internalUsers.forEach(u => {
+                if (u.email) recipientList.push(u.email);
+            });
+        }
+
+        // 4. Group Notifications
+        if (notifyBoss) {
+            const bUsers = await prisma.user.findMany({
+                where: { role: UserRoleEnum.BOSS as any },
+                select: { email: true }
+            });
+            bUsers.forEach(u => u.email && recipientList.push(u.email));
+        }
+
+        if (notifyTAdmin) {
+            const tUsers = await prisma.user.findMany({
+                where: { role: UserRoleEnum.TADMIN as any },
+                select: { email: true }
+            });
+            tUsers.forEach(u => u.email && recipientList.push(u.email));
+        }
+
+        if (notifyVendor && recipientId) {
+            // Find the vendor linked to this recipient (or user directly if they are a vendor)
+            const recUser = await prisma.user.findUnique({
+                where: { id: recipientId },
+                select: { vendorId: true }
+            });
+            
+            if (recUser?.vendorId) {
+                const vendorUsers = await prisma.user.findMany({
+                    where: { vendorId: recUser.vendorId },
+                    select: { email: true }
+                });
+                vendorUsers.forEach(u => u.email && recipientList.push(u.email));
+            }
+        }
+
+        // Remove duplicates
+        const uniqueRecipients = Array.from(new Set(recipientList));
+
+        if (uniqueRecipients.length === 0) {
+            throw new Error("No valid recipients found.");
+        }
+
+        // Send to each recipient (assuming the email service handles logging)
+        const results = await Promise.all(
+            uniqueRecipients.map(recipientEmail => 
+                sendManualEmail(recipientEmail, null, {
+                    title,
+                    description,
+                    type,
+                    fromUser: currentUser.name || currentUser.email || "System User"
+                })
+            )
+        );
+
+        const allSuccess = results.every(r => r.success);
 
         if (path) {
             revalidatePath(path);
         }
 
-        return { success: true, message: "Notification sent successfully" };
+        return { 
+            success: allSuccess, 
+            message: allSuccess ? "Notifications sent successfully" : "Some notifications failed to send" 
+        };
     } catch (error) {
         console.error("Error in sendManualNotification:", error);
         return {

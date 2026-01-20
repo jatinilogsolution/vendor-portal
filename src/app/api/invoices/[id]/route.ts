@@ -39,8 +39,10 @@ export const GET = cache(async (
         vendor: {
           include: {
             Address: true,
+            users: true,
           },
         },
+        annexure: true,
         LRRequest: {
           include: {
             Annexure: true,

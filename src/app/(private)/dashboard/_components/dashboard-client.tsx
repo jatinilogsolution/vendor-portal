@@ -57,7 +57,7 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 // IndexedDB utilities
 async function openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1)
+        const request = indexedDB.open(DB_NAME, 2)
 
         request.onerror = () => reject(request.error)
         request.onsuccess = () => resolve(request.result)

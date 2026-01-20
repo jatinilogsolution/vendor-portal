@@ -14,6 +14,8 @@ import { useInvoiceStore } from "@/components/modules/invoice-context"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import Link from "next/link"
 import { Link2 } from "lucide-react"
+import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge"
+import { useSession } from "@/lib/auth-client"
 
 export const Invoice = ({ data }: { data: any }) => {
   const {
@@ -28,6 +30,7 @@ export const Invoice = ({ data }: { data: any }) => {
     reset,
   } = useInvoiceStore()
 
+  const { data: session } = useSession()
   const [loader, setLoader] = useState(false)
 
   useEffect(() => {
@@ -45,9 +48,11 @@ export const Invoice = ({ data }: { data: any }) => {
           <div>
             <h1 className="text-3xl font-bold text-foreground flex items-center gap-x-6">
               BCN{" "}
-              <Badge className="bg-muted text-primary font-medium shadow-xs">
-                {data.status}
-              </Badge>
+              <WorkflowStatusBadge 
+                status={data.status} 
+                type="invoice" 
+                role={session?.user?.role} 
+              />
             </h1>
 
             <div className="text-muted-foreground mt-1">

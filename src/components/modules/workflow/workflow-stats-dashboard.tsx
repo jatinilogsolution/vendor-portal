@@ -78,14 +78,14 @@ export function getInvoiceStats(counts: Record<string, number>, currentFilter?: 
         },
         {
             status: InvoiceStatus.PENDING_TADMIN_REVIEW,
-            label: "Pending Admin",
+            label: "Under Review",
             count: counts[InvoiceStatus.PENDING_TADMIN_REVIEW] || 0,
             icon: <Clock className="h-4 w-4" />,
             color: "bg-blue-100 text-blue-600",
         },
         {
             status: InvoiceStatus.PENDING_BOSS_REVIEW,
-            label: "Pending Boss",
+            label: "Final Review",
             count: counts[InvoiceStatus.PENDING_BOSS_REVIEW] || 0,
             icon: <History className="h-4 w-4" />,
             color: "bg-yellow-100 text-yellow-600",
@@ -146,7 +146,7 @@ export function getAnnexureStats(counts: Record<string, number>, currentFilter?:
         },
         {
             status: AnnexureStatus.PENDING_BOSS_REVIEW,
-            label: "Pending Boss",
+            label: "Final Review",
             count: counts[AnnexureStatus.PENDING_BOSS_REVIEW] || 0,
             icon: <History className="h-4 w-4" />,
             color: "bg-yellow-100 text-yellow-600",

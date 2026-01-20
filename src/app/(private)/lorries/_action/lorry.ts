@@ -213,7 +213,7 @@ export async function updateLRVerificationStatus({
     userId,
 }: {
     lrNumber: string;
-    status: "VERIFIED" | "WRONG" | "PENDING";
+    status: "APPROVED" | "REJECTED" | "PENDING";
     remark?: string;
     userId: string;
 }) {
@@ -242,8 +242,8 @@ export async function updateLRVerificationStatus({
             `TADMIN marked LR ${lrNumber} as ${status}${remark ? `: ${remark}` : ""}`
         );
 
-        // If WRONG, post a public comment for visibility
-        if (status === "WRONG" && remark) {
+        // If REJECTED, post a public comment for visibility
+        if (status === "REJECTED" && remark) {
             const user = await prisma.user.findUnique({ where: { id: userId } });
             await prisma.workflowComment.create({
                 data: {

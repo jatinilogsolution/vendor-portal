@@ -8,8 +8,6 @@ import { LoginSchema, RegisterSchema, ChangePasswordPayload } from "@/validation
 import { UserRoleEnum } from "@/utils/constant"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { sendEmail } from "@/services/mail"
-import { sendEmailAction } from "./email/send-email.action"
 import { auditCreate, auditAuth } from "@/lib/audit-logger"
 
 
@@ -97,21 +95,7 @@ export async function signUpEmailAction(data: RegisterSchema) {
         callbackURL: "/auth/verify",
       }
     });
-
-    // await sendEmailAction({
-    //   to: email,
-    //   subject: "Verify your email address",
-    //   meta: {
-    //     description:
-    //       "Please verify your email address to complete the registration process.",
-    //     link: String(link),
-    //     user: user.name,
-    //     buttonTitle: "Verify Mail"
-    //   },
-    // });
     revalidatePath("/admin");
-
-
     return { error: null }
   } catch (err) {
     if (err instanceof APIError) {

@@ -30,12 +30,14 @@ model User {
   companyId     String?
   vendorId      String?
 
-  sessions         Session[]
-  accounts         Account[]
-  Vendor           Vendor?           @relation(fields: [vendorId], references: [id])
-  PurchaseOrder    PurchaseOrder[]
-  logs             Log[]
-  workflowComments WorkflowComment[]
+  sessions                Session[]
+  accounts                Account[]
+  Vendor                  Vendor?                 @relation(fields: [vendorId], references: [id])
+  PurchaseOrder           PurchaseOrder[]
+  logs                    Log[]
+  workflowComments        WorkflowComment[]
+  invoiceStatusHistories  InvoiceStatusHistory[]
+  annexureStatusHistories AnnexureStatusHistory[]
 
   @@map("users")
 }
@@ -99,7 +101,7 @@ model LRRequest {
   origin       String?
   destination  String?
   outDate      DateTime
-  status       String?  @default("PENDING") // WRONG, VERIFIED
+  status       String?  @default("PENDING") // REJECTED, APPROVED
 
   // pricing 
   priceOffered  Float?
@@ -259,10 +261,11 @@ model InvoiceStatusHistory {
   invoiceId String
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  fromStatus String?
-  toStatus   String
-  changedBy  String // userId
-  notes      String? @db.NVarChar(Max)
+  fromStatus    String?
+  toStatus      String
+  changedBy     String // userId
+  changedByUser User    @relation(fields: [changedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notes         String? @db.NVarChar(Max)
 
   @@index([invoiceId])
   @@index([createdAt])
@@ -276,10 +279,11 @@ model AnnexureStatusHistory {
   annexureId String
   annexure   Annexure @relation(fields: [annexureId], references: [id], onDelete: Cascade)
 
-  fromStatus String?
-  toStatus   String
-  changedBy  String
-  notes      String? @db.NVarChar(Max)
+  fromStatus    String?
+  toStatus      String
+  changedBy     String
+  changedByUser User    @relation(fields: [changedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notes         String? @db.NVarChar(Max)
 
   @@index([annexureId])
   @@index([createdAt])

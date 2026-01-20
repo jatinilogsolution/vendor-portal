@@ -365,7 +365,7 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
                             onCheckedChange={() => toggleFileSelection(fileNo)}
                           />
                         </TableCell> */}
-                        <TableCell colSpan={6} className="py-4 bg-muted/30">
+                        <TableCell colSpan={6} className="py-4 bg-primary/10">
                           <div className="flex flex-col gap-3">
                             {/* Primary Header Row */}
                             <div className="flex flex-wrap items-center justify-between gap-4">

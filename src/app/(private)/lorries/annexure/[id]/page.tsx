@@ -436,10 +436,16 @@ export default function AnnexureDetailPage() {
 
               {isAdmin && (
                 <ManualNotificationDialog
-                  recipientEmail={data.groups?.[0]?.LRs?.[0]?.tvendor?.users?.[0]?.email || ""}
-                  recipientId={data.groups?.[0]?.LRs?.[0]?.tvendor?.users?.[0]?.id}
+                  recipientEmail={data.vendor?.users?.[0]?.email || ""}
+                  recipientId={data.vendor?.users?.[0]?.id}
                   entityName={data.name || "Annexure"}
                   path={`/lorries/annexure/${id}`}
+                  currentUserRole={role as string}
+                  availableRecipients={data.vendor?.users?.map((u: any) => ({
+                    email: u.email,
+                    name: u.name || u.email,
+                    id: u.id
+                  })) || []}
                 />
               )}
 
@@ -521,10 +527,10 @@ export default function AnnexureDetailPage() {
           {/* Invoice Status Banner */}
           {data.isInvoiced && data.invoiceDetails && (
             <Alert className={cn(
-              "border-l-4",
+              // "border-l-1",
               data.invoiceDetails.status.includes("REJECTED") 
-                ? "border-red-500 bg-red-50 dark:bg-red-900/20" 
-                : "border-green-500 bg-green-50 dark:bg-green-900/20"
+                ? "  bg-red-50 dark:bg-red-900/20" 
+                : "  bg-green-50 dark:bg-green-900/20"
             )}>
               {data.invoiceDetails.status.includes("REJECTED") 
                 ? <AlertTriangle className="h-4 w-4 text-red-600" /> 
@@ -542,7 +548,14 @@ export default function AnnexureDetailPage() {
                   <div className="flex items-center gap-4">
                     <span><strong>Ref:</strong> {data.invoiceDetails.refernceNumber}</span>
                     {data.invoiceDetails.invoiceNumber && <span><strong>Invoice #:</strong> {data.invoiceDetails.invoiceNumber}</span>}
-                    <span><strong>Status:</strong> {data.invoiceDetails.status}</span>
+                    <div className="flex items-center gap-2">
+                      <strong>Status:</strong> 
+                      <WorkflowStatusBadge 
+                        status={data.invoiceDetails.status} 
+                        type="invoice" 
+                        role={role as string} 
+                      />
+                    </div>
                   </div>
                   <Button variant="outline" size="sm" className="bg-white hover:bg-opacity-90" asChild>
                     <Link href={`/invoices/${data.invoiceDetails.id}`} className="flex items-center gap-2">
@@ -669,12 +682,12 @@ export default function AnnexureDetailPage() {
           {session.data?.user && (
             <AnnexureWorkflowPanel
               annexureId={id}
-              annexureName={data.name || "Annexure"}
               currentStatus={data.status || "DRAFT"}
               userRole={session.data.user.role as string}
               userId={session.data.user.id}
               allGroupsApproved={allGroupsApproved}
               onUpdate={fetchData}
+              invoiceId={data.invoiceDetails?.id}
             />
           )}
 
@@ -882,7 +895,7 @@ export default function AnnexureDetailPage() {
                               key={lr.id}
                               className={cn(
                                 "transition-colors",
-                                lr.status === "WRONG" && "bg-red-50/50 hover:bg-red-50 dark:bg-red-900/10 dark:hover:bg-red-900/20",
+                                lr.status === "REJECTED" && "bg-red-50/50 hover:bg-red-50 dark:bg-red-900/10 dark:hover:bg-red-900/20",
                                 isIncomplete ? 'blur-sm select-none pointer-events-none' : ''
                               )}
                             >
@@ -936,56 +949,56 @@ export default function AnnexureDetailPage() {
                                 <TableCell>
                                   <div className="flex items-center justify-center gap-1">
                                     <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-7 w-7 rounded-full transition-colors",
-                                        lr.status === "VERIFIED" ? "bg-green-100 text-green-700 hover:bg-green-200" : "text-muted-foreground hover:bg-green-50 hover:text-green-600"
-                                      )}
-                                      title="Approve"
-                                      onClick={async () => {
-                                        const res = await updateLRVerificationStatus({
-                                          lrNumber: lr.LRNumber,
-                                          status: "VERIFIED",
-                                          userId: userId!,
-                                        });
-                                        if (res.success) {
-                                          toast.success(`LR ${lr.LRNumber} verified`);
-                                          fetchData();
-                                        } else {
-                                          toast.error(res.error || "Failed to verify LR");
-                                        }
-                                      }}
-                                    >
-                                      <CheckCircle size={14} />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-7 w-7 rounded-full transition-colors",
-                                        lr.status === "WRONG" ? "bg-red-100 text-red-700 hover:bg-red-200" : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                                      )}
-                                      title="Flag as Wrong"
-                                      onClick={async () => {
-                                        const reason = prompt(`Enter rejection reason for LR ${lr.LRNumber}:`);
-                                        if (reason === null) return;
-                                        const res = await updateLRVerificationStatus({
-                                          lrNumber: lr.LRNumber,
-                                          status: "WRONG",
-                                          remark: reason,
-                                          userId: userId!,
-                                        });
-                                        if (res.success) {
-                                          toast.success(`LR ${lr.LRNumber} marked as wrong`);
-                                          fetchData();
-                                        } else {
-                                          toast.error(res.error || "Failed to flag LR");
-                                        }
-                                      }}
-                                    >
-                                      <XCircle size={14} />
-                                    </Button>
+                                       variant="ghost"
+                                       size="icon"
+                                       className={cn(
+                                         "h-7 w-7 rounded-full transition-colors",
+                                         lr.status === "APPROVED" ? "bg-green-100 text-green-700 hover:bg-green-200" : "text-muted-foreground hover:bg-green-50 hover:text-green-600"
+                                       )}
+                                       title="Approve"
+                                       onClick={async () => {
+                                         const res = await updateLRVerificationStatus({
+                                           lrNumber: lr.LRNumber,
+                                           status: "APPROVED",
+                                           userId: userId!,
+                                         });
+                                         if (res.success) {
+                                           toast.success(`LR ${lr.LRNumber} approved`);
+                                           fetchData();
+                                         } else {
+                                           toast.error(res.error || "Failed to approve LR");
+                                         }
+                                       }}
+                                     >
+                                       <CheckCircle size={14} />
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       className={cn(
+                                         "h-7 w-7 rounded-full transition-colors",
+                                         lr.status === "REJECTED" ? "bg-red-100 text-red-700 hover:bg-red-200" : "text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                                       )}
+                                       title="Flag as Wrong"
+                                       onClick={async () => {
+                                         const reason = prompt(`Enter rejection reason for LR ${lr.LRNumber}:`);
+                                         if (reason === null) return;
+                                         const res = await updateLRVerificationStatus({
+                                           lrNumber: lr.LRNumber,
+                                           status: "REJECTED",
+                                           remark: reason,
+                                           userId: userId!,
+                                         });
+                                         if (res.success) {
+                                           toast.success(`LR ${lr.LRNumber} marked as rejected`);
+                                           fetchData();
+                                         } else {
+                                           toast.error(res.error || "Failed to flag LR");
+                                         }
+                                       }}
+                                     >
+                                       <XCircle size={14} />
+                                     </Button>
                                   </div>
                                 </TableCell>
                               )}
@@ -1036,6 +1049,11 @@ export default function AnnexureDetailPage() {
               name: session.data.user.name || "User",
               role: session.data.user.role as string
             }}
+            availableRecipients={data?.vendor?.users?.map((u: any) => ({
+              email: u.email,
+              name: u.name || u.email,
+              id: u.id
+            })) || []}
           />
         )}
       </div>

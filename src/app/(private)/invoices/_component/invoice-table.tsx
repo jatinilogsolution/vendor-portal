@@ -25,6 +25,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useSession } from "@/lib/auth-client"
 import { UserRoleEnum } from "@/utils/constant"
+import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge"
 
 export const InvoiceTable = ({ data }: { data: InvoiceWithVendor[] }) => {
   const router = useRouter()
@@ -104,7 +105,7 @@ export const InvoiceTable = ({ data }: { data: InvoiceWithVendor[] }) => {
                 <TableCell>
                   <Badge variant={"secondary"} className=" w-36">
 
-                    <Link href={`/invoices/${invoice.id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/invoices/${invoice.id}`} className=" hover:underline">
                       {invoice.refernceNumber}
                     </Link>
                   </Badge>
@@ -124,25 +125,30 @@ export const InvoiceTable = ({ data }: { data: InvoiceWithVendor[] }) => {
                 <TableCell>
                   {annexure ? (
                     <Link
-                      href={`/lorries/annexure?annexureId=${annexure.id}`}
-                      className="text-blue-600 hover:underline flex items-center gap-1"
+                      href={`/lorries/annexure/${annexure.id}`}
+                      className="text-blue-600 hover:underline w-48  flex items-center gap-1"
                     >
-                      {annexure.name}
+                      <span className="truncate">{annexure.name}</span>
                       <IconExternalLink className="w-3 h-3" />
                     </Link>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-
-                <TableCell>{invoice.vendor?.name || "-"}</TableCell>
                 <TableCell>
-                  <LazyDate date={invoice.invoiceDate.toString()} />
+                  <div className="w-48 truncate" title={invoice.vendor?.name || ""}>
+                    {invoice.vendor?.name || "-"}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={invoice.status === "SENT" ? "default" : "secondary"}>
-                    {invoice.status}
-                  </Badge>
+                  <LazyDate date={invoice.invoiceDate.toString()} format="short" />
+                </TableCell>
+                <TableCell>
+                  <WorkflowStatusBadge 
+                    status={invoice.status} 
+                    type="invoice" 
+                    role={session.data?.user.role} 
+                  />
                 </TableCell>
                 <TableCell className=" text-center">{invoice.status !== "DRAFT" ? formatCurrency(invoice.grandTotal) : "-"}</TableCell>
 

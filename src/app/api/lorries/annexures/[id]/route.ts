@@ -11,7 +11,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const annexure = await prisma.annexure.findUnique({
       where: { id },
       include: {
-        vendor: true,
+        vendor: {
+          include: { users: true }
+        },
         statusHistory: {
           include: {
             changedByUser: {
@@ -42,6 +44,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
                   select: {
                     id: true,
                     name: true,
+                    users: true
                   },
                 },
                 Invoice: {

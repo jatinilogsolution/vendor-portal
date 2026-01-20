@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UserRoleEnum, InvoiceStatus, AnnexureStatus } from "@/utils/constant";
-import { sendManualEmail } from "@/services/email.service";
+import { sendManualEmail } from "@/services/mail";
 
 /**
  * Add a comment to a workflow (Annexure or Invoice)
@@ -96,9 +96,14 @@ export async function addWorkflowComment({
 /**
  * Get comments for a workflow (Unified Annexure + Invoice)
  */
-export async function getWorkflowComments(params: { annexureId?: string; invoiceId?: string; role?: string }) {
+export async function getWorkflowComments(params: { 
+    annexureId?: string; 
+    invoiceId?: string; 
+    role?: string;
+    lastCreatedAt?: Date;
+}) {
     try {
-        let { annexureId, invoiceId } = params;
+        let { annexureId, invoiceId, lastCreatedAt } = params;
 
         // Try to bind them if not both provided
         if (annexureId && !invoiceId) {
@@ -125,7 +130,9 @@ export async function getWorkflowComments(params: { annexureId?: string; invoice
                         ]
                     },
                     // Role-based privacy filter: Vendors can't see private comments
-                    params.role === UserRoleEnum.TVENDOR ? { isPrivate: false } : {}
+                    params.role === UserRoleEnum.TVENDOR ? { isPrivate: false } : {},
+                    // Incremental fetching filter
+                    lastCreatedAt ? { createdAt: { gt: new Date(lastCreatedAt) } } : {}
                 ]
             },
             include: {
@@ -203,5 +210,70 @@ export async function sendCommentAsEmail({
     } catch (error) {
         console.error("Error in sendCommentAsEmail:", error);
         return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
+    }
+}
+
+/**
+ * Get all notifications (comments) for a user globally
+ */
+export async function getGlobalNotifications(params: {
+    role: string;
+    userId: string;
+}) {
+    try {
+        const { role, userId } = params;
+
+        // If TVENDOR, only show comments linked to their invoices/annexures
+        let vendorId: string | null = null;
+        if (role === UserRoleEnum.TVENDOR) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { vendorId: true }
+            });
+            vendorId = user?.vendorId || null;
+        }
+
+        const comments = await prisma.workflowComment.findMany({
+            where: {
+                AND: [
+                    // Privacy filter
+                    role === UserRoleEnum.TVENDOR ? { isPrivate: false } : {},
+                    // Vendor filter for TVENDOR
+                    role === UserRoleEnum.TVENDOR && vendorId ? {
+                        OR: [
+                            { Annexure: { vendorId } },
+                            { Invoice: { vendorId } }
+                        ]
+                    } : {},
+                ]
+            },
+            include: {
+                Author: {
+                    select: {
+                        name: true,
+                        image: true
+                    }
+                },
+                Invoice: {
+                    select: {
+                        refernceNumber: true
+                    }
+                },
+                Annexure: {
+                    select: {
+                        name: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: "desc"
+            },
+            take: 50
+        });
+
+        return { success: true, data: comments };
+    } catch (error) {
+        console.error("Error in getGlobalNotifications:", error);
+        return { success: false, error: error instanceof Error ? error.message : "Failed to fetch global notifications" };
     }
 }

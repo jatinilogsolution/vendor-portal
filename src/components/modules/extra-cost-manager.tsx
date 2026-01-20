@@ -217,9 +217,9 @@ export default function ExtraCostManager({
     return (
         <Dialog open={open} onOpenChange={setOpen} >
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" size={"sm"} className="gap-2">
 
-                    {readOnly ? totalExtra ? "" : "No Cost" : "Manage Extra Costs"}
+                    {readOnly ? totalExtra ? "" : "₹ 0.00" : "Manage Extra Costs"}
                     {totalExtra && <span className="font-medium">{totalExtra}</span>}
                 </Button>
             </DialogTrigger>

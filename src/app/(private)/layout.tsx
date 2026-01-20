@@ -12,13 +12,15 @@ import {
     SidebarProvider,
 } from "@/components/ui/sidebar"
 import { PropsWithChildren } from "react";
+import { NotificationProvider } from "@/context/notification-context";
 
 const PrivateLayout = ({ children }: PropsWithChildren) => {
     return (
-        <SidebarProvider
+        <NotificationProvider>
+            <SidebarProvider
             style={
                 {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
+                    "--sidebar-width": "calc(var(--spacing) * 64)",
                     "--header-height": "calc(var(--spacing) * 12)",
                 } as React.CSSProperties
             }
@@ -31,6 +33,7 @@ const PrivateLayout = ({ children }: PropsWithChildren) => {
                 </div>
             </SidebarInset>
         </SidebarProvider>
+</NotificationProvider>
     )
 }
 

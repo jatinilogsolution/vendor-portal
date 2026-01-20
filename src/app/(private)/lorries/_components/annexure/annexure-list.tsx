@@ -129,6 +129,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Annexure } from "../../_action/annexure"
+import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge"
+import { useSession } from "@/lib/auth-client"
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface AnnexureListProps {
   filtered: Annexure[]
@@ -138,6 +147,9 @@ interface AnnexureListProps {
 }
 
 export default function AnnexureList({ filtered, loading, handleDelete, isAdmin = false }: AnnexureListProps) {
+  const { data: session } = useSession()
+  const role = session?.user?.role
+
   if (loading) {
     return (
       <>
@@ -147,6 +159,7 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
             {isAdmin && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+            <TableCell><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
             <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
             <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
             <TableCell className="text-right">
@@ -165,7 +178,7 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
   if (!filtered.length) {
     return (
       <TableRow>
-        <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-12">
+        <TableCell colSpan={isAdmin ? 8 : 7} className="text-center py-12">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Search className="h-10 w-10 text-muted-foreground/50" />
             <p className="text-lg font-medium">No annexures found</p>
@@ -177,14 +190,21 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
   }
 
   return (
-    <>
+    <TooltipProvider>
       {filtered.map((a) => (
         <TableRow key={a.id} className="hover:bg-muted/50 transition-colors">
           <TableCell className="font-medium">
             <div className="flex items-center gap-2">
-              {a.name}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="max-w-[180px] truncate cursor-help">{a.name}</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{a.name}</p>
+                </TooltipContent>
+              </Tooltip>
               {a.isInvoiced && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
                   <FileCheck className="h-3 w-3 mr-1" />
                   {a.invoiceDetails?.refernceNumber || "Invoiced"}
                 </Badge>
@@ -196,10 +216,17 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
           {isAdmin && (
             <TableCell>
               {(a as any).vendor?.name ? (
-                <div className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm">{(a as any).vendor.name}</span>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 cursor-help">
+                      <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-sm truncate max-w-[150px]">{(a as any).vendor.name}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{(a as any).vendor.name}</p>
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
               )}
@@ -208,6 +235,11 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
 
           <TableCell>{new Date(a.fromDate).toLocaleDateString()}</TableCell>
           <TableCell>{new Date(a.toDate).toLocaleDateString()}</TableCell>
+          
+          <TableCell className="text-center">
+            <WorkflowStatusBadge status={a.status || "DRAFT"} type="annexure" role={role as string} />
+          </TableCell>
+
           <TableCell className="text-center font-mono text-sm">{a._count?.LRRequest ?? 0}</TableCell>
           <TableCell className="text-center font-mono text-sm">{a.groups?.length ?? 0}</TableCell>
 
@@ -259,7 +291,7 @@ export default function AnnexureList({ filtered, loading, handleDelete, isAdmin 
           </TableCell>
         </TableRow>
       ))}
-    </>
+    </TooltipProvider>
   )
 }
 

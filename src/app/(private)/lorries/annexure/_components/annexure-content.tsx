@@ -48,6 +48,7 @@ function AnnexureListContentInternal({ vendorId, userRole }: AnnexureListContent
                             {isAdmin && <TableHead>Vendor</TableHead>}
                             <TableHead>From</TableHead>
                             <TableHead>To</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
                             <TableHead className="text-center">LRs</TableHead>
                             <TableHead className="text-center">Total Transecton</TableHead>
                             <TableHead className="text-center">Actions</TableHead>

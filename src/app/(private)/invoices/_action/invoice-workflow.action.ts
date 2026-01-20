@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { InvoiceStatus, UserRoleEnum, AnnexureStatus } from "@/utils/constant";
 import { canTransitionInvoice } from "@/utils/workflow-validator";
-import { sendRejectionEmail, sendApprovalEmail, sendEmail } from "@/services/email.service";
+import { sendRejectionEmail, sendApprovalEmail, sendEmail } from "@/services/mail";
 import { getUsersByRole } from "@/services/user.service";
 
 /**
@@ -107,6 +107,25 @@ export async function approveInvoiceByTadmin(invoiceId: string, userId: string, 
                 if (pendingGroups.length > 0) {
                     throw new Error(`Cannot forward to BOSS: ${pendingGroups.length} annexure file group(s) are not yet approved.`);
                 }
+
+                // 🔄 AUTO-FORWARD ANNEXURE: If annexure is still awaiting forwarding, move it along with the invoice
+                if (annexure.status === AnnexureStatus.PARTIALLY_APPROVED || annexure.status === AnnexureStatus.PENDING_TADMIN_REVIEW) {
+                    await prisma.annexure.update({
+                        where: { id: invoice.annexureId },
+                        data: {
+                            status: AnnexureStatus.PENDING_BOSS_REVIEW,
+                            tadminCompletedAt: new Date(),
+                            statusHistory: {
+                                create: {
+                                    fromStatus: annexure.status,
+                                    toStatus: AnnexureStatus.PENDING_BOSS_REVIEW,
+                                    changedBy: userId,
+                                    notes: "Auto-forwarded to BOSS along with linked Invoice approval"
+                                }
+                            }
+                        }
+                    });
+                }
             }
         }
 
@@ -130,9 +149,10 @@ export async function approveInvoiceByTadmin(invoiceId: string, userId: string, 
 
         // 💬 CHAT INTEGRATION: Post forwarding message to chat
         const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
+        const autoForwardText = invoice.annexureId ? " and linked Annexure auto-forwarded" : "";
         await prisma.workflowComment.create({
             data: {
-                content: `[FORWARDED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber} approved by TADMIN and forwarded to BOSS for final review. [View Document](${invoiceLink})`,
+                content: `[FORWARDED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber}${autoForwardText} approved by TADMIN and forwarded to BOSS for final review. [View Document](${invoiceLink})`,
                 authorId: userId,
                 authorRole: UserRoleEnum.TADMIN,
                 annexureId: invoice.annexureId,
@@ -299,19 +319,42 @@ export async function approveInvoiceByBoss(invoiceId: string, userId: string, ro
                         fromStatus: invoice.status,
                         toStatus: InvoiceStatus.APPROVED,
                         changedBy: userId,
-                        notes: notes || "Final approval by BOSS"
+                        notes: notes || "Final approval by BOSS (Integrated)"
                     }
                 }
             }
         });
 
+        // 🔗 SYNC: If an annexure is linked, approve it as well
+        if (invoice.annexureId) {
+            const annexure = await prisma.annexure.findUnique({ where: { id: invoice.annexureId } });
+            if (annexure && annexure.status !== AnnexureStatus.APPROVED) {
+                await prisma.annexure.update({
+                    where: { id: invoice.annexureId },
+                    data: {
+                        status: AnnexureStatus.APPROVED,
+                        bossApprovedAt: new Date(),
+                        statusHistory: {
+                            create: {
+                                fromStatus: annexure.status,
+                                toStatus: AnnexureStatus.APPROVED,
+                                changedBy: userId,
+                                notes: notes ? `Auto-approved via Invoice (${notes})` : "Auto-approved along with linked Invoice final approval (Directly)"
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         revalidatePath(`/invoices/${invoiceId}`);
+        if (invoice.annexureId) revalidatePath(`/lorries/annexure/${invoice.annexureId}`);
 
         // 💬 CHAT INTEGRATION: Post approval message to chat
         const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
         await prisma.workflowComment.create({
             data: {
-                content: `[APPROVED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber} received FINAL APPROVAL by BOSS. [View Document](${invoiceLink})`,
+                content: `[APPROVED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber} received FINAL APPROVAL and linked Annexure approved. [View Document](${invoiceLink})`,
                 authorId: userId,
                 authorRole: UserRoleEnum.BOSS,
                 annexureId: invoice.annexureId,
@@ -395,6 +438,10 @@ export async function requestInvoiceDeletion(invoiceId: string, userId: string, 
             throw new Error("Only Vendors can request invoice deletion.");
         }
 
+        if ([InvoiceStatus.PENDING_BOSS_REVIEW, InvoiceStatus.REJECTED_BY_BOSS, InvoiceStatus.APPROVED, InvoiceStatus.PAYMENT_APPROVED].includes(invoice.status as InvoiceStatus)) {
+            throw new Error("Cannot request deletion: This invoice has already been forwarded to the BOSS/Finance for review.");
+        }
+
         const updatedInvoice = await prisma.invoice.update({
             where: { id: invoiceId },
             data: {
@@ -408,7 +455,7 @@ export async function requestInvoiceDeletion(invoiceId: string, userId: string, 
         const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
         await prisma.workflowComment.create({
             data: {
-                content: `Vendor has requested DELETION of this invoice. View here: ${invoiceLink}`,
+                content: `Vendor has requested DELETION of this invoice.   [View Document](${invoiceLink})`,
                 authorId: userId,
                 authorRole: UserRoleEnum.TVENDOR,
                 annexureId: invoice.annexureId,

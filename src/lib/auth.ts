@@ -9,7 +9,7 @@ import { createAuthMiddleware } from "better-auth/api";
 import { normalizeName } from "./utils";
 import { ac, roles } from "@/lib/permissions"
 import { UserRoleEnum } from "@/utils/constant";
-import { sendEmailAction } from "@/actions/email/send-email.action";
+import { sendAuthEmail } from "@/services/mail";
 
 const options = {
 
@@ -28,7 +28,7 @@ const options = {
             const link = new URL(url);
             link.searchParams.set("callbackURL", "/auth/verify");
 
-            await sendEmailAction({
+            await sendAuthEmail({
                 to: user.email,
                 subject: "Verify your email address",
                 meta: {
@@ -37,8 +37,6 @@ const options = {
                     link: String(link),
                     user: user.name,
                     buttonTitle: "Verify Mail"
-
-
                 },
             });
         },
@@ -53,7 +51,7 @@ const options = {
         },
         requireEmailVerification: true,
         sendResetPassword: async ({ user, url }) => {
-            await sendEmailAction({
+            await sendAuthEmail({
                 to: user.email,
                 subject: "Reset your password",
                 meta: {

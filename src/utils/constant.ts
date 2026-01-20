@@ -43,10 +43,10 @@ export enum FileGroupStatus {
 // Status Labels for UI
 export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
   [InvoiceStatus.DRAFT]: "Draft",
-  [InvoiceStatus.PENDING_TADMIN_REVIEW]: "Pending Admin Review",
-  [InvoiceStatus.REJECTED_BY_TADMIN]: "Rejected by Admin",
-  [InvoiceStatus.PENDING_BOSS_REVIEW]: "Pending Boss Review",
-  [InvoiceStatus.REJECTED_BY_BOSS]: "Rejected by Boss",
+  [InvoiceStatus.PENDING_TADMIN_REVIEW]: "Under Review",
+  [InvoiceStatus.REJECTED_BY_TADMIN]: "Rejected",
+  [InvoiceStatus.PENDING_BOSS_REVIEW]: "Final Review",
+  [InvoiceStatus.REJECTED_BY_BOSS]: "Rejected",
   [InvoiceStatus.APPROVED]: "Approved",
   [InvoiceStatus.PAYMENT_APPROVED]: "Approved for Payment"
 };
@@ -56,8 +56,8 @@ export const AnnexureStatusLabels: Record<AnnexureStatus, string> = {
   [AnnexureStatus.PENDING_TADMIN_REVIEW]: "Under Review",
   [AnnexureStatus.PARTIALLY_APPROVED]: "Partially Approved",
   [AnnexureStatus.HAS_REJECTIONS]: "Has Rejections",
-  [AnnexureStatus.PENDING_BOSS_REVIEW]: "Pending Boss Review",
-  [AnnexureStatus.REJECTED_BY_BOSS]: "Rejected by Boss",
+  [AnnexureStatus.PENDING_BOSS_REVIEW]: "Final Review",
+  [AnnexureStatus.REJECTED_BY_BOSS]: "Rejected",
   [AnnexureStatus.APPROVED]: "Approved"
 };
 

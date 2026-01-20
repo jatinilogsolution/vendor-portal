@@ -4,7 +4,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Search } from "lucide-react"
+import { ExternalLink, Search, Truck } from "lucide-react"
 import ExtraCostManager from "@/components/modules/extra-cost-manager"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
@@ -103,10 +103,10 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                     <TableBody>
                         {Object.entries(groupedByVehicle).map(([fileNumber, vehicleLRs]) => (
                             <React.Fragment key={fileNumber}>
-                                <TableRow className="  rounded-md">
+                                <TableRow className=" rounded-md">
                                     <TableCell colSpan={3} className="py-2 bg-foreground/10 font-semibold">
                                         <div className="flex items-center gap-2">
-                                            <Badge className=" ">{vehicleLRs[0].vehicleNo}</Badge>
+                                            <Badge variant={"outline"}  className=" uppercase border-primary" ><Truck className=" text-primary" /> {vehicleLRs[0].vehicleNo}</Badge>
                                             <Badge variant="secondary">{vehicleLRs[0].vehicleType}</Badge>
                                             <Badge variant="secondary">
                                                 {new Date(vehicleLRs[0].outDate).toLocaleDateString()}
@@ -116,11 +116,11 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                     <TableCell className="text-center font-medium">
                                         <div className="flex flex-col items-center">
                                             <span>₹ {vehicleLRs[0].priceSettled || "-"}</span>
-                                            {vehicleLRs[0].extraCost && vehicleLRs[0].extraCost > 0 && (
+                                            {/* {vehicleLRs[0].extraCost && vehicleLRs[0].extraCost > 0 && (
                                                 <span className="text-xs text-green-600 font-medium">
                                                     + ₹ {vehicleLRs[0].extraCost}
                                                 </span>
-                                            )}
+                                            )} */}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-center font-medium">
@@ -128,7 +128,7 @@ export const LRTable = ({ lrs, status, pageSize = 50 }: LRTableProps) => {
                                             fileNumber={vehicleLRs[0].fileNumber}
                                             totalExtra={vehicleLRs[0].extraCost ? `₹${vehicleLRs[0].extraCost.toLocaleString()}` : ""}
                                             onSuccess={() => window.location.reload()}
-                                            readOnly={status === "SENT"}
+                                            readOnly={true}
                                         />
                                     </TableCell>
                                     {/* {status !== "SENT" && (

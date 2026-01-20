@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { AnnexureStatus, FileGroupStatus, UserRoleEnum, InvoiceStatus } from "@/utils/constant";
 import { canTransitionAnnexure, canReviewAnnexureGroups } from "@/utils/workflow-validator";
-import { sendRejectionEmail, sendApprovalEmail, sendStatusChangeEmail, sendEmail } from "@/services/email.service";
+import { sendRejectionEmail, sendApprovalEmail, sendStatusChangeEmail, sendEmail } from "@/services/mail";
 import { auditUpdate } from "@/lib/audit-logger";
 import { generateInvoiceFromAnnexure } from "./annexure";
 import { getUsersByRole } from "@/services/user.service";
@@ -136,6 +136,12 @@ export async function approveFileGroup(fileGroupId: string, userId: string, role
                 }
             });
 
+            // ALSO UPDATE ALL LRs IN THIS GROUP TO APPROVED
+            await tx.lRRequest.updateMany({
+                where: { groupId: fileGroupId },
+                data: { status: "APPROVED" }
+            });
+
             // Compute new status using already fetched groups (mark current as approved)
             const updatedGroups = group.Annexure.groups.map(g => 
                 g.id === fileGroupId ? { ...g, status: FileGroupStatus.APPROVED } : g
@@ -148,6 +154,10 @@ export async function approveFileGroup(fileGroupId: string, userId: string, role
             if (anyRejected) {
                 targetStatus = AnnexureStatus.HAS_REJECTIONS;
             } else if (allApproved) {
+                // If everything is approved, we can set it to a state that allows Boss Review
+                // however, we still want TADMIN to click "Forward" to officially hand it over.
+                // We'll keep it as PARTIALLY_APPROVED or mark it as "READY_FOR_FORWARDING" if we had that status.
+                // For now, let's keep PARTIALLY_APPROVED since it signifies it's not the final state yet.
                 targetStatus = AnnexureStatus.PARTIALLY_APPROVED;
             } else {
                 targetStatus = AnnexureStatus.PARTIALLY_APPROVED;
@@ -163,7 +173,7 @@ export async function approveFileGroup(fileGroupId: string, userId: string, role
                                 fromStatus: group.Annexure.status,
                                 toStatus: targetStatus,
                                 changedBy: userId,
-                                notes: `Updated status after group ${group.fileNumber} approval`
+                                notes: `Updated status after group ${group.fileNumber} approval and auto-approving LRs`
                             }
                         }
                     }
@@ -204,23 +214,33 @@ export async function rejectFileGroup(fileGroupId: string, userId: string, role:
             throw new Error("Unauthorized to review file groups");
         }
 
-        const updatedGroup = await prisma.annexureFileGroup.update({
-            where: { id: fileGroupId },
-            data: {
-                status: FileGroupStatus.REJECTED,
-                rejectedBy: userId,
-                rejectedAt: new Date(),
-                rejectionReason: reason,
-                reviewedBy: userId,
-                reviewedAt: new Date(),
-                rejections: {
-                    create: {
-                        rejectedBy: userId,
-                        reason: reason,
-                        affectedLRs: affectedLRs
+        const updatedGroup = await prisma.$transaction(async (tx) => {
+            const groupUpdate = await tx.annexureFileGroup.update({
+                where: { id: fileGroupId },
+                data: {
+                    status: FileGroupStatus.REJECTED,
+                    rejectedBy: userId,
+                    rejectedAt: new Date(),
+                    rejectionReason: reason,
+                    reviewedBy: userId,
+                    reviewedAt: new Date(),
+                    rejections: {
+                        create: {
+                            rejectedBy: userId,
+                            reason: reason,
+                            affectedLRs: affectedLRs
+                        }
                     }
                 }
-            }
+            });
+
+            // ALSO UPDATE ALL LRs IN THIS GROUP TO REJECTED
+            await tx.lRRequest.updateMany({
+                where: { groupId: fileGroupId },
+                data: { status: "REJECTED", remark: reason }
+            });
+
+            return groupUpdate;
         });
 
         // Update annexure status
@@ -299,10 +319,13 @@ export async function forwardAnnexureToBoss(annexureId: string, userId: string, 
             where: { annexureId }
         });
 
-        const allVerified = lrs.every(lr => lr.status === "VERIFIED");
+        console.log(
+            JSON.stringify(lrs)
+        )
+        const allVerified = lrs.every(lr => lr.status === "APPROVED");
         if (!allVerified) {
-            const unverifiedCount = lrs.filter(lr => lr.status !== "VERIFIED").length;
-            throw new Error(`Cannot forward to BOSS until all individual LRs are VERIFIED. There are currently ${unverifiedCount} unverified items.`);
+            const unverifiedCount = lrs.filter(lr => lr.status !== "APPROVED").length;
+            throw new Error(`Cannot forward to BOSS until all individual LRs are APPROVED. There are currently ${unverifiedCount} unapproved items.`);
         }
 
         if (!canTransitionAnnexure(role, annexure.status as AnnexureStatus, AnnexureStatus.PENDING_BOSS_REVIEW)) {
