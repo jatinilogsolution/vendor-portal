@@ -1,9 +1,11 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { BillToAddressByNameId } from "@/actions/wms/warehouse";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const { id } = await params;
 
@@ -12,15 +14,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       where: { id },
       include: {
         vendor: {
-          include: { users: true }
+          include: { users: true },
         },
         statusHistory: {
           include: {
             changedByUser: {
-              select: { name: true, email: true }
-            }
+              select: { name: true, email: true },
+            },
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: "desc" },
         },
         groups: {
           include: {
@@ -40,11 +42,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
                 fileNumber: true,
                 isInvoiced: true,
                 invoiceId: true,
+                status: true,
+                remark: true,
                 tvendor: {
                   select: {
                     id: true,
                     name: true,
-                    users: true
+                    users: true,
                   },
                 },
                 Invoice: {
@@ -67,32 +71,43 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // 2️⃣ Check if any LRs are invoiced
-    const allLRs = annexure.groups.flatMap(g => g.LRs);
-    const isInvoiced = allLRs.some(lr => lr.isInvoiced || lr.invoiceId);
-    const invoiceDetails = allLRs.find(lr => lr.Invoice)?.Invoice || null;
+    const allLRs = annexure.groups.flatMap((g) => g.LRs);
+    const isInvoiced = allLRs.some((lr) => lr.isInvoiced || lr.invoiceId);
+    const invoiceDetails = allLRs.find((lr) => lr.Invoice)?.Invoice || null;
 
     // 3️⃣ Build cache to avoid duplicate warehouse lookups
     const warehouseCache: Record<string, string> = {};
 
     // 4️⃣ Check for missing LRs per fileNumber
-    const fileNumbers = [...new Set(annexure.groups.map(g => g.fileNumber).filter(Boolean))];
-    const missingLRsPerFile: { fileNumber: string; missing: string[]; total: number; inAnnexure: number }[] = [];
+    const fileNumbers = [
+      ...new Set(annexure.groups.map((g) => g.fileNumber).filter(Boolean)),
+    ];
+    const missingLRsPerFile: {
+      fileNumber: string;
+      missing: string[];
+      total: number;
+      inAnnexure: number;
+    }[] = [];
 
     for (const fileNumber of fileNumbers) {
       const allLRsInFile = await prisma.lRRequest.findMany({
         where: { fileNumber },
-        select: { LRNumber: true, annexureId: true }
+        select: { LRNumber: true, annexureId: true },
       });
 
-      const lrsInThisAnnexure = allLRsInFile.filter(lr => lr.annexureId === id);
-      const lrsNotInAnnexure = allLRsInFile.filter(lr => !lr.annexureId || lr.annexureId !== id);
+      const lrsInThisAnnexure = allLRsInFile.filter(
+        (lr) => lr.annexureId === id,
+      );
+      const lrsNotInAnnexure = allLRsInFile.filter(
+        (lr) => !lr.annexureId || lr.annexureId !== id,
+      );
 
       if (lrsNotInAnnexure.length > 0) {
         missingLRsPerFile.push({
           fileNumber,
-          missing: lrsNotInAnnexure.map(lr => lr.LRNumber),
+          missing: lrsNotInAnnexure.map((lr) => lr.LRNumber),
           total: allLRsInFile.length,
-          inAnnexure: lrsInThisAnnexure.length
+          inAnnexure: lrsInThisAnnexure.length,
         });
       }
     }
@@ -111,7 +126,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
               } catch (err) {
                 console.warn(
                   `Failed to fetch warehouse name for ID: ${originId}`,
-                  err
+                  err,
                 );
                 warehouseCache[originId] = originId;
               }
@@ -121,14 +136,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
               ...lr,
               origin: warehouseCache[originId!] ?? originId,
             };
-          })
+          }),
         );
 
         return {
           ...group,
           LRs: enhancedLRs,
         };
-      })
+      }),
     );
 
     // 6️⃣ Return enhanced annexure with invoice status
