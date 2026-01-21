@@ -1,63 +1,141 @@
 "use server";
 
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getAWLWMSDBPOOL } from "@/services/db";
 
-const LRUpdateSchema = z.object({
-  id: z.string(),
-  vehicleType: z.string().optional().nullable(),
-  vehicleNo: z.string().optional().nullable(),
-  CustomerName: z.string().optional().nullable(),
-  origin: z.string().optional().nullable(),
-  destination: z.string().optional().nullable(),
+export async function getAWLLRDetails(lrNumber: string) {
+  if (!lrNumber) return { error: "LR Number is required" };
 
-  priceOffered: z.coerce.number().optional().nullable(),
-  lrPrice: z.coerce.number().optional().nullable(),
-  modifiedPrice: z.coerce.number().optional().nullable(),
-  priceSettled: z.coerce.number().optional().nullable(),
-  extraCost: z.coerce.number().optional().nullable(),
-
-  remark: z.string().optional().nullable(),
-
-  tvendorId: z.string(),
-  invoiceId: z.string().optional().nullable(),
-  annexureId: z.string().optional().nullable(),
-  groupId: z.string().optional().nullable(),
-});
-
-export async function updateLR(prevState: any, formData: FormData) {
   try {
-    const raw = Object.fromEntries(formData.entries());
-    const data = LRUpdateSchema.parse(raw);
+    const pool = await getAWLWMSDBPOOL();
+    const query = `
+      SELECT DISTINCT 
+        OutLRNo, City, OutTPT, WH, OutLRDate, 
+        OutVehType, OutVehNo, PartyName, FileNo
+      FROM NEWAWLDB.dbo.tbl_MDN WITH (NOLOCK)
+      WHERE OutLRNo = '${lrNumber}'
+    `;
 
-    await prisma.lRRequest.update({
-      where: { id: data.id },
+    const response = await pool.request().query(query);
+    const record = response.recordset[0];
+
+    if (!record) {
+      return { error: `No LR found with number ${lrNumber} in WMS` };
+    }
+
+    // Fetch POD link
+    const podQuery = `
+      SELECT TOP 1 file_url
+      FROM NEWAWLDB.dbo.gDrive_Data WITH (NOLOCK)
+      WHERE tranId = '${lrNumber}' AND subFolder = 'POD' AND docType = 'POD'
+    `;
+    const podResponse = await pool.request().query(podQuery);
+    const podRecord = podResponse.recordset[0];
+
+    // Fetch Vendor details
+    let vendorDetails = null;
+    if (record.OutTPT) {
+      const vendorQuery = `
+        SELECT Tid, Tname, Tcontactperson, Tcontactno, Temail
+        FROM tbl_transporter WITH (NOLOCK)
+        WHERE Tid = '${record.OutTPT}'
+      `;
+      const vendorResponse = await pool.request().query(vendorQuery);
+      vendorDetails = vendorResponse.recordset[0] || null;
+    }
+
+    return {
+      success: true,
       data: {
-        vehicleType: data.vehicleType || null,
-        vehicleNo: data.vehicleNo || null,
-        CustomerName: data.CustomerName || null,
-        origin: data.origin || null,
-        destination: data.destination || null,
-
-        priceOffered: data.priceOffered,
-        lrPrice: data.lrPrice,
-        modifiedPrice: data.modifiedPrice,
-        priceSettled: data.priceSettled,
-        extraCost: data.extraCost,
-        remark: data.remark,
-
-        tvendorId: data.tvendorId,
-        invoiceId: data.invoiceId || null,
-        annexureId: data.annexureId || null,
-        groupId: data.groupId || null,
+        ...record,
+        podLink: podRecord?.file_url,
+        vendor: vendorDetails,
       },
-    });
+    };
+  } catch (err: any) {
+    console.error("Error fetching LR details:", err);
+    return { error: err.message || "Failed to fetch LR details" };
+  }
+}
+
+export async function syncLRFromWMS(lrNumber?: string, fileNumber?: string) {
+  if (!lrNumber && !fileNumber) {
+    return { error: "LR Number or File Number is required" };
+  }
+
+  try {
+    const pool = await getAWLWMSDBPOOL();
+    let query = `
+      SELECT DISTINCT 
+        OutLRNo, City, OutTPT, WH, OutLRDate, 
+        OutVehType, OutVehNo, PartyName, FileNo
+      FROM NEWAWLDB.dbo.tbl_MDN WITH (NOLOCK)
+      WHERE 1=1
+    `;
+
+    if (lrNumber) {
+      query += ` AND OutLRNo = '${lrNumber}'`;
+    } else if (fileNumber) {
+      query += ` AND FileNo = '${fileNumber}'`;
+    }
+
+    const response = await pool.request().query(query);
+    const records = response.recordset;
+
+    if (records.length === 0) {
+      return { error: "No records found to sync" };
+    }
+
+    let syncedCount = 0;
+    for (const r of records) {
+      // Check for POD for each LR
+      const podQuery = `
+        SELECT TOP 1 file_url
+        FROM NEWAWLDB.dbo.gDrive_Data WITH (NOLOCK)
+        WHERE tranId = '${r.OutLRNo}' AND subFolder = 'POD' AND docType = 'POD'
+      `;
+      const podRes = await pool.request().query(podQuery);
+      const podUrl = podRes.recordset[0]?.file_url;
+
+      await prisma.lRRequest.upsert({
+        where: { LRNumber: r.OutLRNo },
+        update: {
+          outDate: new Date(r.OutLRDate),
+          destination: r.City || "Unknown",
+          tvendorId: r.OutTPT || "N/A",
+          origin: r.WH || "N/A",
+          vehicleType: r.OutVehType || "Unknown",
+          vehicleNo: r.OutVehNo || "Unknown",
+          CustomerName: r.PartyName,
+          fileNumber: r.FileNo,
+          podlink: podUrl || undefined,
+        },
+        create: {
+          LRNumber: r.OutLRNo,
+          outDate: new Date(r.OutLRDate),
+          destination: r.City || "Unknown",
+          tvendorId: r.OutTPT,
+          origin: r.WH || "N/A",
+          vehicleType: r.OutVehType || "Unknown",
+          vehicleNo: r.OutVehNo || "Unknown",
+          CustomerName: r.PartyName,
+          fileNumber: r.FileNo,
+          podlink: podUrl || undefined,
+        },
+      });
+      syncedCount++;
+    }
 
     revalidatePath("/lrs");
-    return { success: true };
-  } catch (error: any) {
-    console.log("LR Update Error", error);
-    return { error: error.message };
+    revalidatePath("/lorries");
+    revalidatePath("/pod");
+    return {
+      success: true,
+      message: `Successfully synced ${syncedCount} records with POD links`,
+    };
+  } catch (err: any) {
+    console.error("Error syncing LR:", err);
+    return { error: err.message || "Failed to sync LR" };
   }
 }

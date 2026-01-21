@@ -1,13 +1,31 @@
-import { IconChartBar, IconDashboard, IconFolder, IconHelp, IconListDetails, IconSettings, IconUsers } from "@tabler/icons-react";
+import { IconUserFilled } from "@tabler/icons-react";
+import { IconReceiptRupeeFilled } from "@tabler/icons-react";
+import { IconTruckDelivery } from "@tabler/icons-react";
+import {
+  IconChartBar,
+  IconDashboard,
+  IconFolder,
+  IconHelp,
+  IconListDetails,
+  IconSettings,
+  IconUsers,
+} from "@tabler/icons-react";
+import { Database, FilesIcon } from "lucide-react";
 
-export const UserRole = ["BOSS", "ADMIN", "VENDOR", "TVENDOR", "TADMIN"] as const;
+export const UserRole = [
+  "BOSS",
+  "ADMIN",
+  "VENDOR",
+  "TVENDOR",
+  "TADMIN",
+] as const;
 export type Role = (typeof UserRole)[number];
 export enum UserRoleEnum {
   BOSS = "BOSS",
   ADMIN = "ADMIN",
   VENDOR = "VENDOR",
   TVENDOR = "TVENDOR",
-  TADMIN = "TADMIN"
+  TADMIN = "TADMIN",
 }
 
 // Invoice Status Enum
@@ -18,7 +36,7 @@ export enum InvoiceStatus {
   PENDING_BOSS_REVIEW = "PENDING_BOSS_REVIEW",
   REJECTED_BY_BOSS = "REJECTED_BY_BOSS",
   APPROVED = "APPROVED",
-  PAYMENT_APPROVED = "PAYMENT_APPROVED"
+  PAYMENT_APPROVED = "PAYMENT_APPROVED",
 }
 
 // Annexure Status Enum
@@ -29,7 +47,7 @@ export enum AnnexureStatus {
   HAS_REJECTIONS = "HAS_REJECTIONS",
   PENDING_BOSS_REVIEW = "PENDING_BOSS_REVIEW",
   REJECTED_BY_BOSS = "REJECTED_BY_BOSS",
-  APPROVED = "APPROVED"
+  APPROVED = "APPROVED",
 }
 
 // File Group Status Enum
@@ -37,7 +55,7 @@ export enum FileGroupStatus {
   PENDING = "PENDING",
   UNDER_REVIEW = "UNDER_REVIEW",
   APPROVED = "APPROVED",
-  REJECTED = "REJECTED"
+  REJECTED = "REJECTED",
 }
 
 // Status Labels for UI
@@ -48,7 +66,7 @@ export const InvoiceStatusLabels: Record<InvoiceStatus, string> = {
   [InvoiceStatus.PENDING_BOSS_REVIEW]: "Final Review",
   [InvoiceStatus.REJECTED_BY_BOSS]: "Rejected",
   [InvoiceStatus.APPROVED]: "Approved",
-  [InvoiceStatus.PAYMENT_APPROVED]: "Approved for Payment"
+  [InvoiceStatus.PAYMENT_APPROVED]: "Approved for Payment",
 };
 
 export const AnnexureStatusLabels: Record<AnnexureStatus, string> = {
@@ -58,57 +76,91 @@ export const AnnexureStatusLabels: Record<AnnexureStatus, string> = {
   [AnnexureStatus.HAS_REJECTIONS]: "Has Rejections",
   [AnnexureStatus.PENDING_BOSS_REVIEW]: "Final Review",
   [AnnexureStatus.REJECTED_BY_BOSS]: "Rejected",
-  [AnnexureStatus.APPROVED]: "Approved"
+  [AnnexureStatus.APPROVED]: "Approved",
 };
 
 export const FileGroupStatusLabels: Record<FileGroupStatus, string> = {
   [FileGroupStatus.PENDING]: "Pending",
   [FileGroupStatus.UNDER_REVIEW]: "Under Review",
   [FileGroupStatus.APPROVED]: "Approved",
-  [FileGroupStatus.REJECTED]: "Rejected"
+  [FileGroupStatus.REJECTED]: "Rejected",
 };
 
 // Status Colors
 export const InvoiceStatusColors: Record<InvoiceStatus, string> = {
   [InvoiceStatus.DRAFT]: "bg-slate-50 text-slate-600 border-slate-200",
-  [InvoiceStatus.PENDING_TADMIN_REVIEW]: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  [InvoiceStatus.REJECTED_BY_TADMIN]: "bg-rose-50 text-rose-700 border-rose-200",
-  [InvoiceStatus.PENDING_BOSS_REVIEW]: "bg-orange-50 text-orange-700 border-orange-200",
+  [InvoiceStatus.PENDING_TADMIN_REVIEW]:
+    "bg-indigo-50 text-indigo-700 border-indigo-200",
+  [InvoiceStatus.REJECTED_BY_TADMIN]:
+    "bg-rose-50 text-rose-700 border-rose-200",
+  [InvoiceStatus.PENDING_BOSS_REVIEW]:
+    "bg-orange-50 text-orange-700 border-orange-200",
   [InvoiceStatus.REJECTED_BY_BOSS]: "bg-red-50 text-red-700 border-red-200",
   [InvoiceStatus.APPROVED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  [InvoiceStatus.PAYMENT_APPROVED]: "bg-violet-50 text-violet-700 border-violet-200"
+  [InvoiceStatus.PAYMENT_APPROVED]:
+    "bg-violet-50 text-violet-700 border-violet-200",
 };
 
 export const FileGroupStatusColors: Record<FileGroupStatus, string> = {
   [FileGroupStatus.PENDING]: "bg-slate-50 text-slate-600 border-slate-200",
-  [FileGroupStatus.UNDER_REVIEW]: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  [FileGroupStatus.APPROVED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  [FileGroupStatus.REJECTED]: "bg-rose-50 text-rose-700 border-rose-200"
+  [FileGroupStatus.UNDER_REVIEW]:
+    "bg-indigo-50 text-indigo-700 border-indigo-200",
+  [FileGroupStatus.APPROVED]:
+    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  [FileGroupStatus.REJECTED]: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 // Valid Transitions (State Machine)
-export const InvoiceStatusTransitions: Record<InvoiceStatus, InvoiceStatus[]> = {
-  [InvoiceStatus.DRAFT]: [InvoiceStatus.PENDING_TADMIN_REVIEW],
-  [InvoiceStatus.PENDING_TADMIN_REVIEW]: [InvoiceStatus.REJECTED_BY_TADMIN, InvoiceStatus.PENDING_BOSS_REVIEW],
-  [InvoiceStatus.REJECTED_BY_TADMIN]: [InvoiceStatus.DRAFT, InvoiceStatus.PENDING_TADMIN_REVIEW],
-  [InvoiceStatus.PENDING_BOSS_REVIEW]: [InvoiceStatus.REJECTED_BY_BOSS, InvoiceStatus.APPROVED],
-  [InvoiceStatus.REJECTED_BY_BOSS]: [InvoiceStatus.DRAFT, InvoiceStatus.PENDING_TADMIN_REVIEW],
-  [InvoiceStatus.APPROVED]: [InvoiceStatus.PAYMENT_APPROVED],
-  [InvoiceStatus.PAYMENT_APPROVED]: []
-};
+export const InvoiceStatusTransitions: Record<InvoiceStatus, InvoiceStatus[]> =
+  {
+    [InvoiceStatus.DRAFT]: [InvoiceStatus.PENDING_TADMIN_REVIEW],
+    [InvoiceStatus.PENDING_TADMIN_REVIEW]: [
+      InvoiceStatus.REJECTED_BY_TADMIN,
+      InvoiceStatus.PENDING_BOSS_REVIEW,
+    ],
+    [InvoiceStatus.REJECTED_BY_TADMIN]: [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.PENDING_TADMIN_REVIEW,
+    ],
+    [InvoiceStatus.PENDING_BOSS_REVIEW]: [
+      InvoiceStatus.REJECTED_BY_BOSS,
+      InvoiceStatus.APPROVED,
+    ],
+    [InvoiceStatus.REJECTED_BY_BOSS]: [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.PENDING_TADMIN_REVIEW,
+    ],
+    [InvoiceStatus.APPROVED]: [InvoiceStatus.PAYMENT_APPROVED],
+    [InvoiceStatus.PAYMENT_APPROVED]: [],
+  };
 
-export const AnnexureStatusTransitions: Record<AnnexureStatus, AnnexureStatus[]> = {
+export const AnnexureStatusTransitions: Record<
+  AnnexureStatus,
+  AnnexureStatus[]
+> = {
   [AnnexureStatus.DRAFT]: [AnnexureStatus.PENDING_TADMIN_REVIEW],
-  [AnnexureStatus.PENDING_TADMIN_REVIEW]: [AnnexureStatus.PARTIALLY_APPROVED, AnnexureStatus.HAS_REJECTIONS],
-  [AnnexureStatus.PARTIALLY_APPROVED]: [AnnexureStatus.HAS_REJECTIONS, AnnexureStatus.PENDING_BOSS_REVIEW],
-  [AnnexureStatus.HAS_REJECTIONS]: [AnnexureStatus.DRAFT, AnnexureStatus.PENDING_TADMIN_REVIEW],
-  [AnnexureStatus.PENDING_BOSS_REVIEW]: [AnnexureStatus.REJECTED_BY_BOSS, AnnexureStatus.APPROVED],
-  [AnnexureStatus.REJECTED_BY_BOSS]: [AnnexureStatus.DRAFT, AnnexureStatus.PENDING_TADMIN_REVIEW],
-  [AnnexureStatus.APPROVED]: []
+  [AnnexureStatus.PENDING_TADMIN_REVIEW]: [
+    AnnexureStatus.PARTIALLY_APPROVED,
+    AnnexureStatus.HAS_REJECTIONS,
+  ],
+  [AnnexureStatus.PARTIALLY_APPROVED]: [
+    AnnexureStatus.HAS_REJECTIONS,
+    AnnexureStatus.PENDING_BOSS_REVIEW,
+  ],
+  [AnnexureStatus.HAS_REJECTIONS]: [
+    AnnexureStatus.DRAFT,
+    AnnexureStatus.PENDING_TADMIN_REVIEW,
+  ],
+  [AnnexureStatus.PENDING_BOSS_REVIEW]: [
+    AnnexureStatus.REJECTED_BY_BOSS,
+    AnnexureStatus.APPROVED,
+  ],
+  [AnnexureStatus.REJECTED_BY_BOSS]: [
+    AnnexureStatus.DRAFT,
+    AnnexureStatus.PENDING_TADMIN_REVIEW,
+  ],
+  [AnnexureStatus.APPROVED]: [],
 };
-
-
-
 
 export function getGreeting() {
   const now = new Date();
@@ -125,21 +177,66 @@ export function getGreeting() {
   }
 }
 
-
 export const SideBarData = {
   navMain: [
-    { title: "Dashboard", url: "/dashboard", icon: IconDashboard, headerTitle: "Dashboard" },
-    { title: "POD", url: "/pod", icon: IconListDetails, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Proof of Deliveries" },
-    { title: "LRs Details", url: "/lorries", icon: IconChartBar, headerTitle: "Lorries Reciepts asigned with Vehicle (Without POD)" },
-    { title: "Invoice", url: "/invoices", icon: IconFolder, headerTitle: "Booking Cover Note with Invoices" },
-    { title: "Admin", url: "/admin", icon: IconUsers, only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN], headerTitle: "Admin Control" },
-    { title: "Profile", url: "/profile", icon: IconUsers, headerTitle: "Admin Control", hidden: true },
-    { title: "Annexure", url: "/lorries/annexure", icon: IconUsers, headerTitle: "BCN / Annexure", hidden: true },
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
+      headerTitle: "Dashboard",
+    },
+    {
+      title: "POD",
+      url: "/pod",
+      icon: IconListDetails,
+      only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN],
+      headerTitle: "Proof of Deliveries",
+    },
+    {
+      title: "LRs Details",
+      url: "/lorries",
+      icon: IconTruckDelivery,
+      headerTitle: "Lorries Reciepts asigned with Vehicle (Without POD)",
+    },
+    {
+      title: "Invoice",
+      url: "/invoices",
+      icon: IconReceiptRupeeFilled,
+      headerTitle: "Booking Cover Note with Invoices",
+    },
 
-
+    {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUsers,
+      headerTitle: "Admin Control",
+      hidden: true,
+    },
+    {
+      title: "Annexure",
+      url: "/lorries/annexure",
+      icon: FilesIcon,
+      headerTitle: "BCN / Annexure",
+      hidden: true,
+    },
+    {
+      title: "Updates",
+      url: "/update",
+      icon: Database,
+      only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN],
+      headerTitle: "Correction / Update",
+      // hidden: true,
+    },
   ],
   navSecondary: [
+    {
+      title: "Admin",
+      url: "/admin",
+      icon: IconUserFilled,
+      only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS, UserRoleEnum.TADMIN],
+      headerTitle: "Admin Control",
+    },
     { title: "Settings", url: "#", icon: IconSettings },
     { title: "Get Help", url: "#", icon: IconHelp },
   ],
-}
+};

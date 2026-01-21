@@ -1,26 +1,38 @@
-// app/api/cron-task/route.ts
-import {  PODIMPORT  } from '@/actions/vendor/import-awlwms';
-import { NextResponse } from 'next/server';
+// app/api/cron-task/pod-import/route.ts
+import { PODIMPORT } from "@/actions/vendor/import-awlwms";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
+    const result = await PODIMPORT();
 
-    const data = await PODIMPORT()
-
-    return NextResponse.json(
-      { message: `${data} Pod import executed successfully` },
-      { status: 200 }
-    );
+    if (result.success) {
+      return NextResponse.json(
+        {
+          message: result.message,
+          count: result.count,
+          details: result.details,
+        },
+        { status: 200 },
+      );
+    } else {
+      return NextResponse.json(
+        { message: result.message, error: result.error },
+        { status: 500 },
+      );
+    }
   } catch (error) {
-    console.error('Error during cron task:', error);
+    console.error("Unexpected error during POD import cron:", error);
 
-    // Type-safe error message
     const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error occurred';
+      error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      { message: 'Error executing cron task', error: errorMessage },
-      { status: 500 }
+      {
+        message: "Internal Server Error during POD import",
+        error: errorMessage,
+      },
+      { status: 500 },
     );
   }
 }

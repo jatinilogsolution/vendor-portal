@@ -21,10 +21,10 @@ const config = {
 const globalForMssql = globalThis as unknown as {
   mssqlPoolPromise: Promise<ConnectionPool> | null;
   mssqlPoolPromiseFins: Promise<ConnectionPool> | null;
-
 };
 
-let poolPromise: Promise<ConnectionPool> | null = globalForMssql.mssqlPoolPromise;
+let poolPromise: Promise<ConnectionPool> | null =
+  globalForMssql.mssqlPoolPromise;
 
 export const getAWLWMSDBPOOL = async (): Promise<ConnectionPool> => {
   if (poolPromise) {
@@ -42,7 +42,8 @@ export const getAWLWMSDBPOOL = async (): Promise<ConnectionPool> => {
   // Create and cache new connection
   const newPool = new ConnectionPool(config);
 
-  poolPromise = newPool.connect()
+  poolPromise = newPool
+    .connect()
     .then((pool) => {
       console.log("✅ MSSQL Pool connected successfully");
 
@@ -66,18 +67,14 @@ export const getAWLWMSDBPOOL = async (): Promise<ConnectionPool> => {
   return poolPromise;
 };
 
-
-
-
-
-
-
 const config2 = {
-  user: process.env.DB_USER_NAME || "app_dbadmin",
-  password: process.env.DB_PASSWORD || "#@)#n%^$4?#?$",
-  server: process.env.DB_HOST || "182.76.62.178",
-  database: 'AWLFINS',
+  user: process.env.DB_USER_NAME_2 || "app_dbadmin",
+  password: process.env.DB_PASSWORD_2 || "#@)#n%^$4?#?$",
+  server: process.env.DB_HOST_2 || "182.76.62.178",
+  database: process.env.DB_2 || "AWLFINS",
   port: 1433,
+  requestTimeout: 60000,
+  connectionTimeout: 30000,
   options: {
     trustServerCertificate: true,
     encrypt: true,
@@ -89,10 +86,8 @@ const config2 = {
   },
 };
 
-
-
-
-let poolPromiseFins: Promise<ConnectionPool> | null = globalForMssql.mssqlPoolPromise;
+let poolPromiseFins: Promise<ConnectionPool> | null =
+  globalForMssql.mssqlPoolPromise;
 
 export const getAWLWMSDBPOOLFINS = async (): Promise<ConnectionPool> => {
   if (poolPromiseFins) {
@@ -110,7 +105,8 @@ export const getAWLWMSDBPOOLFINS = async (): Promise<ConnectionPool> => {
   // Create and cache new connection
   const newPool = new ConnectionPool(config2);
 
-  poolPromiseFins = newPool.connect()
+  poolPromiseFins = newPool
+    .connect()
     .then((pool) => {
       console.log("✅ MSSQL FINS Pool connected successfully");
 
