@@ -1,8 +1,18 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextRequest, NextResponse } from "next/server";
 
-
-const protectedPages = ["/dashboard", "/profile", "/settings", "/admin", "/invoices", "/lorries", "/pod", "/profile", "/settings", "/api"];
+const protectedPages = [
+  "/dashboard",
+  "/profile",
+  "/settings",
+  "/admin",
+  "/invoices",
+  "/lorries",
+  "/pod",
+  "/profile",
+  "/settings",
+  "/api",
+];
 
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
@@ -28,9 +38,8 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
-
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
-  ]
+  ],
 };

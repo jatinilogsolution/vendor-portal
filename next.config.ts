@@ -23,13 +23,15 @@ const nextConfig: NextConfig = {
         port: "", // optional
         pathname: "/**",
       },
-
     ],
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
-
+      bodySizeLimit: "10mb",
+      allowedOrigins: [
+        "vendorportal.awlindia.com",
+        "www.vendorportal.awlindia.com",
+      ],
     },
     globalNotFound: true,
     authInterrupts: true,
