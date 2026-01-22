@@ -1,9 +1,13 @@
-import { createAuthClient } from "better-auth/react"
+import { createAuthClient } from "better-auth/react";
 
-import { adminClient, customSessionClient, emailOTPClient, inferAdditionalFields } from "better-auth/client/plugins"
-import { ac, roles } from "@/lib/permissions"
-import { auth } from "@/lib/auth"
-
+import {
+  adminClient,
+  customSessionClient,
+  emailOTPClient,
+  inferAdditionalFields,
+} from "better-auth/client/plugins";
+import { ac, roles } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
 
 const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_API_URL as string,
@@ -11,10 +15,9 @@ const authClient = createAuthClient({
     inferAdditionalFields<typeof auth>(),
     adminClient({ ac, roles }),
     customSessionClient<typeof auth>(),
-    emailOTPClient()
-
+    emailOTPClient(),
   ],
-})
+});
 
 // import { inferAdditionalFields } from "better-auth/client/plugins";
 // export const authClient = createAuthClient({
@@ -27,4 +30,14 @@ const authClient = createAuthClient({
 //   })],
 // });
 
-export const { signOut, useSession, sendVerificationEmail, resetPassword, admin, signUp, verifyEmail, requestPasswordReset } = authClient
+export const {
+  signOut,
+  useSession,
+  sendVerificationEmail,
+  resetPassword,
+  admin,
+  signUp,
+  verifyEmail,
+  requestPasswordReset,
+  signIn,
+} = authClient;
