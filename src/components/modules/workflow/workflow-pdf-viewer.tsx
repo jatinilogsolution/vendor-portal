@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Eye, Maximize2, Minimize2, FileText, Download, X } from "lucide-react";
+import {
+  ExternalLink,
+  Eye,
+  Maximize2,
+  Minimize2,
+  FileText,
+  Download,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WorkflowPDFViewerProps {
@@ -17,7 +25,11 @@ interface WorkflowPDFViewerProps {
   trigger?: React.ReactNode;
 }
 
-export function WorkflowPDFViewer({ url, title, trigger }: WorkflowPDFViewerProps) {
+export function WorkflowPDFViewer({
+  url,
+  title,
+  trigger,
+}: WorkflowPDFViewerProps) {
   const [open, setOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -40,7 +52,7 @@ export function WorkflowPDFViewer({ url, title, trigger }: WorkflowPDFViewerProp
               "flex flex-col overflow-hidden p-0 gap-0 border-0",
               isFullScreen
                 ? "max-w-[100vw] max-h-screen w-screen h-screen rounded-none"
-                : "max-w-5xl w-[95vw] h-[90vh] rounded-2xl shadow-2xl"
+                : "max-w-5xl w-[95vw] h-[90vh] rounded-2xl shadow-2xl",
             )}
           >
             <motion.div
@@ -49,7 +61,7 @@ export function WorkflowPDFViewer({ url, title, trigger }: WorkflowPDFViewerProp
               transition={{ duration: 0.2 }}
               className={cn(
                 "flex items-center justify-between border-b bg-card",
-                isFullScreen ? "px-6 py-4" : "px-5 py-3"
+                isFullScreen ? "px-6 py-4" : "px-5 py-3",
               )}
             >
               <div className="flex items-center gap-3">
@@ -60,7 +72,9 @@ export function WorkflowPDFViewer({ url, title, trigger }: WorkflowPDFViewerProp
                   <DialogTitle className="text-base font-semibold line-clamp-1">
                     {title}
                   </DialogTitle>
-                  <span className="text-xs text-muted-foreground">PDF Document</span>
+                  <span className="text-xs text-muted-foreground">
+                    PDF Document
+                  </span>
                 </div>
               </div>
 
@@ -122,7 +136,7 @@ export function WorkflowPDFViewer({ url, title, trigger }: WorkflowPDFViewerProp
                 className="w-full h-full border-none"
                 title={title}
               />
-              
+
               {/* Decorative gradient overlay at top */}
               <div className="absolute top-0 left-0 right-0 h-8 bg-linear-to-b from-background/20 to-transparent pointer-events-none" />
             </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Card,
   CardContent,
@@ -103,7 +103,7 @@ const getLocalComments = async (annexureId?: string, invoiceId?: string) => {
   const db = await initDB();
   const tx = db.transaction(STORE_NAME, "readonly");
   const store = tx.objectStore(STORE_NAME);
-  
+
   let request: IDBRequest;
   if (annexureId) {
     request = store.index("annexureId").getAll(annexureId);
@@ -116,7 +116,12 @@ const getLocalComments = async (annexureId?: string, invoiceId?: string) => {
   return new Promise<Comment[]>((resolve) => {
     request.onsuccess = () => {
       const all = request.result as Comment[];
-      resolve(all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+      resolve(
+        all.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        ),
+      );
     };
   });
 };
@@ -132,8 +137,6 @@ interface WorkflowCommentsProps {
   initiallyMinimized?: boolean;
   availableRecipients?: Array<{ email: string; name: string; id?: string }>;
 }
-
- 
 
 import { FormattedWorkflowContent } from "../../formatted-workflow-content";
 
@@ -160,7 +163,7 @@ const MessageBubble = ({
       transition={{ duration: 0.2 }}
       className={cn(
         "flex flex-col gap-1 max-w-[85%]",
-        isAuthor ? "items-end ml-auto" : "items-start"
+        isAuthor ? "items-end ml-auto" : "items-start",
       )}
     >
       {/* Author info */}
@@ -188,24 +191,27 @@ const MessageBubble = ({
           "px-4 py-3 rounded-2xl shadow-sm transition-shadow hover:shadow-md",
           isAuthor
             ? "bg-primary/10 dark:text-primary-foreground text-secondary rounded-br-md"
-            : "bg-muted/80 backdrop-blur-sm border border-border/50 rounded-bl-md"
+            : "bg-muted/80 backdrop-blur-sm border border-border/50 rounded-bl-md",
         )}
       >
-        <FormattedWorkflowContent content={comment.content} isAuthor={isAuthor} />
+        <FormattedWorkflowContent
+          content={comment.content}
+          isAuthor={isAuthor}
+        />
 
         {/* Attachment */}
         {comment.attachmentUrl && (
           <div
             className={cn(
               "mt-3 pt-3 border-t flex items-center gap-3",
-              isAuthor ? "border-white/20" : "border-border"
+              isAuthor ? "border-white/20" : "border-border",
             )}
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg shrink-0",
-                  isAuthor ? "bg-white/20" : "bg-primary/10"
+                  isAuthor ? "bg-white/20" : "bg-primary/10",
                 )}
               >
                 <FileIcon
@@ -226,7 +232,7 @@ const MessageBubble = ({
                     size="icon"
                     className={cn(
                       "h-8 w-8 rounded-lg shrink-0",
-                      isAuthor ? "hover:bg-white/20" : "hover:bg-primary/10"
+                      isAuthor ? "hover:bg-white/20" : "hover:bg-primary/10",
                     )}
                   >
                     <Maximize2 className="w-4 h-4" />
@@ -239,7 +245,7 @@ const MessageBubble = ({
                 size="icon"
                 className={cn(
                   "h-8 w-8 rounded-lg shrink-0",
-                  isAuthor ? "hover:bg-white/20" : "hover:bg-primary/10"
+                  isAuthor ? "hover:bg-white/20" : "hover:bg-primary/10",
                 )}
                 asChild
               >
@@ -312,7 +318,7 @@ export function WorkflowComments({
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastSeen, setLastSeen] = useState<number>(0);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
@@ -331,7 +337,9 @@ export function WorkflowComments({
   // Update unread count when comments or lastSeen change
   useEffect(() => {
     if (!comments.length) return;
-    const count = comments.filter(c => new Date(c.createdAt).getTime() > lastSeen).length;
+    const count = comments.filter(
+      (c) => new Date(c.createdAt).getTime() > lastSeen,
+    ).length;
     setUnreadCount(count);
   }, [comments, lastSeen]);
 
@@ -348,13 +356,21 @@ export function WorkflowComments({
   // Update lastSeen when scrolled to bottom or opened
   const updateLastSeen = () => {
     if (isMinimizedRef.current) return;
-    
-    const scrollContainer = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+
+    const scrollContainer = scrollRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
     if (scrollContainer) {
-      const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100;
+      const isNearBottom =
+        scrollContainer.scrollHeight -
+          scrollContainer.scrollTop -
+          scrollContainer.clientHeight <
+        100;
       const currentComments = commentsRef.current;
       if (isNearBottom && currentComments.length > 0) {
-        const latestTime = new Date(currentComments[currentComments.length - 1].createdAt).getTime();
+        const latestTime = new Date(
+          currentComments[currentComments.length - 1].createdAt,
+        ).getTime();
         setLastSeen(latestTime);
         const key = `chat_seen_${annexureId || invoiceId}`;
         localStorage.setItem(key, latestTime.toString());
@@ -375,7 +391,6 @@ export function WorkflowComments({
           setComments(local);
           lastCreatedAtRef.current = local[local.length - 1].createdAt;
           setIsLoading(false);
-          
         }
       }
 
@@ -388,21 +403,26 @@ export function WorkflowComments({
 
       if (res.success && res.data && res.data.length > 0) {
         const newComments = res.data as any[];
-        
+
         // Merge and deduplicate
-        setComments(prev => {
+        setComments((prev) => {
           const combined = [...prev, ...newComments];
-          const unique = Array.from(new Map(combined.map(c => [c.id, c])).values());
-          const sorted = unique.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          
+          const unique = Array.from(
+            new Map(combined.map((c) => [c.id, c])).values(),
+          );
+          const sorted = unique.sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
+
           // Update ref for the next fetch
           if (sorted.length > 0) {
             lastCreatedAtRef.current = sorted[sorted.length - 1].createdAt;
           }
 
           // Store in IndexedDB
-          storeComments(sorted.map(c => ({ ...c, annexureId, invoiceId })));
-          
+          storeComments(sorted.map((c) => ({ ...c, annexureId, invoiceId })));
+
           return sorted;
         });
 
@@ -410,9 +430,15 @@ export function WorkflowComments({
         setTimeout(() => {
           const isCurrentlyMinimized = isMinimizedRef.current;
           if (scrollRef.current && !isCurrentlyMinimized && !isManual) {
-            const scrollContainer = scrollRef.current.querySelector("[data-radix-scroll-area-viewport]");
+            const scrollContainer = scrollRef.current.querySelector(
+              "[data-radix-scroll-area-viewport]",
+            );
             if (scrollContainer) {
-              const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100;
+              const isNearBottom =
+                scrollContainer.scrollHeight -
+                  scrollContainer.scrollTop -
+                  scrollContainer.clientHeight <
+                100;
               if (!isNearBottom) {
                 setShowNewMessageButton(true);
               }
@@ -437,11 +463,15 @@ export function WorkflowComments({
   useEffect(() => {
     if (scrollRef.current && !isMinimized && !showNewMessageButton) {
       const scrollContainer = scrollRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
+        "[data-radix-scroll-area-viewport]",
       );
       if (scrollContainer) {
-        // Only auto-scroll if we are already at the bottom 
-        const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100;
+        // Only auto-scroll if we are already at the bottom
+        const isNearBottom =
+          scrollContainer.scrollHeight -
+            scrollContainer.scrollTop -
+            scrollContainer.clientHeight <
+          100;
         if (isNearBottom) {
           scrollContainer.scrollTop = scrollContainer.scrollHeight;
           updateLastSeen();
@@ -465,11 +495,13 @@ export function WorkflowComments({
   }, [isMinimized]);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    const scrollContainer = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    const scrollContainer = scrollRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
     if (scrollContainer) {
       scrollContainer.scrollTo({
         top: scrollContainer.scrollHeight,
-        behavior
+        behavior,
       });
       setShowNewMessageButton(false);
       setTimeout(updateLastSeen, behavior === "smooth" ? 500 : 10);
@@ -526,7 +558,7 @@ export function WorkflowComments({
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "An unexpected error occurred"
+        error instanceof Error ? error.message : "An unexpected error occurred",
       );
     } finally {
       setIsSubmitting(false);
@@ -574,13 +606,13 @@ export function WorkflowComments({
         "fixed z-50 transition-all duration-300",
         isExpanded
           ? "inset-4 sm:inset-6"
-          : "bottom-6 right-6 w-[380px] sm:w-[420px]"
+          : "bottom-6 right-6 w-[380px] sm:w-[420px]",
       )}
     >
       <Card
         className={cn(
           "flex flex-col border border-primary glass py-0 shadow-2xl overflow-hidden bg-background/95 backdrop-blur-md bg-linear-to-br from-background/95 via-background/90 to-background/95 bg-[url('https://www.awlindia.com/assets/images/heaer-logo.webp')] bg-size-[240px] bg-center bg-no-repeat bg-blend-overlay",
-          isExpanded ? "h-full" : "h-[600px]"
+          isExpanded ? "h-full" : "h-[600px]",
         )}
       >
         {/* Header */}
@@ -602,7 +634,6 @@ export function WorkflowComments({
             <Button
               variant="ghost"
               size="icon"
-              
               className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
               onClick={() => setIsExpanded(!isExpanded)}
             >
@@ -625,13 +656,16 @@ export function WorkflowComments({
 
         {/* Messages */}
         <CardContent className="flex-1 p-0 overflow-hidden relative">
-          <ScrollArea 
-            className="h-full" 
+          <ScrollArea
+            className="h-full"
             ref={scrollRef}
             onScrollCapture={(e) => {
-              const el = e.currentTarget.querySelector("[data-radix-scroll-area-viewport]");
+              const el = e.currentTarget.querySelector(
+                "[data-radix-scroll-area-viewport]",
+              );
               if (el) {
-                const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+                const isBottom =
+                  el.scrollHeight - el.scrollTop - el.clientHeight < 50;
                 if (isBottom) {
                   setShowNewMessageButton(false);
                   updateLastSeen();
@@ -684,16 +718,18 @@ export function WorkflowComments({
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10"
               >
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="rounded-full shadow-2xl bg-primary/95 hover:bg-primary text-primary-foreground gap-2 pr-3 h-10 px-4 backdrop-blur-sm hover:scale-105 active:scale-95 transition-all border border-white/20"
                   onClick={() => scrollToBottom()}
                 >
                   <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 shadow-inner">
-                     <MessagesSquare className="w-3 h-3" />
+                    <MessagesSquare className="w-3 h-3" />
                   </div>
                   <span className="text-xs font-bold tracking-tight">
-                    {unreadCount > 0 ? `${unreadCount} new messages` : "New messages below"}
+                    {unreadCount > 0
+                      ? `${unreadCount} new messages`
+                      : "New messages below"}
                   </span>
                   <div className="animate-bounce">
                     <Minimize2 className="w-3.5 h-3.5 rotate-180" />
@@ -720,7 +756,9 @@ export function WorkflowComments({
                     <FileIcon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{file.name}</p>
+                    <p className="text-sm font-semibold truncate">
+                      {file.name}
+                    </p>
                     <p className="text-[10px] text-muted-foreground font-medium">
                       {(file.size / 1024).toFixed(1)} KB
                     </p>
@@ -752,7 +790,10 @@ export function WorkflowComments({
                 className="text-[10px] font-bold text-muted-foreground/70 cursor-pointer select-none flex items-center gap-1.5 uppercase tracking-wider"
               >
                 <EyeOff className="w-3 h-3" />
-                Private message <span className="text-[9px] lowercase opacity-60 font-medium">(internal only)</span>
+                Private message{" "}
+                <span className="text-[9px] lowercase opacity-60 font-medium">
+                  (internal only)
+                </span>
               </Label>
             </div>
           )}
@@ -791,7 +832,9 @@ export function WorkflowComments({
             <Button
               size="icon"
               className="h-12 w-12 rounded-2xl shadow-lg hover:shadow-primary/30 transition-all shrink-0 bg-primary hover:bg-primary/90 active:scale-95 group"
-              disabled={(!newComment.trim() && !file) || isSubmitting || isUploading}
+              disabled={
+                (!newComment.trim() && !file) || isSubmitting || isUploading
+              }
               onClick={handleSubmit}
             >
               {isSubmitting || isUploading ? (
