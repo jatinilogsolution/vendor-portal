@@ -27,34 +27,34 @@ export const getCustomSession = async () => {
 };
 
 // -------------------- SIGN IN --------------------
-// export async function signInEmailAction(data: LoginSchema) {
-//   const { email, password } = data;
+export async function signInEmailAction(data: LoginSchema) {
+  const { email, password } = data;
 
-//   if (!email) return { error: "Please enter your email" };
-//   if (!password) return { error: "Please enter your password" };
+  if (!email) return { error: "Please enter your email" };
+  if (!password) return { error: "Please enter your password" };
 
-//   try {
-//     // await auth.api.signInEmail({
-//     //   headers: await headers(),
-//     //   body: { email, password },
-//     // })
+  try {
+    await auth.api.signInEmail({
+      headers: await headers(),
+      body: { email, password },
+    });
 
-//     return { error: null };
-//   } catch (err) {
-//     if (err instanceof APIError) {
-//       const errCode = err.body ? (err.body.code as ErrorCode) : "UNKNOWN";
+    return { error: null };
+  } catch (err) {
+    if (err instanceof APIError) {
+      const errCode = err.body ? (err.body.code as ErrorCode) : "UNKNOWN";
 
-//       switch (errCode) {
-//         case "EMAIL_NOT_VERIFIED":
-//           redirect("/auth/verify?error=email_not_verified");
-//         default:
-//           return { error: err.message };
-//       }
-//     }
+      switch (errCode) {
+        case "EMAIL_NOT_VERIFIED":
+          redirect("/auth/verify?error=email_not_verified");
+        default:
+          return { error: err.message };
+      }
+    }
 
-//     return { error: "Internal Server Error" };
-//   }
-// }
+    return { error: "Internal Server Error" };
+  }
+}
 
 // -------------------- SIGN UP --------------------
 export async function signUpEmailAction(data: RegisterSchema) {

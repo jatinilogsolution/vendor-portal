@@ -1,7 +1,7 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-// import { signInEmailAction } from "@/actions/auth.action"
+import { signInEmailAction } from "@/actions/auth.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,6 @@ import { loginSchema, LoginSchema } from "@/validations/auth";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { signIn } from "@/lib/auth-client";
 
 export function LoginForm({
   className,
@@ -33,36 +32,16 @@ export function LoginForm({
   });
 
   const onSubmit = async (values: LoginSchema) => {
-    // startTransition(async () => {
-    // const res = await signInEmailAction(values);
+    setIsPending(true);
+    const res = await signInEmailAction(values);
+    if (res.error) {
+      toast.error(res.error);
+    } else {
+      toast.success("Login successful. Good to have you back.");
+      router.push("/dashboard");
+    }
 
-    await signIn.email({
-      email: values.email,
-      password: values.password,
-      fetchOptions: {
-        onResponse: () => {
-          setIsPending(false); // Handle loading state manually if needed
-        },
-        onRequest: () => {
-          setIsPending(true);
-        },
-        onError: (ctx) => {
-          toast.error(ctx.error.message);
-        },
-        onSuccess: async () => {
-          toast.success("Login successful. Good to have you back.");
-          router.push("/dashboard");
-          router.refresh();
-        },
-      },
-    });
-    // if (res.error) {
-    // toast.error(res.error);
-    // } else {
-    // toast.success("Login successful. Good to have you back.");
-    // router.push("/dashboard");
-    // }
-    // });
+    setIsPending(false);
   };
 
   return (
