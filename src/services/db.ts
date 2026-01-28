@@ -87,7 +87,7 @@ const config2 = {
 };
 
 let poolPromiseFins: Promise<ConnectionPool> | null =
-  globalForMssql.mssqlPoolPromise;
+  globalForMssql.mssqlPoolPromiseFins;
 
 export const getAWLWMSDBPOOLFINS = async (): Promise<ConnectionPool> => {
   if (poolPromiseFins) {
