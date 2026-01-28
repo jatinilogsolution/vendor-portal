@@ -7,8 +7,9 @@ const config = {
   database: process.env.DB_1 || "NEWAWLDB",
   port: 1433,
   options: {
-    trustServerCertificate: true,
     encrypt: true,
+    trustServerCertificate: true,
+    enableArithAbort: true,
   },
   pool: {
     max: 10,
@@ -78,6 +79,7 @@ const config2 = {
   options: {
     trustServerCertificate: true,
     encrypt: true,
+    enableArithAbort: true,
   },
   pool: {
     max: 10,
