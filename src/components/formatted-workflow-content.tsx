@@ -2,242 +2,256 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { 
-    AlertCircle, 
-    CheckCircle2, 
-    MessageSquare, 
-    FileText as FileIcon, 
-    ExternalLink,
-    Lock,
-    Info,
-    History,
-    XCircle,
-    Send,
-    Truck
+import {
+  AlertCircle,
+  CheckCircle2,
+  Send,
+  Truck,
+  Info,
+  XCircle,
+  ExternalLink,
+  FileText as FileIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface FormattedWorkflowContentProps {
-    content: string;
-    isAuthor?: boolean;
-    className?: string;
-    textClassName?: string;
-    nested?: boolean; // New prop to handle nesting in <a> tags
+  content: string;
+  isAuthor?: boolean;
+  className?: string;
+  textClassName?: string;
+  nested?: boolean; // New prop to handle nesting in <a> tags
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const config = {
-        label: status,
-        icon: <Info className="w-3 h-3" />,
-        bgClass: "bg-blue-50 dark:bg-blue-950/30",
-        textClass: "text-blue-700 dark:text-blue-400",
-        borderClass: "border-blue-200 dark:border-blue-800",
-    };
+  const config = {
+    label: status,
+    icon: <Info className="w-3 h-3" />,
+    bgClass: "bg-blue-50 dark:bg-blue-950/30",
+    textClass: "text-blue-700 dark:text-blue-400",
+    borderClass: "border-blue-200 dark:border-blue-800",
+  };
 
-    switch (status.toUpperCase()) {
-        case "REJECTED":
-            config.icon = <XCircle className="w-3 h-3" />;
-            config.bgClass = "bg-red-50 dark:bg-red-950/30";
-            config.textClass = "text-red-700 dark:text-red-400";
-            config.borderClass = "border-red-200 dark:border-red-800";
-            break;
-        case "SUBMITTED":
-            config.icon = <Send className="w-3 h-3" />;
-            config.bgClass = "bg-amber-50 dark:bg-amber-950/30";
-            config.textClass = "text-amber-700 dark:text-amber-400";
-            config.borderClass = "border-amber-200 dark:border-amber-800";
-            break;
-        case "APPROVED":
-            config.icon = <CheckCircle2 className="w-3 h-3" />;
-            config.bgClass = "bg-emerald-50 dark:bg-emerald-950/30";
-            config.textClass = "text-emerald-700 dark:text-emerald-400";
-            config.borderClass = "border-emerald-200 dark:border-emerald-800";
-            break;
-        case "FORWARDED":
-            config.icon = <Truck className="w-3 h-3" />;
-            config.bgClass = "bg-indigo-50 dark:bg-indigo-950/30";
-            config.textClass = "text-indigo-700 dark:text-indigo-400";
-            config.borderClass = "border-indigo-200 dark:border-indigo-800";
-            break;
-        case "SYSTEM":
-            config.icon = <AlertCircle className="w-3 h-3" />;
-            config.bgClass = "bg-slate-50 dark:bg-slate-900";
-            config.textClass = "text-slate-700 dark:text-slate-400";
-            config.borderClass = "border-slate-200 dark:border-slate-800";
-            break;
-    }
+  switch (status.toUpperCase()) {
+    case "REJECTED":
+      config.icon = <XCircle className="w-3 h-3" />;
+      config.bgClass = "bg-red-50 dark:bg-red-950/30";
+      config.textClass = "text-red-700 dark:text-red-400";
+      config.borderClass = "border-red-200 dark:border-red-800";
+      break;
+    case "SUBMITTED":
+      config.icon = <Send className="w-3 h-3" />;
+      config.bgClass = "bg-amber-50 dark:bg-amber-950/30";
+      config.textClass = "text-amber-700 dark:text-amber-400";
+      config.borderClass = "border-amber-200 dark:border-amber-800";
+      break;
+    case "APPROVED":
+      config.icon = <CheckCircle2 className="w-3 h-3" />;
+      config.bgClass = "bg-emerald-50 dark:bg-emerald-950/30";
+      config.textClass = "text-emerald-700 dark:text-emerald-400";
+      config.borderClass = "border-emerald-200 dark:border-emerald-800";
+      break;
+    case "FORWARDED":
+      config.icon = <Truck className="w-3 h-3" />;
+      config.bgClass = "bg-indigo-50 dark:bg-indigo-950/30";
+      config.textClass = "text-indigo-700 dark:text-indigo-400";
+      config.borderClass = "border-indigo-200 dark:border-indigo-800";
+      break;
+    case "AUTHORIZED":
+      config.icon = <CheckCircle2 className="w-3 h-3" />;
+      config.bgClass = "bg-purple-50 dark:bg-purple-950/30";
+      config.textClass = "text-purple-700 dark:text-purple-400";
+      config.borderClass = "border-purple-200 dark:border-purple-800";
+      break;
+    case "SYSTEM":
+      config.icon = <AlertCircle className="w-3 h-3" />;
+      config.bgClass = "bg-slate-50 dark:bg-slate-900";
+      config.textClass = "text-slate-700 dark:text-slate-400";
+      config.borderClass = "border-slate-200 dark:border-slate-800";
+      break;
+  }
 
-    return (
-        <Badge
-            variant="outline"
-            className={cn(
-                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase mb-1",
-                config.bgClass,
-                config.textClass,
-                config.borderClass
-            )}
-        >
-            {config.icon}
-            {status}
-        </Badge>
-    );
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase mb-1",
+        config.bgClass,
+        config.textClass,
+        config.borderClass,
+      )}
+    >
+      {config.icon}
+      {status}
+    </Badge>
+  );
 };
 
-export function FormattedWorkflowContent({ 
-    content, 
-    isAuthor = false, 
-    className,
-    textClassName,
-    nested = false
+export function FormattedWorkflowContent({
+  content,
+  isAuthor = false,
+  className,
+  textClassName,
+  nested = false,
 }: FormattedWorkflowContentProps) {
-    let status: string | null = null;
-    let reason: string | null = null;
+  let workflowStatus: string | null = null;
+  let workflowReason: string | null = null;
 
-    // 1. Extract [STATUS]
-    const bracketMatch = content.match(/^\[(SUBMITTED|REJECTED|SYSTEM|UPDATED|APPROVED|QUERY|DISPUTE|FORWARDED)\]/i);
-    if (bracketMatch) {
-        status = bracketMatch[1].toUpperCase();
-    }
+  // 1. Extract [STATUS]
+  const bracketMatch = content.match(
+    /^\[(SUBMITTED|REJECTED|SYSTEM|UPDATED|APPROVED|QUERY|DISPUTE|FORWARDED|AUTHORIZED)\]/i,
+  );
+  if (bracketMatch) {
+    workflowStatus = bracketMatch[1].toUpperCase();
+  }
 
-    // 2. Extract Reason: ...
-    const reasonMatch = content.match(/Reason:\s*(.*?)(?=\s*(\||\[View Document\]|$))/i);
-    if (reasonMatch) {
-        reason = reasonMatch[1].trim();
-    }
+  // 2. Extract Reason: ... (logic kept for special highlighting)
+  const reasonMatch = content.match(
+    /(?:Reason|Remark|Rejection Reason):\s*(.*?)(?=\s*(\||\[View Document\]|$))/i,
+  );
+  if (reasonMatch) {
+    workflowReason = reasonMatch[1].trim();
+  }
 
-    let displayContent = content.replace(/^\[.*?\]\s*/, "");
-    
-    // If we have a special reason block, we might want to remove it from main text to avoid duplication
-    // But sometimes it's better to keep it if it's part of a sentence.
-    // For now, let's keep it in displayContent but highlight it.
+  // Remove the [STATUS] tag from display content for markdown parsing
+  let displayContent = content.replace(/^\[.*?\]\s*/, "");
 
-    const parts = displayContent.split(/(\[.*?\]\(.*?\)|https?:\/\/[^\s\)]+)/g);
-
-    return (
-        <div className={cn("flex flex-col gap-2", className)}>
-            <div className="flex items-center gap-2 flex-wrap">
-                {status && <StatusBadge status={status} />}
-                {isAuthor && (
-                    <Badge variant="outline" className="text-[10px] font-medium opacity-60">You</Badge>
-                )}
-            </div>
-
-            {reason && (
-                <div className="bg-red-500/5 border-l-4 border-red-500 p-3 rounded-r-lg my-1">
-                    <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Rejection Reason</p>
-                    <p className="text-sm font-medium text-foreground leading-relaxed">
-                        {reason}
-                    </p>
-                </div>
-            )}
-
-            <div className={cn("whitespace-pre-wrap wrap-break-word text-sm leading-relaxed", textClassName)}>
-                {parts.map((part, idx) => {
-                    const markdownMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
-                    if (markdownMatch) {
-                        const [, text, url] = markdownMatch;
-                        
-                        const handleLinkClick = (e: React.MouseEvent) => {
-                            if (nested) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                window.open(url, '_blank', 'noopener,noreferrer');
-                            }
-                        };
-
-                        return nested ? (
-                                <span
-                                    key={idx}
-                                    onClick={handleLinkClick}
-                                    role="button"
-                                    className={cn(
-                                        "inline-flex  items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] font-semibold transition-all hover:bg-accent/50 my-1 cursor-pointer",
-                                        isAuthor
-                                            ? "bg-primary/10 border-primary/20 text-primary"
-                                            : "bg-muted border-border text-foreground hover:bg-muted/80 shadow-sm"
-                                    )}
-                                >
-                                    <FileIcon className="w-3 h-3 opacity-70" />
-                                    {text}
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                                </span>
-                            ) : (
-                                <a
-                                    key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={cn(
-                                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] font-semibold transition-all hover:bg-accent/50 my-1",
-                                        isAuthor
-                                            ? "bg-primary/10 border-primary/20 text-primary"
-                                            : "bg-muted border-border text-foreground hover:bg-muted/80 shadow-sm"
-                                    )}
-                                >
-                                    <FileIcon className="w-3 h-3 opacity-70" />
-                                    {text}
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                                </a>
-                            );
-                    }
-
-                    if (part.startsWith("http")) {
-                        const handleLinkClick = (e: React.MouseEvent) => {
-                            if (nested) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                window.open(part, '_blank', 'noopener,noreferrer');
-                            }
-                        };
-
-                        return nested ? (
-                            <span
-                                key={idx}
-                                onClick={handleLinkClick}
-                                role="button"
-                                className="text-primary font-medium underline underline-offset-4 hover:opacity-80 cursor-pointer"
-                            >
-                                {part}
-                            </span>
-                        ) : (
-                            <a
-                                key={idx}
-                                href={part}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary font-medium underline underline-offset-4 hover:opacity-80"
-                            >
-                                {part}
-                            </a>
-                        );
-                    }
-
-                    // Handle | key-value pairs if not a reason (as reason is handled separately)
-                    if (part.includes("|")) {
-                        const pairs = part.split("|").map(p => p.trim()).filter(Boolean);
-                        return (
-                            <div key={idx} className="flex flex-col gap-1.5 mb-1.5 p-3 rounded border border-dashed border-primary/40 bg-secondary-foreground/50">
-                                {pairs.map((pair, pIdx) => {
-                                    const [key, ...valueParts] = pair.split(":");
-                                    const value = valueParts.join(":").trim();
-                                    if (key && value) {
-                                        return (
-                                            <div key={pIdx} className="flex items-center justify-between gap-4 text-[11px]">
-                                                <span className="font-semibold uppercase tracking-tight opacity-60 shrink-0">{key}</span>
-                                                <div className="h-px flex-1 bg-border/20 border-dotted border-b"></div>
-                                                <span className="font-medium text-foreground">{value}</span>
-                                            </div>
-                                        );
-                                    }
-                                    return <span key={pIdx} className="opacity-80 italic text-xs">{pair}</span>;
-                                })}
-                            </div>
-                        );
-                    }
-
-                    return <span key={idx}>{part}</span>;
-                })}
-            </div>
-        </div>
+  // Transform legacy "Key: Value" or "Key - Value" patterns into markdown bold/lists for better parsing
+  // This helps when the source doesn't use proper markdown
+  displayContent = displayContent
+    .replace(
+      /(File Number|LR Number|Invoice #|Ref|Vehicle|Customer):\s*([^\n|]+)/gi,
+      "**$1:** $2",
+    )
+    .replace(
+      /(?:Reason|Remark|Rejection Reason):\s*([^\n|]+)/gi,
+      "> **$1:** $2",
     );
+
+  // Custom renderer for ReactMarkdown
+  const components = {
+    a: ({ href, children }: any) => {
+      const handleLinkClick = (e: React.MouseEvent) => {
+        if (nested) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(href, "_blank", "noopener,noreferrer");
+        }
+      };
+
+      if (nested) {
+        return (
+          <span
+            onClick={handleLinkClick}
+            role="button"
+            className="text-primary font-medium underline underline-offset-4 hover:opacity-80 cursor-pointer"
+          >
+            {children} <ExternalLink className="inline-block w-3 h-3 ml-0.5" />
+          </span>
+        );
+      }
+
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary font-medium underline underline-offset-4 hover:opacity-80"
+        >
+          {children} <ExternalLink className="inline-block w-3 h-3 ml-0.5" />
+        </a>
+      );
+    },
+    p: ({ children }: any) => (
+      <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+    ),
+    ul: ({ children }: any) => (
+      <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>
+    ),
+    ol: ({ children }: any) => (
+      <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>
+    ),
+    li: ({ children }: any) => <li className="pl-1 text-sm">{children}</li>,
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-4 border-primary/20 bg-muted/30 pl-4 py-2 my-2 italic text-muted-foreground rounded-r">
+        {children}
+      </blockquote>
+    ),
+    h1: ({ children }: any) => (
+      <h1 className="text-lg font-bold mb-2 mt-4">{children}</h1>
+    ),
+    h2: ({ children }: any) => (
+      <h2 className="text-base font-bold mb-2 mt-3">{children}</h2>
+    ),
+    h3: ({ children }: any) => (
+      <h3 className="text-sm font-bold mb-1 mt-2">{children}</h3>
+    ),
+    code: ({ children }: any) => (
+      <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono border border-border">
+        {children}
+      </code>
+    ),
+    pre: ({ children }: any) => (
+      <pre className="bg-muted p-2 rounded-lg border border-border overflow-x-auto my-2 text-xs">
+        {children}
+      </pre>
+    ),
+    // Table components
+    table: ({ children }: any) => (
+      <div className="my-2 rounded-md border w-full overflow-hidden">
+        <table className="w-full text-sm text-left">{children}</table>
+      </div>
+    ),
+    thead: ({ children }: any) => (
+      <thead className="bg-muted/50 text-xs uppercase font-semibold text-muted-foreground">
+        {children}
+      </thead>
+    ),
+    tbody: ({ children }: any) => (
+      <tbody className="divide-y">{children}</tbody>
+    ),
+    tr: ({ children }: any) => (
+      <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
+    ),
+    th: ({ children }: any) => (
+      <th className="px-3 py-2 font-medium bg-muted/30">{children}</th>
+    ),
+    td: ({ children }: any) => (
+      <td className="px-3 py-2 border-t border-border/50">{children}</td>
+    ),
+  };
+
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      <div className="flex items-center gap-2 flex-wrap">
+        {workflowStatus && <StatusBadge status={workflowStatus} />}
+        {isAuthor && (
+          <Badge
+            variant="outline"
+            className="text-[10px] font-medium opacity-60"
+          >
+            You
+          </Badge>
+        )}
+      </div>
+
+      {workflowReason && (
+        <div className="bg-red-500/5 border-l-4 border-red-500 p-3 rounded-r-lg my-1">
+          <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">
+            Rejection Reason
+          </p>
+          <p className="text-sm font-medium text-foreground leading-relaxed">
+            {workflowReason}
+          </p>
+        </div>
+      )}
+
+      <div className={cn("text-sm leading-relaxed", textClassName)}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+          {displayContent}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
 }

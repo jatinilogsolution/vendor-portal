@@ -79,10 +79,19 @@ export async function submitAnnexureForReview(
     }
 
     // 💬 CHAT INTEGRATION: Post submission message to chat
-    const annexureLink = `${process.env.NEXT_PUBLIC_API_URL}/lorries/annexure/${annexureId}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
+    const annexureLink = `${baseUrl}/lorries/annexure/${annexureId}`;
+    const chatContent = [
+      `[SUBMITTED] Annexure submission successful.`,
+      `- **Annexure:** ${annexure.name}`,
+      `- **Status:** Sent to TADMIN for review`,
+      `\n[View Annexure Details](${annexureLink})`,
+    ].join("\n");
+
     await prisma.workflowComment.create({
       data: {
-        content: `[SUBMITTED] Annexure ${annexure.name} has been submitted for review. [View Document](${annexureLink})`,
+        content: chatContent,
         authorId: userId,
         authorRole: UserRoleEnum.TVENDOR,
         annexureId: annexureId,
@@ -317,13 +326,26 @@ export async function rejectFileGroup(
     const vendorId = firstLR?.tvendor?.id;
 
     // 💬 CHAT INTEGRATION: Post rejection reason to chat
-    const annexureLink = `${process.env.NEXT_PUBLIC_API_URL}/lorries/annexure/${group.annexureId}`;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
+    const annexureLink = `${baseUrl}/lorries/annexure/${group.annexureId}`;
+    const userForChat = await prisma.user.findUnique({ where: { id: userId } });
+    const chatContent = [
+      `[REJECTED] File Group rejection notice.`,
+      `- **File Number:** ${group.fileNumber}`,
+      `- **Rejected By:** ${userForChat?.role || "TADMIN"}`,
+      affectedLRs ? `- **Affected LRs:** ${affectedLRs}` : null,
+      `> **Reason:** ${reason}`,
+      `\n[Review Annexure](${annexureLink})`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     await prisma.workflowComment.create({
       data: {
-        content: `[REJECTED] File Group ${group.fileNumber}: ${reason}${affectedLRs ? ` (Affected LRs: ${affectedLRs})` : ""}. [View Annexure](${annexureLink})`,
+        content: chatContent,
         authorId: userId,
-        authorRole: user?.role || "TADMIN",
+        authorRole: (userForChat?.role as any) || "TADMIN",
         annexureId: group.annexureId,
         invoiceId: firstLR?.invoiceId,
         isPrivate: false,
@@ -420,13 +442,22 @@ export async function forwardAnnexureToBoss(
     });
 
     // 💬 CHAT INTEGRATION: Post forwarding message to chat
-    const annexureLink = `${process.env.NEXT_PUBLIC_API_URL}/lorries/annexure/${annexureId}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
+    const annexureLink = `${baseUrl}/lorries/annexure/${annexureId}`;
     const linkedInvoice = await prisma.invoice.findFirst({
       where: { annexureId: annexureId },
     });
+    const chatContent = [
+      `[FORWARDED] Annexure approved by TADMIN.`,
+      `- **Annexure:** ${annexure.name}`,
+      `- **Forwarded To:** BOSS for final review`,
+      `\n[View Annexure Details](${annexureLink})`,
+    ].join("\n");
+
     await prisma.workflowComment.create({
       data: {
-        content: `[FORWARDED] Annexure ${annexure.name} approved by TADMIN and forwarded to BOSS for final review. [View Document](${annexureLink})`,
+        content: chatContent,
         authorId: userId,
         authorRole: UserRoleEnum.TADMIN,
         annexureId: annexureId,
@@ -594,10 +625,19 @@ export async function rejectAnnexureByBoss(
     const vendorId = firstLR?.tvendor?.id;
 
     // 💬 CHAT INTEGRATION: Post rejection reason to chat
-    const annexureLink = `${process.env.NEXT_PUBLIC_API_URL}/lorries/annexure/${annexureId}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
+    const annexureLink = `${baseUrl}/lorries/annexure/${annexureId}`;
+    const chatContent = [
+      `[REJECTED] Annexure has been rejected by BOSS.`,
+      `- **Annexure:** ${annexure.name}`,
+      `> **Reason:** ${reason}`,
+      `\n[Review Annexure](${annexureLink})`,
+    ].join("\n");
+
     await prisma.workflowComment.create({
       data: {
-        content: `[REJECTED] Annexure ${annexure.name} was rejected by BOSS. Reason: ${reason}. [View Document](${annexureLink})`,
+        content: chatContent,
         authorId: userId,
         authorRole: UserRoleEnum.BOSS,
         annexureId: annexureId,
