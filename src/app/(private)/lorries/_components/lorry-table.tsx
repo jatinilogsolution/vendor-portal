@@ -381,22 +381,22 @@ const LorryTable: React.FC<LorryTableProps> = ({ vendorId, limit = PAGE_SIZE, po
 
                                 {/* Date */}
                                 <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>Date: <LazyDate date={records[0].outDate.toString()} /></span>
+                                  <Calendar className="w-4 h-4 text-primary" />
+                                  <span>Date: <LazyDate date={records[0].outDate.toString()} format="short" /></span>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 text-sm pl-1">
                                   {records[0].isInvoiced ? (
-                                    <Badge className="gap-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200">
+                                    <Badge variant={"default"} >
                                       <FileText className="w-3.5 h-3.5" />
                                       Invoiced {records[0].invoiceNumber ? `• ${records[0].invoiceNumber}` : ""}
                                     </Badge>
                                   ) : records[0].annexureId ? (
-                                    <Badge variant="secondary" className="gap-1.5">
+                                    <Badge  variant="secondary" className="gap-1.5">
                                       <FileText className="w-3.5 h-3.5" />
                                       Annexed {records[0].annexureName ? `• ${records[0].annexureName}` : ""}
                                     </Badge>
                                   ) : (
-                                    <Badge variant="outline" className="text-muted-foreground">
+                                    <Badge variant={"secondary"} className="text-muted-foreground">
                                       Pending
                                     </Badge>
                                   )}

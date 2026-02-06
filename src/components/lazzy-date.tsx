@@ -7,7 +7,7 @@ interface LazyDateProps {
   format?: "short" | "medium" | "long"
 }
 
-export function LazyDate({ date, format = "medium" }: LazyDateProps) {
+export function LazyDate({ date, format = "short" }: LazyDateProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function LazyDate({ date, format = "medium" }: LazyDateProps) {
         : { dateStyle: "medium", timeStyle: "short" }
 
   return (
-    <span>
+    <span className=" text-secondary">
       {new Intl.DateTimeFormat("en-IN", options).format(dateObj)}
     </span>
   )
