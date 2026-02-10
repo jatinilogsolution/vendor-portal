@@ -36,7 +36,8 @@ export function SiteHeader() {
     if (exactMatch) return exactMatch.headerTitle;
     for (const item of SideBarData.navMain) {
       if (path.startsWith(item.url) && item.url !== "/") {
-        if (path.match(/\/invoices\/[^/]+$/)) return "Invoice Details";
+        if (path.match(/\/invoices\/[^/]+$/))
+          return "Booking Cover Note - Invoice Details";
         if (path.match(/\/invoices\/[^/]+\/compare$/)) return "Compare Invoice";
         if (path.match(/\/lorries\/annexure\/[^/]+$/))
           return "Annexure Details";

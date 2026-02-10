@@ -20,6 +20,7 @@ import {
 } from "../_action/invoice-list";
 import {
   deleteInvoice as deleteInvoiceWorkflow,
+  deleteInvoiceWorkflowReject,
   requestInvoiceDeletion as requestDeletionWorkflow,
 } from "../_action/invoice-workflow.action";
 import { useInvoiceStore } from "@/components/modules/invoice-context";
@@ -190,17 +191,37 @@ const InvoiceIdPage = () => {
   const handleDelete = async () => {
     try {
       setActionLoading(true);
-      const result = await deleteInvoiceWorkflow(
-        invoiceId,
-        session.data?.user.id as string,
-        role as string,
-      );
+      const result = await deleteInvoiceWorkflow(invoiceId, role as string);
 
       if (result.success) {
         toast.success("Invoice deleted successfully");
         router.push("/invoices");
       } else {
         toast.error(result.error || "Failed to delete invoice");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteReject = async () => {
+    try {
+      setActionLoading(true);
+      const result = await deleteInvoiceWorkflowReject(
+        invoiceId,
+        session.data?.user.id as string,
+        role as string,
+      );
+
+      if (result.success) {
+        toast.success("Invoice deletion rejected successfully");
+        // router.push("/invoices");
+      } else {
+        toast.error(result.error || "Failed to reject deletion request");
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -275,7 +296,7 @@ const InvoiceIdPage = () => {
         <div className="flex w-full items-center justify-between">
           <h4 className="scroll-m-20 text-xl font-semibold tracking-tight flex gap-x-4 items-center">
             <BackToPage title="Back to Invoices" location="/invoices" />{" "}
-            <span>Booking Cover Note </span>
+            {/* <span>Booking Cover Note </span> */}
             <WorkflowStatusBadge
               status={invoice.status || "DRAFT"}
               type="invoice"
@@ -295,9 +316,9 @@ const InvoiceIdPage = () => {
                     type="annexure"
                     role={role as string}
                   />
-                  <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all">
-                    {invoice.annexure.name}
-                  </span>
+                  {/* <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all"> */}
+                  {/* {invoice.annexure.name} */}
+                  {/* </span> */}
                 </Link>
               </div>
             )}
@@ -430,9 +451,8 @@ const InvoiceIdPage = () => {
             )}
 
             {isTVendor &&
-              // invoice.submittedAt !== null &&
-              !invoice.deletionRequested && ( // (invoice.status === InvoiceStatus.PENDING_TADMIN_REVIEW ||
-                // invoice.status === InvoiceStatus.REJECTED_BY_TADMIN) && (
+              invoice.submittedAt !== null &&
+              !invoice.deletionRequested && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -468,19 +488,25 @@ const InvoiceIdPage = () => {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
+                    <AlertDialogAction
+                      onClick={handleDeleteReject}
+                      className="bg-red-600"
+                    >
+                      Reject Deletion
+                    </AlertDialogAction>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
-                      className="bg-red-600"
+                      className="bg-green-600"
                     >
-                      Confirm Deletion
+                      Approve Request
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             )}
 
-            {role === UserRoleEnum.BOSS && (
+            {/* {role === UserRoleEnum.BOSS && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -516,7 +542,7 @@ const InvoiceIdPage = () => {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
+            )} */}
           </div>
         </div>
 
