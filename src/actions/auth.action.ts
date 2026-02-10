@@ -13,7 +13,6 @@ import { UserRoleEnum } from "@/utils/constant";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auditCreate, auditAuth } from "@/lib/audit-logger";
-import { signIn } from "@/lib/auth-client";
 
 export const getCustomSession = async () => {
   const headersList = await headers();
@@ -54,6 +53,18 @@ export async function signInEmailAction(data: LoginSchema) {
 
     return { error: "Internal Server Error" };
   }
+}
+
+export async function signInWithAuthentik() {
+  const res = await auth.api.signInWithOAuth2({
+    headers: await headers(),
+    body: {
+      providerId: "authentik",
+      callbackURL: "/dashboard",
+    },
+  });
+
+  redirect(res.url);
 }
 
 // -------------------- SIGN UP --------------------
