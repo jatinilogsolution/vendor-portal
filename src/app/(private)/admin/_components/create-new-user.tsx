@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -28,12 +28,15 @@ import { registerSchema, RegisterSchema } from "@/validations/auth"
 import { UserRole, UserRoleEnum } from "@/utils/constant"
 import { useSession } from "@/lib/auth-client"
 import { IconUserPlus } from "@tabler/icons-react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 export const CreateNewUserButton = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [vendors, setVendors] = useState<{ name: string; id: string }[]>([])
   const [comboboxOpen, setComboboxOpen] = useState(false)
+  const [vendorSearch, setVendorSearch] = useState("")
+  const vendorListRef = useRef<HTMLDivElement | null>(null)
   const { data } = useSession()
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
@@ -61,6 +64,20 @@ export const CreateNewUserButton = () => {
   }, [])
 
   const selectedRole = form.watch("role")
+  const selectedVendorId = form.watch("vendorId")
+
+  const filteredVendors = useMemo(() => {
+    if (!vendorSearch) return vendors
+    const term = vendorSearch.toLowerCase()
+    return vendors.filter((vendor) => vendor.name.toLowerCase().includes(term))
+  }, [vendors, vendorSearch])
+
+  const vendorVirtualizer = useVirtualizer({
+    count: filteredVendors.length,
+    getScrollElement: () => vendorListRef.current,
+    estimateSize: () => 36,
+    overscan: 8,
+  })
 
   const onSubmit = (values: RegisterSchema) => {
     startTransition(async () => {
@@ -85,7 +102,7 @@ export const CreateNewUserButton = () => {
       <DialogTrigger asChild>
         <Button className="w-full lg:w-auto px-6 py-2 text-sm font-medium transition-colors duration-200"><IconUserPlus />Add User</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
@@ -207,33 +224,71 @@ export const CreateNewUserButton = () => {
 
                       {/* Make content full width & match trigger width */}
                       <PopoverContent
-                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        className="w-(--radix-popover-trigger-width) p-0"
                         align="start"
                       >
-                        <Command className="w-full">
-                          <CommandInput placeholder="Search vendor..." />
+                        <Command className="w-full" shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Search vendor..."
+                            value={vendorSearch}
+                            onValueChange={setVendorSearch}
+                          />
                           <CommandList>
-                            <CommandEmpty>No vendor found.</CommandEmpty>
-                            <CommandGroup>
-                              {vendors.map((v) => (
-                                <CommandItem
-                                  key={v.id}
-                                  value={v.name}
-                                  onSelect={() => {
-                                    form.setValue("vendorId", v.id)
-                                    setComboboxOpen(false)
-                                  }}
+                            {filteredVendors.length === 0 ? (
+                              <CommandEmpty>No vendor found.</CommandEmpty>
+                            ) : (
+                              <CommandGroup className="p-0">
+                                <div
+                                  ref={vendorListRef}
+                                  className="max-h-75 overflow-auto"
                                 >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === v.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {v.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                                  <div
+                                    style={{
+                                      height: `${vendorVirtualizer.getTotalSize()}px`,
+                                      position: "relative",
+                                    }}
+                                  >
+                                    {vendorVirtualizer
+                                      .getVirtualItems()
+                                      .map((virtualRow) => {
+                                        const vendor = filteredVendors[virtualRow.index]
+                                        return (
+                                          <div
+                                            key={vendor.id}
+                                            ref={vendorVirtualizer.measureElement}
+                                            data-index={virtualRow.index}
+                                            style={{
+                                              position: "absolute",
+                                              top: 0,
+                                              left: 0,
+                                              width: "100%",
+                                              transform: `translateY(${virtualRow.start}px)`,
+                                            }}
+                                          >
+                                            <CommandItem
+                                              value={vendor.name}
+                                              onSelect={() => {
+                                                form.setValue("vendorId", vendor.id)
+                                                setComboboxOpen(false)
+                                              }}
+                                            >
+                                              <Check
+                                                className={cn(
+                                                  "mr-2 h-4 w-4",
+                                                  selectedVendorId === vendor.id
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                              />
+                                              {vendor.name}
+                                            </CommandItem>
+                                          </div>
+                                        )
+                                      })}
+                                  </div>
+                                </div>
+                              </CommandGroup>
+                            )}
                           </CommandList>
                         </Command>
                       </PopoverContent>

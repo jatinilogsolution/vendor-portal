@@ -31,23 +31,31 @@ export default function UserFilters({
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const currentParams = searchParams.toString();
+    const params = new URLSearchParams(currentParams);
     if (debouncedValue) {
       params.set("search", debouncedValue);
     } else {
       params.delete("search");
     }
-    router.push(`/admin?${params.toString()}`);
+    const nextParams = params.toString();
+    if (nextParams !== currentParams) {
+      router.replace(`/admin?${nextParams}`);
+    }
   }, [debouncedValue, router, searchParams]);
 
   const handleVendorChange = (vendorId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const currentParams = searchParams.toString();
+    const params = new URLSearchParams(currentParams);
     if (vendorId && vendorId !== "ALL") {
       params.set("vendorId", vendorId);
     } else {
       params.delete("vendorId");
     }
-    router.push(`/admin?${params.toString()}`);
+    const nextParams = params.toString();
+    if (nextParams !== currentParams) {
+      router.replace(`/admin?${nextParams}`);
+    }
   };
 
   return (

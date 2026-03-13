@@ -1,0 +1,140 @@
+import {
+  IconChartBar,
+  IconDashboard,
+  IconFolder,
+  IconListDetails,
+  IconReceiptRupeeFilled,
+  IconSettings,
+  IconUsers,
+} from "@tabler/icons-react";
+import { ClipboardCheck, CreditCard, FilesIcon } from "lucide-react";
+import { UserRoleEnum } from "@/utils/constant";
+
+export const VendorPortalNav = {
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/vendor-portal",
+      icon: IconDashboard,
+      headerTitle: "Vendor Portal Dashboard",
+    },
+    {
+      title: "Vendors",
+      url: "/vendor-portal/admin/vendors",
+      icon: IconUsers,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Vendor Management",
+    },
+    {
+      title: "Categories",
+      url: "/vendor-portal/admin/categories",
+      icon: IconFolder,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Category Management",
+    },
+    {
+      title: "Item Master",
+      url: "/vendor-portal/admin/items",
+      icon: IconListDetails,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Item Master",
+    },
+    {
+      title: "Purchase Orders",
+      url: "/vendor-portal/admin/purchase-orders",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Purchase Orders",
+    },
+    {
+      title: "Proforma Invoices",
+      url: "/vendor-portal/admin/proforma-invoices",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Proforma Invoices",
+    },
+    {
+      title: "Vendor Invoices",
+      url: "/vendor-portal/admin/invoices",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.ADMIN],
+      headerTitle: "Vendor Invoices",
+    },
+    {
+      title: "Approvals",
+      url: "/vendor-portal/boss/approvals",
+      icon: ClipboardCheck,
+      only: [UserRoleEnum.BOSS],
+      headerTitle: "Approvals",
+    },
+    {
+      title: "Payments",
+      url: "/vendor-portal/boss/payments",
+      icon: CreditCard,
+      only: [UserRoleEnum.BOSS],
+      headerTitle: "Payments",
+    },
+    {
+      title: "Deliveries",
+      url: "/vendor-portal/boss/deliveries",
+      icon: FilesIcon,
+      only: [UserRoleEnum.BOSS],
+      headerTitle: "Deliveries",
+    },
+    {
+      title: "Reports",
+      url: "/vendor-portal/boss/reports",
+      icon: IconChartBar,
+      only: [UserRoleEnum.BOSS],
+      headerTitle: "Reports",
+    },
+    {
+      title: "My POs",
+      url: "/vendor-portal/vendor/purchase-orders",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.VENDOR],
+      headerTitle: "My Purchase Orders",
+    },
+    {
+      title: "My PIs",
+      url: "/vendor-portal/vendor/proforma-invoices",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.VENDOR],
+      headerTitle: "My Proforma Invoices",
+    },
+    {
+      title: "My Invoices",
+      url: "/vendor-portal/vendor/invoices",
+      icon: IconReceiptRupeeFilled,
+      only: [UserRoleEnum.VENDOR],
+      headerTitle: "My Invoices",
+    },
+    {
+      title: "My Payments",
+      url: "/vendor-portal/vendor/payments",
+      icon: CreditCard,
+      only: [UserRoleEnum.VENDOR],
+      headerTitle: "My Payments",
+    },
+    {
+      title: "Documents",
+      url: "/vendor-portal/vendor/documents",
+      icon: FilesIcon,
+      only: [UserRoleEnum.VENDOR],
+      headerTitle: "IT Vendor Documents",
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Profile",
+      url: "/vendor-portal/profile",
+      icon: IconUsers,
+    },
+    {
+      title: "Settings",
+      url: "/vendor-portal/settings",
+      icon: IconSettings,
+      only: [UserRoleEnum.ADMIN, UserRoleEnum.BOSS],
+    },
+  ],
+};

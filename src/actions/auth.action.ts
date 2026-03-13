@@ -60,7 +60,7 @@ export async function signInWithAuthentik() {
     headers: await headers(),
     body: {
       providerId: "authentik",
-      callbackURL: "/dashboard",
+      callbackURL: "/post-login",
     },
   });
 

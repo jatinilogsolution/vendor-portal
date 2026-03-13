@@ -39,6 +39,20 @@ model User {
   invoiceStatusHistories  InvoiceStatusHistory[]
   annexureStatusHistories AnnexureStatusHistory[]
 
+  // Vendor Portal (vp_) relations
+  vpUser                     VpUser?             @relation("VpUser_user")
+  vpVendorsCreated           VpVendor[]          @relation("VpVendor_createdBy")
+  vpPurchaseOrdersCreated    VpPurchaseOrder[]   @relation("VpPurchaseOrder_createdBy")
+  vpPurchaseOrdersApproved   VpPurchaseOrder[]   @relation("VpPurchaseOrder_approvedBy")
+  vpProformaInvoicesCreated  VpProformaInvoice[] @relation("VpProformaInvoice_createdBy")
+  vpProformaInvoicesApproved VpProformaInvoice[] @relation("VpProformaInvoice_approvedBy")
+  vpInvoicesCreated          VpInvoice[]         @relation("VpInvoice_createdBy")
+  vpInvoicesReviewed         VpInvoice[]         @relation("VpInvoice_reviewedBy")
+  vpInvoiceDocumentsUploaded VpInvoiceDocument[] @relation("VpInvoiceDocument_uploadedBy")
+  vpPaymentsInitiated        VpPayment[]         @relation("VpPayment_initiatedBy")
+  vpNotifications            VpNotification[]    @relation("VpNotification_user")
+  vpAuditLogs                VpAuditLog[]        @relation("VpAuditLog_user")
+
   @@map("users")
 }
 
@@ -66,6 +80,9 @@ model Vendor {
   LRRequest     LRRequest[]
   logs          Log[]
   annexures     Annexure[]
+
+  // Vendor Portal (vp_) relations
+  vpVendors VpVendor[]
 
   @@map("vendors")
 }
@@ -539,4 +556,409 @@ model WorkflowComment {
   @@index([invoiceId])
   @@index([authorId])
   @@index([createdAt])
+}
+
+// -------------------------
+// Vendor Portal (vp_) Tables
+// -------------------------
+
+model VpUser {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation("VpUser_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  role   String
+  status String @default("ACTIVE") // ACTIVE, INACTIVE
+
+  @@map("vp_users")
+}
+
+model VpVendor {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  existingVendorId String
+  existingVendor   Vendor @relation(fields: [existingVendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  portalStatus   String  @default("ACTIVE") // ACTIVE, INACTIVE
+  vendorType     String  @default("STANDARD") // STANDARD, IT
+  billingType    String? // ONE_TIME, RECURRING, RENTAL
+  recurringCycle String? // MONTHLY, QUARTERLY, YEARLY
+
+  createdById String?
+  createdBy   User?   @relation("VpVendor_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  purchaseOrders   VpPurchaseOrder[]
+  proformaInvoices VpProformaInvoice[]
+  invoices         VpInvoice[]
+
+  @@index([existingVendorId])
+  @@index([categoryId])
+  @@index([portalStatus])
+  @@map("vp_vendors")
+}
+
+model VpCategory {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name   String
+  code   String?
+  status String  @default("ACTIVE") // ACTIVE, INACTIVE, ARCHIVED
+
+  parentId String?
+  parent   VpCategory?  @relation("VpCategoryToChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children VpCategory[] @relation("VpCategoryToChildren")
+
+  vendors          VpVendor[]
+  items            VpItem[]
+  purchaseOrders   VpPurchaseOrder[]
+  proformaInvoices VpProformaInvoice[]
+
+  @@index([parentId])
+  @@index([status])
+  @@map("vp_categories")
+}
+
+model VpItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  code         String
+  name         String
+  uom          String
+  defaultPrice Float
+  hsnCode      String?
+  description  String? @db.NVarChar(Max)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  poLineItems VpPoLineItem[]
+  piLineItems VpPiLineItem[]
+
+  @@index([code])
+  @@index([categoryId])
+  @@map("vp_items")
+}
+
+model VpPurchaseOrder {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poNumber String  @unique
+  status   String  @default("DRAFT")
+  notes    String? @db.NVarChar(Max)
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal   Float @default(0)
+  taxRate    Float @default(0)
+  taxAmount  Float @default(0)
+  grandTotal Float @default(0)
+
+  deliveryDate    DateTime?
+  deliveryAddress String?
+
+  createdById String
+  createdBy   User   @relation("VpPurchaseOrder_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  approvedById String?
+  approvedBy   User?   @relation("VpPurchaseOrder_approvedBy", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  sentToVendorAt  DateTime?
+  acknowledgedAt  DateTime?
+  rejectionReason String?   @db.NVarChar(Max)
+
+  items      VpPoLineItem[]
+  invoices   VpInvoice[]
+  deliveries VpDeliveryRecord[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_purchase_orders")
+}
+
+model VpPoLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poId          String
+  purchaseOrder VpPurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  deliveryItems VpDeliveryItem[]
+
+  description String
+  qty         Float
+  unitPrice   Float
+  total       Float
+
+  @@index([poId])
+  @@index([itemId])
+  @@map("vp_po_line_items")
+}
+
+
+model VpProformaInvoice {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  piNumber String  @unique
+  status   String  @default("DRAFT")
+  notes    String? @db.NVarChar(Max)
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal   Float @default(0)
+  taxRate    Float @default(0)
+  taxAmount  Float @default(0)
+  grandTotal Float @default(0)
+
+  validityDate DateTime?
+  paymentTerms String?
+
+  createdById String
+  createdBy   User   @relation("VpProformaInvoice_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  approvedById String?
+  approvedBy   User?   @relation("VpProformaInvoice_approvedBy", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  sentToVendorAt  DateTime?
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  convertedToPoId String?
+  rejectionReason String?   @db.NVarChar(Max)
+
+  items    VpPiLineItem[]
+  invoices VpInvoice[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_proforma_invoices")
+}
+
+model VpPiLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  piId            String
+  proformaInvoice VpProformaInvoice @relation(fields: [piId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  description String
+  qty         Float
+  unitPrice   Float
+  total       Float
+
+  @@index([piId])
+  @@index([itemId])
+  @@map("vp_pi_line_items")
+}
+
+model VpInvoice {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceNumber String?
+  status        String  @default("DRAFT")
+  type          String  @default("PDF") // PDF, DIGITAL
+  notes         String? @db.NVarChar(Max)
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  poId          String?
+  purchaseOrder VpPurchaseOrder? @relation(fields: [poId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  piId            String?
+  proformaInvoice VpProformaInvoice? @relation(fields: [piId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal    Float @default(0)
+  taxRate     Float @default(0)
+  taxAmount   Float @default(0)
+  totalAmount Float @default(0)
+
+  createdById String
+  createdBy   User   @relation("VpInvoice_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  reviewedById String?
+  reviewedBy   User?   @relation("VpInvoice_reviewedBy", fields: [reviewedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+
+  lineItems VpInvoiceLineItem[]
+  documents VpInvoiceDocument[]
+  payments  VpPayment[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_invoices")
+}
+
+model VpInvoiceLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  qty         Float
+  unitPrice   Float
+  tax         Float  @default(0)
+  total       Float
+
+  @@index([invoiceId])
+  @@map("vp_invoice_line_items")
+}
+
+model VpInvoiceDocument {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  filePath     String
+  uploadedById String?
+  uploadedBy   User?    @relation("VpInvoiceDocument_uploadedBy", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedAt   DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("vp_invoice_documents")
+}
+
+model VpPayment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  amount         Float
+  paymentDate    DateTime?
+  paymentMode    String?
+  transactionRef String?
+  status         String    @default("INITIATED") // INITIATED, PROCESSING, COMPLETED, FAILED
+
+  initiatedById String?
+  initiatedBy   User?   @relation("VpPayment_initiatedBy", fields: [initiatedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([invoiceId])
+  @@index([status])
+  @@map("vp_payments")
+}
+
+model VpDeliveryRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poId          String
+  purchaseOrder VpPurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  deliveryDate DateTime?
+  dispatchedBy String?
+  receivedBy   String?
+  status       String    @default("PENDING") // PENDING, PARTIAL_DELIVERY, FULLY_DELIVERED, APPROVED
+  notes        String?   @db.NVarChar(Max)
+
+  items VpDeliveryItem[]
+
+  @@index([poId])
+  @@index([status])
+  @@map("vp_delivery_records")
+}
+
+model VpDeliveryItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliveryId String
+  delivery   VpDeliveryRecord @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  poLineItemId String
+  poLineItem   VpPoLineItem @relation(fields: [poLineItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  qtyDelivered Float
+  condition    String?
+
+  @@index([deliveryId])
+  @@index([poLineItemId])
+  @@map("vp_delivery_items")
+}
+
+model VpNotification {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation("VpNotification_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  type       String
+  message    String  @db.NVarChar(Max)
+  refDocType String?
+  refDocId   String?
+  isRead     Boolean @default(false)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("vp_notifications")
+}
+
+model VpAuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation("VpAuditLog_user", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  action     String
+  entityType String
+  entityId   String?
+  oldValue   String? @db.NVarChar(Max)
+  newValue   String? @db.NVarChar(Max)
+  ip         String?
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("vp_audit_logs")
 }

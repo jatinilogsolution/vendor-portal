@@ -39,7 +39,7 @@ export function LoginForm({
       toast.error(res.error);
     } else {
       toast.success("Login successful. Good to have you back.");
-      router.push("/dashboard");
+      router.push("/post-login");
     }
 
     setIsPending(false);

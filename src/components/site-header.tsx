@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import { ModeToggle } from "./modules/theme-toogle";
 import { usePageTitle } from "@/stores/usePageTitle";
 import { NotificationBell } from "./notification-bell";
+import { ContextSwitcher } from "@/components/context-switcher";
 
 export function SiteHeader() {
   const { data } = useSession();
@@ -98,6 +99,7 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
+          <ContextSwitcher />
           <div className="pr-2 border-r border-border/50">
             <NotificationBell />
           </div>
