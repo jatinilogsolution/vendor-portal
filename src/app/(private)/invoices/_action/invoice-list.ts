@@ -1,24 +1,22 @@
+"use server";
+import { getCustomSession } from "@/actions/auth.action";
+import { Invoice } from "@/generated/prisma/client";
+import { signOut } from "@/lib/auth-client";
+import { prisma } from "@/lib/prisma";
+import { InvoiceStatus, UserRoleEnum } from "@/utils/constant";
+import { redirect } from "next/navigation";
 
-"use server"
-import { getCustomSession } from "@/actions/auth.action"
-import { Invoice } from "@/generated/prisma/client"
-import { signOut } from "@/lib/auth-client"
-import { prisma } from "@/lib/prisma"
-import { InvoiceStatus, UserRoleEnum } from "@/utils/constant"
-import { redirect } from "next/navigation"
-
-
-export type InvoiceWithVendor = Invoice & { vendor: { name: string } }
+export type InvoiceWithVendor = Invoice & { vendor: { name: string } };
 
 export type GetInvoicesResult = {
-  success: boolean
-  data?: InvoiceWithVendor[]
-  total?: number
-  stats?: Record<string, number>
-  page?: number
-  limit?: number
-  message?: string
-}
+  success: boolean;
+  data?: InvoiceWithVendor[];
+  total?: number;
+  stats?: Record<string, number>;
+  page?: number;
+  limit?: number;
+  message?: string;
+};
 
 export const getInvoices = async ({
   search,
@@ -28,27 +26,30 @@ export const getInvoices = async ({
   page = 1,
   limit = 10,
 }: {
-  search?: string
-  status?: string
-  fromDate?: Date
-  toDate?: Date
-  page?: number
-  limit?: number
+  search?: string;
+  status?: string;
+  fromDate?: Date;
+  toDate?: Date;
+  page?: number;
+  limit?: number;
 } = {}): Promise<GetInvoicesResult> => {
   try {
-    const { user, session } = await getCustomSession()
+    const { user, session } = await getCustomSession();
 
     if (!session) {
-      await signOut()
-      redirect("/")
-      return { success: false, message: "Session expired. Please sign in again." }
+      await signOut();
+      redirect("/");
+      return {
+        success: false,
+        message: "Session expired. Please sign in again.",
+      };
     }
 
-    const baseFilter: any = {}
+    const baseFilter: any = {};
 
     // 🔍 Date filter
     if (fromDate && toDate) {
-      baseFilter.invoiceDate = { gte: fromDate, lte: toDate }
+      baseFilter.invoiceDate = { gte: fromDate, lte: toDate };
     }
 
     // 🔍 Search filter
@@ -57,7 +58,7 @@ export const getInvoices = async ({
         { invoiceNumber: { contains: search } },
         { refernceNumber: { contains: search } },
         { vendor: { name: { contains: search } } },
-      ]
+      ];
     }
 
     // 🔍 Status filter
@@ -65,35 +66,37 @@ export const getInvoices = async ({
       if (status === "REJECTED") {
         baseFilter.OR = [
           { status: "REJECTED_BY_TADMIN" },
-          { status: "REJECTED_BY_BOSS" }
+          { status: "REJECTED_BY_BOSS" },
         ];
       } else {
         baseFilter.status = status;
       }
     }
 
-    let whereClause: any = {}
+    let whereClause: any = {};
     if (user.role === UserRoleEnum.TVENDOR) {
       const vendor = await prisma.vendor.findFirst({
         where: { users: { some: { id: user.id } } },
-      })
-      if (!vendor) return { success: false, message: "Vendor not found." }
-      whereClause = { vendorId: vendor.id, ...baseFilter }
-    } else if ([UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(user?.role as any)) {
+      });
+      if (!vendor) return { success: false, message: "Vendor not found." };
+      whereClause = { vendorId: vendor.id, ...baseFilter };
+    } else if (
+      [UserRoleEnum.BOSS, UserRoleEnum.TADMIN].includes(user?.role as any)
+    ) {
       // Admins/Boss see items needing review or those that are approved
       // If no explicit status filter, show everything relevant for workflow
-      whereClause = { ...baseFilter }
+      whereClause = { ...baseFilter };
       if (!status || status === "ALL") {
         // Default view for admins: things to review or recently approved?
         // Actually, better to show all sent ones initially
-        whereClause.NOT = { status: "DRAFT" }
+        whereClause.NOT = { status: "DRAFT" };
       }
     } else {
-      return { success: false, message: "Unauthorized access." }
+      return { success: false, message: "Unauthorized access." };
     }
 
     // ⚙️ Pagination
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
     const [total, invoices, statusCounts] = await Promise.all([
       prisma.invoice.count({ where: whereClause }),
@@ -112,18 +115,21 @@ export const getInvoices = async ({
         take: limit,
       }),
       prisma.invoice.groupBy({
-        by: ['status'],
-        where: user.role === UserRoleEnum.TVENDOR ? {
-          vendor: { users: { some: { id: user.id } } }
-        } : { NOT: { status: "DRAFT" } },
-        _count: { id: true }
-      })
-    ])
+        by: ["status"],
+        where:
+          user.role === UserRoleEnum.TVENDOR
+            ? {
+                vendor: { users: { some: { id: user.id } } },
+              }
+            : { NOT: { status: "DRAFT" } },
+        _count: { id: true },
+      }),
+    ]);
 
-    const stats: Record<string, number> = {}
-    statusCounts.forEach(c => {
+    const stats: Record<string, number> = {};
+    statusCounts.forEach((c) => {
       stats[c.status] = c._count.id;
-    })
+    });
 
     return {
       success: true,
@@ -132,39 +138,31 @@ export const getInvoices = async ({
       stats,
       page,
       limit,
-    }
+    };
   } catch (error) {
-    console.error("Error fetching invoices:", error)
-    return { success: false, message: "Failed to fetch invoices." }
+    console.error("Error fetching invoices:", error);
+    return { success: false, message: "Failed to fetch invoices." };
   }
-}
-
-
-
-
-
-
+};
 
 export const getVendorData = async () => {
-
-  const session = await getCustomSession()
+  const session = await getCustomSession();
   const data = await prisma.vendor.findFirst({
     where: {
       users: {
         some: {
-          id: session.user.id
-        }
-      }
-    }
-  })
-  return data
-
-}
+          id: session.user.id,
+        },
+      },
+    },
+  });
+  return data;
+};
 
 export const updateInvoiceNumberForInvoice = async (
   invoiceId: string,
   invoiceNumber: string,
-  vendorId: string
+  vendorId: string,
 ) => {
   try {
     // 1️⃣ Check if invoiceNumber already exists for this vendor (ignore current invoice)
@@ -177,7 +175,10 @@ export const updateInvoiceNumberForInvoice = async (
     });
 
     if (existing) {
-      return { sucess: false, message: "Invoice Number already exists for this vendor" };
+      return {
+        sucess: false,
+        message: "Invoice Number already exists for this vendor",
+      };
     }
 
     // 2️⃣ Update the invoice
@@ -208,12 +209,18 @@ export const withdrawInvoice = async (invoiceId: string) => {
     if (!session) {
       await signOut();
       redirect("/");
-      return { success: false, message: "Session expired. Please sign in again." };
+      return {
+        success: false,
+        message: "Session expired. Please sign in again.",
+      };
     }
 
     // Only TVENDOR can withdraw
     if (user.role !== UserRoleEnum.TVENDOR) {
-      return { success: false, message: "Unauthorized. Only vendors can withdraw invoices." };
+      return {
+        success: false,
+        message: "Unauthorized. Only vendors can withdraw invoices.",
+      };
     }
 
     // Get the invoice
@@ -231,12 +238,21 @@ export const withdrawInvoice = async (invoiceId: string) => {
     });
 
     if (!vendor || invoice.vendorId !== vendor.id) {
-      return { success: false, message: "Unauthorized. This invoice does not belong to you." };
+      return {
+        success: false,
+        message: "Unauthorized. This invoice does not belong to you.",
+      };
     }
 
     // Check if invoice is in SENT status (now PENDING_TADMIN_REVIEW)
-    if (invoice.status !== InvoiceStatus.PENDING_TADMIN_REVIEW && invoice.status !== "SENT") {
-      return { success: false, message: "Only sent invoices can be withdrawn." };
+    if (
+      invoice.status !== InvoiceStatus.PENDING_TADMIN_REVIEW &&
+      invoice.status !== "SENT"
+    ) {
+      return {
+        success: false,
+        message: "Only sent invoices can be withdrawn.",
+      };
     }
 
     // Update status to DRAFT
@@ -275,12 +291,18 @@ export const deleteInvoice = async (invoiceId: string) => {
     if (!session) {
       await signOut();
       redirect("/");
-      return { success: false, message: "Session expired. Please sign in again." };
+      return {
+        success: false,
+        message: "Session expired. Please sign in again.",
+      };
     }
 
     // Only TVENDOR can delete
     if (user.role !== UserRoleEnum.TVENDOR) {
-      return { success: false, message: "Unauthorized. Only vendors can delete invoices." };
+      return {
+        success: false,
+        message: "Unauthorized. Only vendors can delete invoices.",
+      };
     }
 
     // Get the invoice
@@ -299,7 +321,10 @@ export const deleteInvoice = async (invoiceId: string) => {
     });
 
     if (!vendor || invoice.vendorId !== vendor.id) {
-      return { success: false, message: "Unauthorized. This invoice does not belong to you." };
+      return {
+        success: false,
+        message: "Unauthorized. This invoice does not belong to you.",
+      };
     }
 
     const isVendor = (user.role as any) === UserRoleEnum.TVENDOR;
@@ -308,24 +333,36 @@ export const deleteInvoice = async (invoiceId: string) => {
     // --- NEW PERMISSION LOGIC ---
     // 1. Vendor can only delete if it's DRAFT and NEVER submitted
     if (isVendor) {
-        if (invoice.submittedAt !== null) {
-            return { success: false, message: "This invoice has already been submitted. Please 'Request Deletion' so that Traffic Admin can process it." };
-        }
-        if (invoice.status !== InvoiceStatus.DRAFT) {
-            return { success: false, message: "Only DRAFT invoices that have not been submitted can be deleted by Vendors." };
-        }
+      if (invoice.submittedAt !== null) {
+        return {
+          success: false,
+          message:
+            "This invoice has already been submitted. Please 'Request Deletion' so that Traffic Admin can process it.",
+        };
+      }
+      if (invoice.status !== InvoiceStatus.DRAFT) {
+        return {
+          success: false,
+          message:
+            "Only DRAFT invoices that have not been submitted can be deleted by Vendors.",
+        };
+      }
     }
 
     // 2. Admin can only delete if Vendor has requested deletion
     if (isAdmin) {
-        if (!invoice.deletionRequested) {
-            return { success: false, message: "Deletion can only be processed by Admin if the Vendor has requested it." };
-        }
+      if (!invoice.deletionRequested) {
+        return {
+          success: false,
+          message:
+            "Deletion can only be processed by Admin if the Vendor has requested it.",
+        };
+      }
     }
 
     // 3. Block for other roles (BOSS etc)
     if (!isVendor && !isAdmin) {
-        return { success: false, message: "Unauthorized to delete invoice." };
+      return { success: false, message: "Unauthorized to delete invoice." };
     }
 
     // Free all linked LR requests in a transaction
@@ -403,12 +440,18 @@ export const saveDraftInvoice = async ({
     if (!session) {
       await signOut();
       redirect("/");
-      return { success: false, message: "Session expired. Please sign in again." };
+      return {
+        success: false,
+        message: "Session expired. Please sign in again.",
+      };
     }
 
     // Only TVENDOR can save drafts
     if (user.role !== UserRoleEnum.TVENDOR) {
-      return { success: false, message: "Unauthorized. Only vendors can save draft invoices." };
+      return {
+        success: false,
+        message: "Unauthorized. Only vendors can save draft invoices.",
+      };
     }
 
     // Get the invoice
@@ -426,7 +469,10 @@ export const saveDraftInvoice = async ({
     });
 
     if (!vendor || invoice.vendorId !== vendor.id) {
-      return { success: false, message: "Unauthorized. This invoice does not belong to you." };
+      return {
+        success: false,
+        message: "Unauthorized. This invoice does not belong to you.",
+      };
     }
 
     // Update invoice (only provided fields)
@@ -466,40 +512,39 @@ export const getInvoiceById = async ({ id }: { id: string }) => {
         LRRequest: true, // include all linked LRs
         annexure: true, // include linked annexure
       },
-    })
+    });
 
     if (!invoice) {
-      console.warn("No invoices found in the database.")
-      return { error: "No invoices found" }
+      console.warn("No invoices found in the database.");
+      return { error: "No invoices found" };
     }
 
-    return { data: invoice }
+    return { data: invoice };
   } catch (error) {
-    console.error("Error fetching invoices:", error)
-    return { error: "Error fetching invoices" }
+    console.error("Error fetching invoices:", error);
+    return { error: "Error fetching invoices" };
   }
-}
+};
 
 export const getInvoiceOnlyById = async ({ id }: { id: string }) => {
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { id: id },
-    })
+    });
 
     if (!invoice) {
-      console.warn("No invoices found in the database.")
-      return { error: "No invoices found" }
+      console.warn("No invoices found in the database.");
+      return { error: "No invoices found" };
     }
 
-    return { data: invoice }
+    return { data: invoice };
   } catch (error) {
-    console.error("Error fetching invoices:", error)
-    return { error: "Error fetching invoices" }
+    console.error("Error fetching invoices:", error);
+    return { error: "Error fetching invoices" };
   }
-}
+};
 
 // const checktDescr
-
 
 export const sendInvoiceById = async ({
   invoiceId,
@@ -509,19 +554,18 @@ export const sendInvoiceById = async ({
   taxAmount,
   grandTotal,
 }: {
-  invoiceId: string,
-  taxRate: number,
-  subTotal: number,
-  totalExtra: number,
-  taxAmount: number,
-  grandTotal: number,
+  invoiceId: string;
+  taxRate: number;
+  subTotal: number;
+  totalExtra: number;
+  taxAmount: number;
+  grandTotal: number;
 }) => {
   if (!invoiceId) {
-    throw new Error("Invoice ID is required")
+    throw new Error("Invoice ID is required");
   }
 
   try {
-
     const failedThings = await prisma.invoice.findMany({
       where: { id: invoiceId },
       include: { LRRequest: true },
@@ -534,22 +578,29 @@ export const sendInvoiceById = async ({
     const invoice = failedThings[0];
 
     // Define required invoice-level fields with friendly names
-    const requiredInvoiceFields: Record<string, { value: any; message: string }> = {
+    const requiredInvoiceFields: Record<
+      string,
+      { value: any; message: string }
+    > = {
       invoiceNumber: {
         value: invoice.invoiceNumber,
-        message: "Invoice number is missing. Please add invoice number via 'Upload Invoice'",
+        message:
+          "Invoice number is missing. Please add invoice number via 'Upload Invoice'",
       },
       billToId: {
         value: invoice.billToId,
-        message: "Bill To ID is missing. Please link the invoice to a valid Bill To address.",
+        message:
+          "Bill To ID is missing. Please link the invoice to a valid Bill To address.",
       },
       billTo: {
         value: invoice.billTo,
-        message: "Bill To details are missing. Please provide billing address information.",
+        message:
+          "Bill To details are missing. Please provide billing address information.",
       },
       invoiceURI: {
         value: invoice.invoiceURI,
-        message: "Invoice file link (invoiceURI) is missing. Please upload or generate the invoice document.",
+        message:
+          "Invoice file link (invoiceURI) is missing. Please upload or generate the invoice document.",
       },
     };
 
@@ -564,7 +615,7 @@ export const sendInvoiceById = async ({
     for (const lr of invoice.LRRequest) {
       if (!lr.priceSettled) {
         missingMessages.push(
-          `Price settled amount is missing for LR Number '${lr.LRNumber || lr.id}'. Please update the settled price before proceeding.`
+          `Price settled amount is missing for LR Number '${lr.LRNumber || lr.id}'. Please update the settled price before proceeding.`,
         );
       }
     }
@@ -574,10 +625,13 @@ export const sendInvoiceById = async ({
       throw new Error(missingMessages[0]);
     }
 
-
     // Recalculate totals to ensure integrity
-    const calculatedTaxAmount = Number(((subTotal + totalExtra) * (taxRate / 100)).toFixed(2));
-    const calculatedGrandTotal = Number((subTotal + totalExtra + calculatedTaxAmount).toFixed(2));
+    const calculatedTaxAmount = Number(
+      ((subTotal + totalExtra) * (taxRate / 100)).toFixed(2),
+    );
+    const calculatedGrandTotal = Number(
+      (subTotal + totalExtra + calculatedTaxAmount).toFixed(2),
+    );
 
     await prisma.invoice.update({
       where: { id: invoiceId },
@@ -594,38 +648,47 @@ export const sendInvoiceById = async ({
             fromStatus: invoice.status,
             toStatus: InvoiceStatus.PENDING_TADMIN_REVIEW,
             changedBy: (await getCustomSession()).user.id,
-            notes: "Invoice submitted for review"
-          }
-        }
+            notes: "Invoice submitted for review",
+          },
+        },
       },
-    })
+    });
 
     // 💬 CHAT INTEGRATION: Post professional submission message
-    const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
+    const invoiceLink = `${baseUrl}/invoices/${invoiceId}`;
+    const chatContent = [
+      `[SUBMITTED] Invoice submission successful.`,
+      `- **Invoice:** ${invoice.invoiceNumber || invoice.refernceNumber}`,
+      `- **Grand Total:** ₹${calculatedGrandTotal.toLocaleString("en-IN")}`,
+      `\n[View Invoice Details](${invoiceLink})`,
+    ].join("\n");
+
     await prisma.workflowComment.create({
       data: {
-        content: `[SUBMITTED] Invoice ${invoice.invoiceNumber || invoice.refernceNumber} has been submitted for review. [View Document](${invoiceLink})`,
+        content: chatContent,
         authorId: (await getCustomSession()).user.id,
         authorRole: UserRoleEnum.TVENDOR,
         invoiceId: invoiceId,
         annexureId: invoice.annexureId,
-        isPrivate: false
-      }
+        isPrivate: false,
+      },
     });
 
     return {
       success: true,
       message: `Invoice ${invoice.invoiceNumber || invoice.refernceNumber} submitted successfully.`,
-    }
+    };
   } catch (error: unknown) {
     const errMsg =
       error instanceof Error
         ? error.message
-        : "Unknown error while sending invoice"
+        : "Unknown error while sending invoice";
 
-    console.error("❌ Error while sending invoice:", errMsg)
+    console.error("❌ Error while sending invoice:", errMsg);
 
-    throw new Error(errMsg)
+    throw new Error(errMsg);
     // throw new Error("Unable to send invoice. Please try again later.")
   }
-}
+};

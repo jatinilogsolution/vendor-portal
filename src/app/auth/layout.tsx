@@ -1,5 +1,5 @@
 import BlurText from "@/components/ui/text-blur";
-import { GalleryVerticalEnd, Quote, Star } from "lucide-react";
+import { Quote, Star } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,12 +28,14 @@ export default function RootLayout({
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs space-y-6">
-            {children}
-          </div>
+          <div className="w-full max-w-xs space-y-6">{children}</div>
         </div>
         <div className="text-center text-xs text-muted-foreground md:text-left">
-          &copy; {new Date().getFullYear()} <Link href="https://www.awlindia.com/" className=" text-primary">AWL INDIA</Link>. All rights reserved.
+          &copy; {new Date().getFullYear()}{" "}
+          <Link href="https://www.awlindia.com/" className=" text-primary">
+            AWL INDIA
+          </Link>
+          . All rights reserved.
         </div>
       </div>
 
@@ -76,17 +78,24 @@ export default function RootLayout({
             <div className="flex flex-col items-center text-center gap-4">
               <div className="flex gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                  <Star
+                    key={i}
+                    className="h-4 w-4 fill-yellow-500 text-yellow-500"
+                  />
                 ))}
               </div>
               <p className="text-zinc-300 italic text-lg leading-relaxed">
-                &quot;This portal has completely transformed how we handle our supply chain. The insights are invaluable and the interface is incredibly intuitive.&quot;
+                &quot;This portal has completely transformed how we handle our
+                supply chain. The insights are invaluable and the interface is
+                incredibly intuitive.&quot;
               </p>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <div className="h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-500 shrink-0" />
                 <div className="text-left">
                   <p className="text-sm font-semibold text-white">Sarah Chen</p>
-                  <p className="text-xs text-zinc-500">Operations Director, xyz.com</p>
+                  <p className="text-xs text-zinc-500">
+                    Operations Director, xyz.com
+                  </p>
                 </div>
               </div>
             </div>
@@ -95,4 +104,4 @@ export default function RootLayout({
       </div>
     </div>
   );
-} 
+}
