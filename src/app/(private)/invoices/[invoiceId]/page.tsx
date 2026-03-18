@@ -10,32 +10,18 @@ import { ErrorCard } from "@/components/error";
 import ScreenSkeleton from "@/components/modules/screen-skeleton";
 import { Button } from "@/components/ui/button";
 // import { InvoiceFileUploadSingle } from "../_component/invoice-file-upload"
-import { toast } from "sonner";
-import { BackToPage } from "@/components/back-to-page";
-import { Separator } from "@/components/ui/separator";
-import {
-  sendInvoiceById,
-  withdrawInvoice,
-  saveDraftInvoice,
-} from "../_action/invoice-list";
-import {
-  deleteInvoice as deleteInvoiceWorkflow,
-  deleteInvoiceWorkflowReject,
-  requestInvoiceDeletion as requestDeletionWorkflow,
-} from "../_action/invoice-workflow.action";
-import { useInvoiceStore } from "@/components/modules/invoice-context";
-import Link from "next/link";
-import {
-  IconChartColumn,
-  IconTrash,
-  IconDeviceFloppy,
-  IconSend,
-  IconArrowBack,
-} from "@tabler/icons-react";
-import { InvoiceStatus, UserRoleEnum } from "@/utils/constant";
-import { useSession } from "@/lib/auth-client";
-import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge";
-import { InvoiceWorkflowPanel } from "@/components/modules/workflow/invoice-workflow-panel";
+import { toast } from "sonner"
+import { BackToPage } from "@/components/back-to-page"
+import { Separator } from "@/components/ui/separator"
+import { sendInvoiceById, withdrawInvoice, saveDraftInvoice } from "../_action/invoice-list"
+import { deleteInvoice as deleteInvoiceWorkflow, requestInvoiceDeletion as requestDeletionWorkflow } from "../_action/invoice-workflow.action"
+import { useInvoiceStore } from "@/components/modules/invoice-context"
+import Link from "next/link"
+import { IconChartColumn, IconTrash, IconDeviceFloppy, IconSend, IconArrowBack } from "@tabler/icons-react"
+import { InvoiceStatus, UserRoleEnum } from "@/utils/constant"
+import { useSession } from "@/lib/auth-client"
+import { WorkflowStatusBadge } from "@/components/modules/workflow/workflow-status-badge"
+import { InvoiceWorkflowPanel } from "@/components/modules/workflow/invoice-workflow-panel"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -190,8 +176,8 @@ const InvoiceIdPage = () => {
 
   const handleDelete = async () => {
     try {
-      setActionLoading(true);
-      const result = await deleteInvoiceWorkflow(invoiceId, role as string);
+      setActionLoading(true)
+      const result = await deleteInvoiceWorkflow(invoiceId, session.data?.user.id as string, role as string)
 
       if (result.success) {
         toast.success("Invoice deleted successfully");
@@ -206,31 +192,7 @@ const InvoiceIdPage = () => {
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const handleDeleteReject = async () => {
-    try {
-      setActionLoading(true);
-      const result = await deleteInvoiceWorkflowReject(
-        invoiceId,
-        session.data?.user.id as string,
-        role as string,
-      );
-
-      if (result.success) {
-        toast.success("Invoice deletion rejected successfully");
-        // router.push("/invoices");
-      } else {
-        toast.error(result.error || "Failed to reject deletion request");
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        toast.error(err.message);
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  }
 
   const handleRequestDeletion = async () => {
     try {
@@ -295,30 +257,17 @@ const InvoiceIdPage = () => {
       <div className="px-6 flex flex-col gap-4">
         <div className="flex w-full items-center justify-between">
           <h4 className="scroll-m-20 text-xl font-semibold tracking-tight flex gap-x-4 items-center">
-            <BackToPage title="Back to Invoices" location="/invoices" />{" "}
-            {/* <span>Booking Cover Note </span> */}
-            <WorkflowStatusBadge
-              status={invoice.status || "DRAFT"}
-              type="invoice"
-              role={role as string}
-            />
+            <BackToPage title="Back to Invoices" location="/invoices" /> <span>
+              Booking Cover Note </span>
+            <WorkflowStatusBadge status={invoice.status || "DRAFT"} type="invoice" role={role as string} />
             {invoice.annexure && (
               <div className="flex items-center gap-2 ml-4 pl-4 border-l">
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Annexure Status
-                </span>
-                <Link
-                  href={`/lorries/annexure/${invoice.annexureId}`}
-                  className="flex items-center gap-2 group"
-                >
-                  <WorkflowStatusBadge
-                    status={invoice.annexure.status}
-                    type="annexure"
-                    role={role as string}
-                  />
-                  {/* <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all"> */}
-                  {/* {invoice.annexure.name} */}
-                  {/* </span> */}
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Annexure Status</span>
+                <Link href={`/lorries/annexure/${invoice.annexureId}`} className="flex items-center gap-2 group">
+                  <WorkflowStatusBadge status={invoice.annexure.status} type="annexure" role={role as string} />
+                  <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all">
+                    {invoice.annexure.name}
+                  </span>
                 </Link>
               </div>
             )}
@@ -333,10 +282,10 @@ const InvoiceIdPage = () => {
                 initialFile={
                   invoice.invoiceURI
                     ? {
-                        fileUrl: invoice.invoiceURI,
-                        id: "1",
-                        name: "Invoice",
-                      }
+                      fileUrl: invoice.invoiceURI,
+                      id: "1",
+                      name: "Invoice",
+                    }
                     : undefined
                 }
                 initialInvoiceDate={invoice.invoiceDate?.split("T")[0]}
@@ -450,9 +399,8 @@ const InvoiceIdPage = () => {
               </AlertDialog>
             )}
 
-            {isTVendor &&
-              invoice.submittedAt !== null &&
-              !invoice.deletionRequested && (
+            {isTVendor && invoice.submittedAt !== null && !invoice.deletionRequested &&
+              (invoice.status === InvoiceStatus.PENDING_TADMIN_REVIEW || invoice.status === InvoiceStatus.REJECTED_BY_TADMIN) && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -479,12 +427,9 @@ const InvoiceIdPage = () => {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Approve Deletion Request?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Approve Deletion Request?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      The Vendor has requested to delete this invoice.
-                      Confirming will permanently remove it.
+                      The Vendor has requested to delete this invoice. Confirming will permanently remove it.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -495,12 +440,7 @@ const InvoiceIdPage = () => {
                       Reject Deletion
                     </AlertDialogAction>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-green-600"
-                    >
-                      Approve Request
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={handleDelete} className="bg-red-600">Confirm Deletion</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

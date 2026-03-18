@@ -302,7 +302,11 @@ export async function sendRejectionEmail(
   recipientEmail: string | string[],
   recipientId: string | null,
   rejectionDetails: {
+<<<<<<< HEAD
     type: "Annexure" | "Invoice" | "AnnexureFileGroup" | "Invoice Deletion";
+=======
+    type: "Annexure" | "Invoice" | "AnnexureFileGroup";
+>>>>>>> ed228a6 (Reseet)
     entityName: string;
     reason: string;
     rejectedBy: string;
@@ -314,7 +318,11 @@ export async function sendRejectionEmail(
 
   const content = `
     <h2 style="margin-top: 0; color: #1e293b;">Rejection Notice</h2>
+<<<<<<< HEAD
     <p>Your ${rejectionDetails.type === "Invoice Deletion" ? "invoice deletion request" : rejectionDetails.type.toLowerCase()} has been reviewed and requires further action.</p>
+=======
+    <p>Your ${rejectionDetails.type.toLowerCase()} has been reviewed and requires further action.</p>
+>>>>>>> ed228a6 (Reseet)
     
     <table class="data-table">
         <tr>
@@ -352,7 +360,11 @@ export async function sendRejectionEmail(
     </div>
   `;
 
+<<<<<<< HEAD
   const bodyText = `Your ${rejectionDetails.type === "Invoice Deletion" ? "invoice deletion request" : rejectionDetails.type} "${rejectionDetails.entityName}" has been rejected by ${rejectionDetails.rejectedBy}.\n\nReason: ${rejectionDetails.reason}${rejectionDetails.affectedLRs ? `\nAffected LRs: ${rejectionDetails.affectedLRs}` : ""}`;
+=======
+  const bodyText = `Your ${rejectionDetails.type} "${rejectionDetails.entityName}" has been rejected by ${rejectionDetails.rejectedBy}.\n\nReason: ${rejectionDetails.reason}${rejectionDetails.affectedLRs ? `\nAffected LRs: ${rejectionDetails.affectedLRs}` : ""}`;
+>>>>>>> ed228a6 (Reseet)
 
   return sendEmail({
     to: recipientEmail,

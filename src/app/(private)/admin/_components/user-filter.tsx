@@ -19,44 +19,8 @@ interface Props {
   showVendorFilter?: boolean;
 }
 
-export default function UserFilters({
-  defaultValue = "",
-  vendors,
-  selectedVendor = "",
-  showVendorFilter = false,
-}: Props) {
-  const [value, setValue] = useState(defaultValue);
-  const debouncedValue = useDebounce(value, 300);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const currentParams = searchParams.toString();
-    const params = new URLSearchParams(currentParams);
-    if (debouncedValue) {
-      params.set("search", debouncedValue);
-    } else {
-      params.delete("search");
-    }
-    const nextParams = params.toString();
-    if (nextParams !== currentParams) {
-      router.replace(`/admin?${nextParams}`);
-    }
-  }, [debouncedValue, router, searchParams]);
-
-  const handleVendorChange = (vendorId: string) => {
-    const currentParams = searchParams.toString();
-    const params = new URLSearchParams(currentParams);
-    if (vendorId && vendorId !== "ALL") {
-      params.set("vendorId", vendorId);
-    } else {
-      params.delete("vendorId");
-    }
-    const nextParams = params.toString();
-    if (nextParams !== currentParams) {
-      router.replace(`/admin?${nextParams}`);
-    }
-  };
+export default function UserFilters({ onSearch }: Props) {
+  const [value, setValue] = useState("")
 
   return (
     <div className="flex flex-wrap items-center gap-4">
