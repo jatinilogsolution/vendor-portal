@@ -7,6 +7,7 @@ import { IconCategory, IconPlus, IconRefresh } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { CategoryTree } from "./_components/category-tree"
 import { CategoryDialog } from "./_components/category-dialog"
+import { BulkCategoryDialog } from "./_components/bulk-category-dialog"
 import { getVpCategories, VpCategoryFlat } from "@/actions/vp/category.action"
 import { useSession } from "@/lib/auth-client"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -23,6 +24,7 @@ export default function CategoriesPage() {
     const [tree, setTree] = useState<VpCategoryFlat[]>([])
     const [loading, setLoading] = useState(true)
     const [newOpen, setNewOpen] = useState(false)
+    const [bulkOpen, setBulkOpen] = useState(false)
 
     const load = useCallback(async () => {
         setLoading(true)
@@ -50,10 +52,15 @@ export default function CategoriesPage() {
                             <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
                         </Button>
                         {canEdit && (
-                            <Button size="sm" onClick={() => setNewOpen(true)}>
-                                <IconPlus className="mr-1 h-4 w-4" />
-                                New Category
-                            </Button>
+                            <>
+                                <Button variant="secondary" size="sm" onClick={() => setBulkOpen(true)}>
+                                    <IconPlus className="mr-1 h-4 w-4" /> Bulk Add (Excel)
+                                </Button>
+                                <Button size="sm" onClick={() => setNewOpen(true)}>
+                                    <IconPlus className="mr-1 h-4 w-4" />
+                                    New Category
+                                </Button>
+                            </>
                         )}
                     </div>
                 }
@@ -75,12 +82,20 @@ export default function CategoriesPage() {
             )}
 
             {canEdit && (
-                <CategoryDialog
-                    open={newOpen}
-                    onClose={() => setNewOpen(false)}
-                    onSuccess={load}
-                    allCategories={allFlat}
-                />
+                <>
+                    <CategoryDialog
+                        open={newOpen}
+                        onClose={() => setNewOpen(false)}
+                        onSuccess={load}
+                        allCategories={allFlat}
+                    />
+                    <BulkCategoryDialog
+                        open={bulkOpen}
+                        onClose={() => setBulkOpen(false)}
+                        onSuccess={load}
+                        parentCategories={allFlat}
+                    />
+                </>
             )}
         </div>
     )

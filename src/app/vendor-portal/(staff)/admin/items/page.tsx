@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { ItemDialog } from "./_components/item-dialog"
+import { BulkItemDialog } from "./_components/bulk-item-dialog"
 import { getVpItems, deleteVpItem, VpItemRow } from "@/actions/vp/item.action"
 import { getVpCategoriesFlat } from "@/actions/vp/category.action"
 import { useSession } from "@/lib/auth-client"
@@ -45,6 +46,7 @@ export default function ItemsPage() {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<VpItemRow | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<VpItemRow | null>(null)
+    const [bulkOpen, setBulkOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
 
     const load = useCallback(async () => {
@@ -97,9 +99,14 @@ export default function ItemsPage() {
                             <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
                         </Button>
                         {canEdit && (
-                            <Button size="sm" onClick={openCreate}>
-                                <IconPlus className="mr-1 h-4 w-4" /> New Item
-                            </Button>
+                            <>
+                                <Button variant="secondary" size="sm" onClick={() => setBulkOpen(true)}>
+                                    <IconPlus className="mr-1 h-4 w-4" /> Bulk Add (Excel)
+                                </Button>
+                                <Button size="sm" onClick={openCreate}>
+                                    <IconPlus className="mr-1 h-4 w-4" /> New Item
+                                </Button>
+                            </>
                         )}
                     </div>
                 }
@@ -229,13 +236,21 @@ export default function ItemsPage() {
 
             {/* Dialog */}
             {canEdit && (
-                <ItemDialog
-                    open={dialogOpen}
-                    onClose={() => setDialogOpen(false)}
-                    onSuccess={() => { setDialogOpen(false); load() }}
-                    editing={editing}
-                    categories={categories}
-                />
+                <>
+                    <ItemDialog
+                        open={dialogOpen}
+                        onClose={() => setDialogOpen(false)}
+                        onSuccess={() => { setDialogOpen(false); load() }}
+                        editing={editing}
+                        categories={categories}
+                    />
+                    <BulkItemDialog
+                        open={bulkOpen}
+                        onClose={() => setBulkOpen(false)}
+                        onSuccess={load}
+                        categories={categories}
+                    />
+                </>
             )}
 
             {/* Delete confirm */}
