@@ -28,11 +28,13 @@ import { getVpProformaInvoices, VpPiRow } from "@/actions/vp/proforma-invoice.ac
 import {
     getVpInvoices, approveVpInvoice, rejectVpInvoice, VpInvoiceRow,
 } from "@/actions/vp/invoice.action"
+import { getVpProcurements, VpProcurementRow } from "@/actions/vp/procurement.action"
 
 export default function BossApprovalsPage() {
     const [pos, setPos] = useState<VpPoRow[]>([])
     const [pis, setPis] = useState<VpPiRow[]>([])
     const [invoices, setInvoices] = useState<VpInvoiceRow[]>([])
+    const [prs, setPrs] = useState<VpProcurementRow[]>([])
     const [loading, setLoading] = useState(true)
     const [isPending, startTransition] = useTransition()
     const [rejectTarget, setRejectTarget] = useState<string | null>(null)
@@ -41,14 +43,16 @@ const [selected, setSelected] = useState<string[]>([])
 
     const load = useCallback(async () => {
         setLoading(true)
-        const [poRes, piRes, invRes] = await Promise.all([
+        const [poRes, piRes, invRes, prRes] = await Promise.all([
             getVpPurchaseOrders({ status: "SUBMITTED", per_page: 50 }),
             getVpProformaInvoices({ status: "SUBMITTED", per_page: 50 }),
             getVpInvoices({ status: "UNDER_REVIEW", per_page: 50 }),
+            getVpProcurements({ status: "SUBMITTED", per_page: 50 }),
         ])
         if (poRes.success) setPos(poRes.data.data)
         if (piRes.success) setPis(piRes.data.data)
         if (invRes.success) setInvoices(invRes.data.data)
+        if (prRes.success) setPrs(prRes.data.data)
         setLoading(false)
     }, [])
 
@@ -74,7 +78,7 @@ const [selected, setSelected] = useState<string[]>([])
         })
     }
 
-    const totalPending = pos.length + pis.length + invoices.length
+    const totalPending = pos.length + pis.length + invoices.length + prs.length
 
     return (
         <div className="space-y-6">
@@ -90,6 +94,10 @@ const [selected, setSelected] = useState<string[]>([])
 
             <Tabs defaultValue="invoice">
                 <TabsList>
+                    <TabsTrigger value="pr">
+                        Procurements
+                        {prs.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{prs.length}</Badge>}
+                    </TabsTrigger>
                     <TabsTrigger value="po">
                         POs
                         {pos.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{pos.length}</Badge>}
@@ -103,6 +111,22 @@ const [selected, setSelected] = useState<string[]>([])
                         {invoices.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{invoices.length}</Badge>}
                     </TabsTrigger>
                 </TabsList>
+
+                {/* ── Procurement tab ── */}
+                <TabsContent value="pr" className="mt-4">
+                    {loading ? <LoadingSkeleton /> : prs.length === 0 ? (
+                        <VpEmptyState icon={IconCheckbox} title="No procurements pending approval" />
+                    ) : (
+                        <GenericApprovalTable
+                            rows={prs.map((pr) => ({
+                                id: pr.id, number: pr.prNumber, vendor: `${pr._count.vendorInvites} Invited`,
+                                category: pr.categoryName, amount: pr.grandTotal,
+                                submitted: pr.createdAt, createdBy: pr.createdBy.name,
+                                href: `/vendor-portal/admin/procurement/${pr.id}`,
+                            }))}
+                        />
+                    )}
+                </TabsContent>
 
                 {/* ── PO tab ── */}
                 <TabsContent value="po" className="mt-4">

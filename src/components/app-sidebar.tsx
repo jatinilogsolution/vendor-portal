@@ -40,7 +40,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/dashboard">
                 <h2 className="text-xl text-center font-bold w-full ">
-                  <span className="text-primary">Vendor</span>{" "}
+                  <span className="text-primary">Transport</span>{" "}
                   <span className=" text-foreground">Portal</span>
                 </h2>
               </Link>
