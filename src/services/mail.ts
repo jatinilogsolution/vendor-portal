@@ -208,7 +208,7 @@ export const sendEmail = async (options: SendMailOptions) => {
     recipientId,
   } = options;
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "development") {
     console.log("🛠️ Dev Mode: Email would have been sent:", subject);
     return { success: true, messageId: "dev-mode-msg-id", emailLogId: "dev-mode-log-id" };
   }

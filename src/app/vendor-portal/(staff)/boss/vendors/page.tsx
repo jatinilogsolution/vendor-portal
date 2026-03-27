@@ -126,12 +126,17 @@ export default function BossVendorsPage() {
                                     </TableCell>
                                     <TableCell><VpStatusBadge status={v.vendorType} /></TableCell>
                                     <TableCell>
-                                        {v.billingType
-                                            ? <Badge variant="outline" className="text-xs">
-                                                {VP_BILLING_TYPE_LABELS[v.billingType as keyof typeof VP_BILLING_TYPE_LABELS]}
-                                            </Badge>
-                                            : <span className="text-xs text-muted-foreground">—</span>
-                                        }
+                                        {v.billingType && v.billingType.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1">
+                                                {v.billingType.map((bt) => (
+                                                    <Badge key={bt} variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                                                        {VP_BILLING_TYPE_LABELS[bt as keyof typeof VP_BILLING_TYPE_LABELS] || bt}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">—</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <code className="text-xs">{v.vendor.gstNumber ?? "—"}</code>

@@ -17,7 +17,7 @@ export async function vendorImport(): Promise<ImportResult> {
     const today = new Date();
 
     const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(today.getDate() - 20);
+    fiveDaysAgo.setDate(today.getDate() - 2);
 
     const todayStr = today.toISOString().split("T")[0];
     const fiveDaysAgoStr = fiveDaysAgo.toISOString().split("T")[0];
@@ -114,7 +114,7 @@ export async function LRIMPORT(): Promise<ImportResult> {
     const today = new Date();
 
     const secondLastDay = new Date();
-    secondLastDay.setDate(today.getDate() - 20);
+    secondLastDay.setDate(today.getDate() - 2);
 
     const year = secondLastDay.getFullYear();
     const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");
@@ -199,7 +199,7 @@ export async function PODIMPORT(): Promise<ImportResult> {
     const today = new Date();
 
     const secondLastDay = new Date();
-    secondLastDay.setDate(today.getDate() - 20);
+    secondLastDay.setDate(today.getDate() - 2);
 
     const year = secondLastDay.getFullYear();
     const month = String(secondLastDay.getMonth() + 1).padStart(2, "0");

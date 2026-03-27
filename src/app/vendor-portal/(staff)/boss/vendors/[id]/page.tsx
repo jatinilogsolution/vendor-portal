@@ -60,13 +60,15 @@ export default async function BossVendorDetailPage({
                             <Row label="Vendor Type">
                                 <VpStatusBadge status={v.vendorType} />
                             </Row>
-                            {v.billingType && (
+                            {v.billingType && v.billingType.length > 0 && (
                                 <Row label="Billing">
-                                    <Badge variant="outline" className="text-xs">
-                                        {VP_BILLING_TYPE_LABELS[
-                                            v.billingType as keyof typeof VP_BILLING_TYPE_LABELS
-                                        ]}
-                                    </Badge>
+                                    <div className="flex flex-wrap gap-1 justify-end">
+                                        {v.billingType.map((bt) => (
+                                            <Badge key={bt} variant="outline" className="text-xs">
+                                                {VP_BILLING_TYPE_LABELS[bt as keyof typeof VP_BILLING_TYPE_LABELS] || bt}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </Row>
                             )}
                             {v.recurringCycle && (

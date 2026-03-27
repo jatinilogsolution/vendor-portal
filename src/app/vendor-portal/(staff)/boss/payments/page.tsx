@@ -459,7 +459,14 @@ export default function BossPaymentsPage() {
                                                 {field.value.split("/").pop()}
                                             </a>
                                             <Button
-                                                type="button" variant="ghost" size="icon" className="h-7 w-7"
+                                                type="button" variant="ghost" size="sm" className="h-7 gap-1"
+                                                onClick={() => fileRef.current?.click()}
+                                                title="Replace"
+                                            >
+                                                <IconRefresh size={13} /> Replace
+                                            </Button>
+                                            <Button
+                                                type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10"
                                                 onClick={async () => {
                                                     const url = field.value
                                                     if (url) await deleteAttachmentFromAzure(url)
