@@ -21,6 +21,7 @@ import {
 import {
   deleteInvoice as deleteInvoiceWorkflow,
   requestInvoiceDeletion as requestDeletionWorkflow,
+  rejectInvoiceDeletion as rejectDeletionWorkflow,
 } from "../_action/invoice-workflow.action";
 import { useInvoiceStore } from "@/components/modules/invoice-context";
 import Link from "next/link";
@@ -234,6 +235,30 @@ const InvoiceIdPage = () => {
       setActionLoading(false);
     }
   };
+  const handleDeleteReject = async () => {
+    try {
+      setActionLoading(true);
+      const result = await rejectDeletionWorkflow(
+        invoiceId,
+        session.data?.user.id as string,
+        role as string,
+      );
+
+      if (result.success) {
+        toast.success("Deletion request rejected successfully");
+        fetchInvoice();
+      } else {
+        toast.error(result.error || "Failed to reject deletion request");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
 
   const handleReset = async () => {
     try {
@@ -283,18 +308,9 @@ const InvoiceIdPage = () => {
             />
             {invoice.annexure && (
               <div className="flex items-center gap-2 ml-4 pl-4 border-l">
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Annexure Status
-                </span>
-                <Link
-                  href={`/lorries/annexure/${invoice.annexureId}`}
-                  className="flex items-center gap-2 group"
-                >
-                  <WorkflowStatusBadge
-                    status={invoice.annexure.status}
-                    type="annexure"
-                    role={role as string}
-                  />
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Annexure Status</span>
+                <Link href={`/lorries/annexure/${invoice.annexureId}`} className="flex items-center gap-2 group">
+                  <WorkflowStatusBadge status={invoice.annexure.status} type="annexure" role={role as string} />
                   <span className="text-sm font-medium group-hover:underline text-primary/80 transition-all">
                     {invoice.annexure.name}
                   </span>
@@ -312,10 +328,10 @@ const InvoiceIdPage = () => {
                 initialFile={
                   invoice.invoiceURI
                     ? {
-                        fileUrl: invoice.invoiceURI,
-                        id: "1",
-                        name: "Invoice",
-                      }
+                      fileUrl: invoice.invoiceURI,
+                      id: "1",
+                      name: "Invoice",
+                    }
                     : undefined
                 }
                 initialInvoiceDate={invoice.invoiceDate?.split("T")[0]}
@@ -429,10 +445,8 @@ const InvoiceIdPage = () => {
               </AlertDialog>
             )}
 
-            {isTVendor &&
-              // invoice.submittedAt !== null &&
-              !invoice.deletionRequested && ( // (invoice.status === InvoiceStatus.PENDING_TADMIN_REVIEW ||
-                // invoice.status === InvoiceStatus.REJECTED_BY_TADMIN) && (
+            {isTVendor && invoice.submittedAt !== null && !invoice.deletionRequested &&
+              (invoice.status === InvoiceStatus.PENDING_TADMIN_REVIEW || invoice.status === InvoiceStatus.REJECTED_BY_TADMIN) && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -459,15 +473,19 @@ const InvoiceIdPage = () => {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Approve Deletion Request?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Approve Deletion Request?</AlertDialogTitle>
                     <AlertDialogDescription>
                       The Vendor has requested to delete this invoice.
                       Confirming will permanently remove it.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
+                    <AlertDialogAction
+                      onClick={handleDeleteReject}
+                      className="bg-red-600"
+                    >
+                      Reject Deletion
+                    </AlertDialogAction>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
@@ -517,6 +535,44 @@ const InvoiceIdPage = () => {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+
+            {/* {role === UserRoleEnum.BOSS && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+                    disabled={actionLoading}
+                  >
+                    <IconRefresh className="w-4 h-4" />
+                    Reset & Unlink Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Reset Invoice & Annexure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will DELETE the Invoice and linked Annexure. All LRs
+                      will be unlinked, extra costs removed, and status reset to
+                      PENDING. This acts as a complete "Start Over" for these
+                      LRs.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleReset}
+                      className="bg-orange-600"
+                    >
+                      Confirm Reset
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )} */}
           </div>
         </div>
 

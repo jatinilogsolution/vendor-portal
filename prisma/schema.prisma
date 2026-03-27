@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -12,6 +9,11 @@ generator client {
 datasource db {
   provider = "sqlserver"
 }
+
+// ─────────────────────────────────────────────
+// CORE / EXISTING TABLES  (unchanged structure)
+// Relations to vp_* added at bottom of each
+// ─────────────────────────────────────────────
 
 model User {
   id        String   @id @default(uuid())
@@ -22,7 +24,7 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          String    @default("VENDOR")
+  role          String    @default("VENDOR") // ADMIN | BOSS | VENDOR
   banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?
@@ -30,6 +32,7 @@ model User {
   companyId     String?
   vendorId      String?
 
+  // ── Existing relations ──────────────────────
   sessions                Session[]
   accounts                Account[]
   Vendor                  Vendor?                 @relation(fields: [vendorId], references: [id])
@@ -38,6 +41,22 @@ model User {
   workflowComments        WorkflowComment[]
   invoiceStatusHistories  InvoiceStatusHistory[]
   annexureStatusHistories AnnexureStatusHistory[]
+
+  // ── Vendor Portal relations ─────────────────
+  vpVendorsCreated           VpVendor[]            @relation("VpVendor_createdBy")
+  vpPurchaseOrdersCreated    VpPurchaseOrder[]     @relation("VpPurchaseOrder_createdBy")
+  vpPurchaseOrdersApproved   VpPurchaseOrder[]     @relation("VpPurchaseOrder_approvedBy")
+  vpProformaInvoicesCreated  VpProformaInvoice[]   @relation("VpProformaInvoice_createdBy")
+  vpProformaInvoicesApproved VpProformaInvoice[]   @relation("VpProformaInvoice_approvedBy")
+  vpInvoicesCreated          VpInvoice[]           @relation("VpInvoice_createdBy")
+  vpInvoicesReviewed         VpInvoice[]           @relation("VpInvoice_reviewedBy")
+  vpInvoiceDocumentsUploaded VpInvoiceDocument[]   @relation("VpInvoiceDocument_uploadedBy")
+  vpPaymentsInitiated        VpPayment[]           @relation("VpPayment_initiatedBy")
+  vpNotifications            VpNotification[]      @relation("VpNotification_user")
+  vpProcurements             VpProcurement[]
+  vpRecurringSchedules       VpRecurringSchedule[]
+  vpProcurementsCreated      VpProcurement[]       @relation("VpProcurement_createdBy")
+  vpProcurementsApproved     VpProcurement[]       @relation("VpProcurement_approvedBy")
 
   @@map("users")
 }
@@ -56,16 +75,17 @@ model Vendor {
   paymentTerms     String?
   isActive         Boolean @default(true)
 
-  users User[]
-
-  // vehicles      Vehicle[]
+  // ── Existing relations ──────────────────────
+  users         User[]
   invoices      Invoice[]
   PurchaseOrder PurchaseOrder[]
   Address       Address[]
-  // docs          Document[]
   LRRequest     LRRequest[]
   logs          Log[]
   annexures     Annexure[]
+
+  // ── Vendor Portal relations ─────────────────
+  vpVendors VpVendor[]
 
   @@map("vendors")
 }
@@ -101,9 +121,8 @@ model LRRequest {
   origin       String?
   destination  String?
   outDate      DateTime
-  status       String?  @default("PENDING") // REJECTED, APPROVED
+  status       String?  @default("PENDING")
 
-  // pricing 
   priceOffered  Float?
   lrPrice       Float?
   modifiedPrice Float?
@@ -131,13 +150,13 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  label       String //Pan Card
+  label       String
   url         String
   entryBy     String
   description String?
 
   linkedId   String
-  linkedCode String? //pan_card, gst_certificate
+  linkedCode String?
 
   @@unique([linkedId, linkedCode])
   @@map("documents")
@@ -263,7 +282,7 @@ model InvoiceStatusHistory {
 
   fromStatus    String?
   toStatus      String
-  changedBy     String // userId
+  changedBy     String
   changedByUser User    @relation(fields: [changedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   notes         String? @db.NVarChar(Max)
 
@@ -300,7 +319,7 @@ model InvoiceRejection {
   rejectedBy String
   rejectedAt DateTime @default(now())
   reason     String   @db.NVarChar(Max)
-  status     String // Which status was it in when rejected
+  status     String
 
   @@index([invoiceId])
   @@map("invoice_rejections")
@@ -313,11 +332,10 @@ model AnnexureFileGroupRejection {
   fileGroupId String
   fileGroup   AnnexureFileGroup @relation(fields: [fileGroupId], references: [id], onDelete: Cascade)
 
-  rejectedBy String
-  rejectedAt DateTime @default(now())
-  reason     String   @db.NVarChar(Max)
-
-  affectedLRs String? @db.NVarChar(Max)
+  rejectedBy  String
+  rejectedAt  DateTime @default(now())
+  reason      String   @db.NVarChar(Max)
+  affectedLRs String?  @db.NVarChar(Max)
 
   @@index([fileGroupId])
   @@map("annexure_file_group_rejections")
@@ -331,13 +349,13 @@ model EmailNotificationLog {
   recipientId    String?
   subject        String
   body           String  @db.NVarChar(Max)
-  templateType   String // "REJECTION", "APPROVAL", "STATUS_CHANGE"
+  templateType   String
 
-  relatedModel String? // "Invoice", "Annexure", "AnnexureFileGroup"
+  relatedModel String?
   relatedId    String?
 
   sentAt DateTime?
-  status String    @default("PENDING") // PENDING, SENT, FAILED
+  status String    @default("PENDING")
   error  String?   @db.NVarChar(Max)
 
   @@index([recipientId])
@@ -389,10 +407,10 @@ model PurchaseOrder {
   taxAmount       Float     @default(0)
   grandTotal      Float     @default(0)
   notes           String?
-  attachments     String? // JSON string of file URLs
+  attachments     String?
   deliveryDate    DateTime?
   deliveryAddress String?
-  invoiceCopy     String? // JSON string of invoice copy file URLs
+  invoiceCopy     String?
 
   vendorId String
   vendor   Vendor @relation(fields: [vendorId], references: [id], onUpdate: Cascade)
@@ -447,10 +465,9 @@ model Account {
   accountId  String
   providerId String
 
-  // 🔹 Changed to @db.Text to handle long token strings
   accessToken  String? @db.Text
   refreshToken String? @db.Text
-  idToken      String? @db.Text // ✅ main fix
+  idToken      String? @db.Text
   scope        String? @db.Text
   password     String?
 
@@ -480,15 +497,15 @@ model LorryReceipt {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lrNo        String @unique // OutLRNo
-  lrDate      String // OutLRDate
-  city        String // City
-  transporter String // OutTPT
-  warehouse   String // WH
-  vehicleType String // OutVehType
-  vehicleNo   String // OutVehNo
+  lrNo        String @unique
+  lrDate      String
+  city        String
+  transporter String
+  warehouse   String
+  vehicleType String
+  vehicleNo   String
 
-  @@map("lorry_receipts") // prisma table name
+  @@map("lorry_receipts")
 }
 
 model Log {
@@ -499,16 +516,15 @@ model Log {
   user   User?   @relation(fields: [userId], references: [id])
 
   action   String // "CREATE" | "UPDATE" | "DELETE"
-  model    String // "LRRequest", "Invoice", etc.
-  recordId String? // id of the affected record
+  model    String // "LRRequest" | "Invoice" | "VpPurchaseOrder" | "VpInvoice" etc.
+  recordId String?
 
-  vendorId String? // to restrict vendor-scoped access
+  vendorId String?
   Vendor   Vendor? @relation(fields: [vendorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
-  oldData String? @db.NVarChar(Max) // stringified JSON
-  newData String? @db.NVarChar(Max) // stringified JSON
-
-  description String? // optional human-readable text
+  oldData     String? @db.NVarChar(Max)
+  newData     String? @db.NVarChar(Max)
+  description String?
 
   @@index([model])
   @@index([recordId])
@@ -527,7 +543,6 @@ model WorkflowComment {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
 
-  // Link to either Annexure or Invoice
   annexureId String?
   invoiceId  String?
 
@@ -539,4 +554,609 @@ model WorkflowComment {
   @@index([invoiceId])
   @@index([authorId])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────
+// VENDOR PORTAL  (vp_*)
+// ─────────────────────────────────────────────
+// Notes:
+//  • vp_users   → SKIPPED. User.role already holds ADMIN|BOSS|VENDOR.
+//  • vp_audit_logs → SKIPPED. Use existing Log table; pass model = "VpXxx".
+//  • EmailNotificationLog → reused for vp email notifications too.
+// ─────────────────────────────────────────────
+
+// ── 1. Categories (hierarchical, unlimited depth) ──────────────────────────
+
+model VpCategory {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name   String
+  code   String? // e.g. "IT", "OPS-FAC"
+  status String  @default("ACTIVE") // ACTIVE | INACTIVE | ARCHIVED
+
+  // Self-referencing tree
+  parentId String?
+  parent   VpCategory?  @relation("VpCategory_children", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children VpCategory[] @relation("VpCategory_children")
+
+  // Usage
+  vendors          VpVendor[]
+  items            VpItem[]
+  purchaseOrders   VpPurchaseOrder[]
+  proformaInvoices VpProformaInvoice[]
+
+  procurements VpProcurement[]
+
+  @@index([parentId])
+  @@index([status])
+  @@map("vp_categories")
+}
+
+// ── 2. Item Master ──────────────────────────────────────────────────────────
+
+model VpItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  code         String
+  name         String
+  uom          String // Unit of Measurement: PCS, KG, MTR, HRS, etc.
+  defaultPrice Float
+  hsnCode      String? // HSN / SAC code for GST
+  description  String? @db.NVarChar(Max)
+
+  categoryId           String?
+  category             VpCategory?             @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  procurementLineItems VpProcurementLineItem[]
+
+  poLineItems VpPoLineItem[]
+  piLineItems VpPiLineItem[]
+
+  @@index([code])
+  @@index([categoryId])
+  @@map("vp_items")
+}
+
+// ── 3. Vendor Portal Profile ────────────────────────────────────────────────
+// One VpVendor per existing Vendor that is enrolled in the portal.
+
+model VpVendor {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Link to the core vendors table
+  existingVendorId String
+  existingVendor   Vendor @relation(fields: [existingVendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // What this vendor supplies
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  portalStatus String @default("ACTIVE") // ACTIVE | INACTIVE
+  vendorType   String @default("STANDARD") // STANDARD | IT
+
+  // Billing configuration
+  billingType    String? // ONE_TIME | RECURRING | RENTAL
+  recurringCycle String? // MONTHLY | QUARTERLY | YEARLY (only when RECURRING)
+
+  createdById String?
+  createdBy   User?   @relation("VpVendor_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  purchaseOrders     VpPurchaseOrder[]
+  proformaInvoices   VpProformaInvoice[]
+  invoices           VpInvoice[]
+  procurementInvites VpProcurementVendor[]
+  recurringSchedules VpRecurringSchedule[]
+  bankDetails        VpVendorBankDetails?
+
+  @@index([existingVendorId])
+  @@index([categoryId])
+  @@index([portalStatus])
+  @@map("vp_vendors")
+}
+
+// ── 4. Purchase Orders ──────────────────────────────────────────────────────
+// ADMIN creates → BOSS approves → ADMIN sends to vendor → VENDOR acknowledges
+
+model VpPurchaseOrder {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poNumber String @unique
+  status   String @default("DRAFT")
+  // DRAFT → SUBMITTED → APPROVED → SENT_TO_VENDOR → ACKNOWLEDGED → CLOSED
+  // Any stage → REJECTED
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal   Float @default(0)
+  taxRate    Float @default(0)
+  taxAmount  Float @default(0)
+  grandTotal Float @default(0)
+
+  notes           String?   @db.NVarChar(Max)
+  deliveryDate    DateTime?
+  deliveryAddress String?
+
+  // Workflow actors
+  createdById String
+  createdBy   User   @relation("VpPurchaseOrder_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  approvedById String?
+  approvedBy   User?   @relation("VpPurchaseOrder_approvedBy", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Workflow timestamps
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  sentToVendorAt  DateTime?
+  acknowledgedAt  DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?   @db.NVarChar(Max)
+
+  billToId    String?
+  billTo      String? @db.NVarChar(Max)
+  billToGstin String?
+
+  items      VpPoLineItem[]
+  invoices   VpInvoice[]
+  deliveries VpDeliveryRecord[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_purchase_orders")
+}
+
+model VpPoLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poId          String
+  purchaseOrder VpPurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  description String
+  qty         Float
+  unitPrice   Float
+  total       Float
+
+  deliveryItems VpDeliveryItem[]
+
+  @@index([poId])
+  @@index([itemId])
+  @@map("vp_po_line_items")
+}
+
+// ── 5. Proforma Invoices ────────────────────────────────────────────────────
+// ADMIN creates quote for vendor before raising a PO
+// DRAFT → SUBMITTED → APPROVED → SENT_TO_VENDOR → ACCEPTED | DECLINED
+
+model VpProformaInvoice {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  piNumber String @unique
+  status   String @default("DRAFT")
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal   Float @default(0)
+  taxRate    Float @default(0)
+  taxAmount  Float @default(0)
+  grandTotal Float @default(0)
+
+  notes        String?   @db.NVarChar(Max)
+  validityDate DateTime?
+  paymentTerms String?
+
+  // Workflow actors
+  createdById String
+  createdBy   User   @relation("VpProformaInvoice_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  approvedById String?
+  approvedBy   User?   @relation("VpProformaInvoice_approvedBy", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Workflow timestamps
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  sentToVendorAt  DateTime?
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String? @db.NVarChar(Max)
+
+  billToId    String?
+  billTo      String? @db.NVarChar(Max)
+  billToGstin String?
+
+  // If PI was converted into a PO
+  convertedToPoId String?
+  procurementId   String?
+  procurement     VpProcurement? @relation(fields: [procurementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  raisedByVendor  Boolean        @default(false)
+  fulfillmentDate DateTime? // vendor's promised delivery date
+
+  items    VpPiLineItem[]
+  invoices VpInvoice[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_proforma_invoices")
+}
+
+model VpPiLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  piId            String
+  proformaInvoice VpProformaInvoice @relation(fields: [piId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  description String
+  qty         Float
+  unitPrice   Float
+  total       Float
+
+  @@index([piId])
+  @@index([itemId])
+  @@map("vp_pi_line_items")
+}
+
+// ── 6. Vendor Invoices (Bills submitted by VENDOR) ──────────────────────────
+// DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED → PAYMENT_INITIATED → PAYMENT_CONFIRMED
+//                                 ↘ REJECTED  (vendor can resubmit)
+
+model VpInvoice {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceNumber String?
+  status        String  @default("DRAFT")
+  type          String  @default("PDF") // PDF | DIGITAL
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Optional links — a vendor bill may reference a PO or a PI
+  poId          String?
+  purchaseOrder VpPurchaseOrder? @relation(fields: [poId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  piId            String?
+  proformaInvoice VpProformaInvoice? @relation(fields: [piId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  subtotal    Float @default(0)
+  taxRate     Float @default(0)
+  taxAmount   Float @default(0)
+  totalAmount Float @default(0)
+
+  notes String? @db.NVarChar(Max)
+
+  // Workflow actors
+  createdById String
+  createdBy   User   @relation("VpInvoice_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  reviewedById String?
+  reviewedBy   User?   @relation("VpInvoice_reviewedBy", fields: [reviewedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // Workflow timestamps
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+  billToId    String?
+  billTo      String?   @db.NVarChar(Max)
+  billToGstin String?
+
+  lineItems           VpInvoiceLineItem[]
+  documents           VpInvoiceDocument[]
+  payments            VpPayment[]
+  recurringSchedule   VpRecurringSchedule? @relation("VpInvoice_recurringSchedule", fields: [recurringScheduleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recurringScheduleId String?
+  billType            String               @default("STANDARD") // STANDARD | RECURRING | ADVANCE | CREDIT_NOTE
+  parentInvoiceId     String? // for recurring — links to previous cycle's invoice
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("vp_invoices")
+}
+
+model VpInvoiceLineItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  qty         Float
+  unitPrice   Float
+  tax         Float  @default(0)
+  total       Float
+
+  @@index([invoiceId])
+  @@map("vp_invoice_line_items")
+}
+
+// PDF/image attachments uploaded alongside a vendor invoice
+model VpInvoiceDocument {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  filePath   String // Azure Blob URL
+  uploadedAt DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User?   @relation("VpInvoiceDocument_uploadedBy", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([invoiceId])
+  @@map("vp_invoice_documents")
+}
+
+// ── 7. Payments ─────────────────────────────────────────────────────────────
+// Initiated by BOSS after invoice approval
+// INITIATED → PROCESSING → COMPLETED | FAILED
+
+model VpPayment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoiceId String
+  invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  amount         Float
+  paymentDate    DateTime?
+  paymentMode    String? // NEFT | RTGS | CHEQUE | UPI
+  transactionRef String?
+  status         String    @default("INITIATED") // INITIATED | PROCESSING | COMPLETED | FAILED
+
+  initiatedById   String?
+  initiatedBy     User?     @relation("VpPayment_initiatedBy", fields: [initiatedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proofUrl        String? // payment receipt / bank screenshot
+  proofUploadedAt DateTime?
+
+  @@index([invoiceId])
+  @@index([status])
+  @@map("vp_payments")
+}
+
+// ── 8. Delivery Records ─────────────────────────────────────────────────────
+// Tracks goods received against a PO line by line
+// PENDING → PARTIAL_DELIVERY → FULLY_DELIVERED → APPROVED
+
+model VpDeliveryRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  poId          String
+  purchaseOrder VpPurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  deliveryDate    DateTime?
+  dispatchedBy    String? // vendor side contact
+  receivedBy      String? // internal contact
+  status          String           @default("PENDING")
+  notes           String?          @db.NVarChar(Max)
+  proofUrl        String? // Azure blob URL for delivery challan
+  proofUploadedAt DateTime?
+  items           VpDeliveryItem[]
+
+  @@index([poId])
+  @@index([status])
+  @@map("vp_delivery_records")
+}
+
+model VpDeliveryItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliveryId String
+  delivery   VpDeliveryRecord @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  poLineItemId String
+  poLineItem   VpPoLineItem @relation(fields: [poLineItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  qtyDelivered Float
+  condition    String? // GOOD | DAMAGED | PARTIAL
+
+  proofUrl String? // per-item photo/doc
+  remarks  String? @db.NVarChar(Max)
+
+  @@index([deliveryId])
+  @@index([poLineItemId])
+  @@map("vp_delivery_items")
+}
+
+// ── 9. In-App Notifications ─────────────────────────────────────────────────
+
+model VpNotification {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation("VpNotification_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  type       String // PO_APPROVED | INVOICE_SUBMITTED | PAYMENT_DONE | etc.
+  message    String  @db.NVarChar(Max)
+  refDocType String? // "VpPurchaseOrder" | "VpInvoice" | "VpPayment" | ...
+  refDocId   String?
+  isRead     Boolean @default(false)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("vp_notifications")
+}
+
+// ── 10. Portal Settings ─────────────────────────────────────────────────────
+
+model VpSettings {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category    String // "GENERAL" | "EMAIL" | "PAYMENT" | "APPROVAL"
+  name        String // e.g. "payment_due_days"
+  value       String? @db.NVarChar(Max)
+  description String? @db.NVarChar(Max)
+
+  @@unique([category, name])
+  @@index([category])
+  @@map("vp_settings")
+}
+
+// ── Procurement Request (admin raises, boss approves, vendors quote) ──────────
+
+model VpProcurement {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prNumber    String  @unique
+  title       String
+  description String? @db.NVarChar(Max)
+  status      String  @default("DRAFT")
+  // DRAFT → SUBMITTED → APPROVED → OPEN_FOR_QUOTES → QUOTE_SELECTED → CLOSED → CANCELLED
+
+  categoryId String?
+  category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  requiredByDate  DateTime?
+  deliveryAddress String?
+
+  subtotal   Float @default(0)
+  taxRate    Float @default(0)
+  taxAmount  Float @default(0)
+  grandTotal Float @default(0)
+
+  createdById String
+  createdBy   User   @relation("VpProcurement_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  approvedById String?
+  approvedBy   User?   @relation("VpProcurement_approvedBy", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  closedAt        DateTime?
+  rejectionReason String?   @db.NVarChar(Max)
+  billToId        String?
+  billTo          String?   @db.NVarChar(Max)
+  billToGstin     String?
+
+  lineItems        VpProcurementLineItem[]
+  vendorInvites    VpProcurementVendor[]
+  proformaInvoices VpProformaInvoice[]
+  user             User?                   @relation(fields: [userId], references: [id])
+  userId           String?
+
+  @@index([status])
+  @@index([categoryId])
+  @@map("vp_procurements")
+}
+
+model VpProcurementLineItem {
+  id            String        @id @default(uuid())
+  procurementId String
+  procurement   VpProcurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+
+  itemId             String?
+  item               VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  description        String
+  qty                Float
+  estimatedUnitPrice Float   @default(0)
+  total              Float   @default(0)
+
+  @@index([procurementId])
+  @@map("vp_procurement_line_items")
+}
+
+model VpProcurementVendor {
+  id            String        @id @default(uuid())
+  procurementId String
+  procurement   VpProcurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  invitedAt   DateTime  @default(now())
+  respondedAt DateTime?
+  status      String    @default("INVITED") // INVITED | QUOTED | DECLINED | SELECTED
+
+  @@unique([procurementId, vendorId])
+  @@index([procurementId])
+  @@map("vp_procurement_vendors")
+}
+
+// ── Recurring Schedule ─────────────────────────────────────────────────────────
+
+model VpRecurringSchedule {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  title         String
+  cycle         String // MONTHLY | QUARTERLY | YEARLY
+  nextDueDate   DateTime
+  lastInvoiceId String?
+  isActive      Boolean  @default(true)
+
+  // Snapshot of line items for this recurring bill
+  itemsSnapshot String @db.NVarChar(Max) // JSON array
+
+  invoices VpInvoice[] @relation("VpInvoice_recurringSchedule")
+  user     User?       @relation(fields: [userId], references: [id])
+  userId   String?
+
+  @@index([vendorId])
+  @@index([nextDueDate])
+  @@map("vp_recurring_schedules")
+}
+
+model VpVendorBankDetails {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vpVendorId String   @unique
+  vpVendor   VpVendor @relation(fields: [vpVendorId], references: [id], onDelete: Cascade)
+
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  bankName          String
+  branch            String?
+  accountType       String  @default("CURRENT")
+
+  verifiedAt   DateTime?
+  verifiedById String?
+
+  @@map("vp_vendor_bank_details")
 }

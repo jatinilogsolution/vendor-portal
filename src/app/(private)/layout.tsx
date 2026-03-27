@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+import { redirect } from "next/navigation";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { getCustomSession } from "@/actions/auth.action";
+import { UserRoleEnum } from "@/utils/constant";
+import { isVendorPortalRole, getVendorPortalHome } from "@/lib/vendor-portal";
 
 export const metadata: Metadata = {
     title: "Dashboard - Vendor Portal",
@@ -10,11 +14,24 @@ export const metadata: Metadata = {
 import {
     SidebarInset,
     SidebarProvider,
-} from "@/components/ui/sidebar"
-import { PropsWithChildren } from "react";
+} from "@/components/ui/sidebar";
+import type { CSSProperties, PropsWithChildren } from "react";
 import { NotificationProvider } from "@/context/notification-context";
 
-const PrivateLayout = ({ children }: PropsWithChildren) => {
+const allowedPrivateRoles = [
+    UserRoleEnum.BOSS,
+    UserRoleEnum.TADMIN,
+    UserRoleEnum.TVENDOR,
+];
+
+const PrivateLayout = async ({ children }: PropsWithChildren) => {
+    const { user } = await getCustomSession();
+    if (!allowedPrivateRoles.includes(user.role as UserRoleEnum)) {
+        if (isVendorPortalRole(user.role)) {
+            redirect(getVendorPortalHome(user.role));
+        }
+        redirect("/forbidden");
+    }
     return (
         <NotificationProvider>
             <SidebarProvider
@@ -22,7 +39,7 @@ const PrivateLayout = ({ children }: PropsWithChildren) => {
                 {
                     "--sidebar-width": "calc(var(--spacing) * 64)",
                     "--header-height": "calc(var(--spacing) * 12)",
-                } as React.CSSProperties
+                } as CSSProperties
             }
         >
             <AppSidebar variant="inset" />

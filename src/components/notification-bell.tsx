@@ -56,9 +56,9 @@ export function NotificationBell() {
                         )}
                     </div>
                     {unreadCount > 0 && (
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-xs h-7 px-2 text-primary hover:text-primary hover:bg-primary/5"
                             onClick={markAllAsRead}
                         >
@@ -82,8 +82,8 @@ export function NotificationBell() {
                             {unreadNotifications.map((notification) => (
                                 <Link
                                     key={notification.id}
-                                    href={notification.targetType === "invoice" 
-                                        ? `/invoices/${notification.targetId}` 
+                                    href={notification.targetType === "invoice"
+                                        ? `/invoices/${notification.targetId}`
                                         : `/lorries/annexure/${notification.targetId}`}
                                     onClick={() => {
                                         markAsRead(notification.id);
@@ -109,9 +109,9 @@ export function NotificationBell() {
                                                 {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
                                             </span>
                                         </div>
-                                        
-                                        <FormattedWorkflowContent 
-                                            content={notification.content} 
+
+                                        <FormattedWorkflowContent
+                                            content={notification.content}
                                             textClassName="text-xs line-clamp-3 leading-relaxed opacity-90"
                                             nested={true}
                                         />
@@ -136,3 +136,6 @@ export function NotificationBell() {
         </Popover>
     );
 }
+
+
+

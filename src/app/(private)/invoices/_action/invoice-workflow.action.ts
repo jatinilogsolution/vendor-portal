@@ -626,9 +626,7 @@ export async function requestInvoiceDeletion(
     revalidatePath(`/invoices/${invoiceId}`);
 
     // 💬 CHAT INTEGRATION: Post deletion request to chat
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "";
-    const invoiceLink = `${baseUrl}/invoices/${invoiceId}`;
+    const invoiceLink = `${process.env.NEXT_PUBLIC_API_URL}/invoices/${invoiceId}`;
     await prisma.workflowComment.create({
       data: {
         content: `Vendor has requested DELETION of this invoice.   [View Document](${invoiceLink})`,
@@ -636,8 +634,8 @@ export async function requestInvoiceDeletion(
         authorRole: UserRoleEnum.TVENDOR,
         annexureId: invoice.annexureId,
         invoiceId: invoiceId,
-        isPrivate: false,
-      },
+        isPrivate: false
+      }
     });
 
     return { success: true, data: updatedInvoice };
@@ -654,15 +652,11 @@ export async function requestInvoiceDeletion(
 /**
  * Delete an invoice and reset associated LR costs
  */
-export async function deleteInvoice(
-  invoiceId: string,
-  userId: string,
-  role: string,
-) {
+export async function deleteInvoice(invoiceId: string, userId: string, role: string) {
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { LRRequest: true },
+      include: { LRRequest: true }
     });
 
     if (!invoice) throw new Error("Invoice not found");
@@ -746,10 +740,58 @@ export async function deleteInvoice(
     return { success: true };
   } catch (error) {
     console.error("Error in deleteInvoice:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete invoice" };
+  }
+}
+
+/**
+ * TADMIN rejects a deletion request from a Vendor
+ */
+export async function rejectInvoiceDeletion(
+  invoiceId: string,
+  userId: string,
+  role: string,
+) {
+  try {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) throw new Error("Invoice not found");
+
+    if (role !== UserRoleEnum.TADMIN) {
+      throw new Error("Only Traffic Admins can reject deletion requests.");
+    }
+
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        deletionRequested: false,
+      },
+    });
+
+    revalidatePath(`/invoices/${invoiceId}`);
+
+    // 💬 CHAT INTEGRATION: Post rejection message to chat
+    await prisma.workflowComment.create({
+      data: {
+        content: `[REJECTED] Traffic Admin has REJECTED the deletion request for this invoice. It will remain in the system.`,
+        authorId: userId,
+        authorRole: UserRoleEnum.TADMIN,
+        annexureId: invoice.annexureId,
+        invoiceId: invoiceId,
+        isPrivate: false
+      }
+    });
+
+    return { success: true, data: updatedInvoice };
+  } catch (error) {
+    console.error("Error in rejectInvoiceDeletion:", error);
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to delete invoice",
+        error instanceof Error ? error.message : "Failed to reject deletion request",
     };
   }
 }
+

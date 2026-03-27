@@ -208,6 +208,11 @@ export const sendEmail = async (options: SendMailOptions) => {
     recipientId,
   } = options;
 
+  if (process.env.NODE_ENV === "production") {
+    console.log("🛠️ Dev Mode: Email would have been sent:", subject);
+    return { success: true, messageId: "dev-mode-msg-id", emailLogId: "dev-mode-log-id" };
+  }
+
   const transporter = getTransporter();
 
   // Normalize and clean recipients
@@ -299,7 +304,7 @@ export const sendEmail = async (options: SendMailOptions) => {
  */
 
 export async function sendRejectionEmail(
-  recipientEmail: string | string[],
+  recipientEmail: string,
   recipientId: string | null,
   rejectionDetails: {
     type: "Annexure" | "Invoice" | "AnnexureFileGroup";
@@ -307,60 +312,31 @@ export async function sendRejectionEmail(
     reason: string;
     rejectedBy: string;
     affectedLRs?: string;
-  },
-  cc?: string | string[],
+  }
 ) {
-  const subject = `Rejection Notice: ${rejectionDetails.type} - ${rejectionDetails.entityName}`;
+  const subject = `Rejected: ${rejectionDetails.type} - ${rejectionDetails.entityName}`;
+  const bodyText = `Your ${rejectionDetails.type} "${rejectionDetails.entityName}" has been rejected.\n\nRejected by: ${rejectionDetails.rejectedBy}\n\nReason: ${rejectionDetails.reason}\n${rejectionDetails.affectedLRs ? `\nAffected LRs: ${rejectionDetails.affectedLRs}` : ""}\n\nPlease review and resubmit.`;
 
-  const content = `
-    <h2 style="margin-top: 0; color: #1e293b;">Rejection Notice</h2>
-    <p>Your ${rejectionDetails.type.toLowerCase()} has been reviewed and requires further action.</p>
-    
-    <table class="data-table">
-        <tr>
-            <td class="label">Reference</td>
-            <td class="value">${rejectionDetails.entityName}</td>
-        </tr>
-        <tr>
-            <td class="label">Status</td>
-            <td class="value"><span class="badge" style="background-color: #fff1f2; color: #e11d48;">Rejected</span></td>
-        </tr>
-        <tr>
-            <td class="label">Rejected By</td>
-            <td class="value">${rejectionDetails.rejectedBy}</td>
-        </tr>
-        ${
-          rejectionDetails.affectedLRs
-            ? `
-        <tr>
-            <td class="label">Affected LRs</td>
-            <td class="value">${rejectionDetails.affectedLRs}</td>
-        </tr>`
-            : ""
-        }
-    </table>
-
-    <div class="reason-box">
-        <div style="font-weight: 600; font-size: 13px; color: #be123c; margin-bottom: 4px;">REJECTION REASON:</div>
-        <div style="color: #9f1239; font-size: 14px;">${rejectionDetails.reason}</div>
-    </div>
-
-    <div style="margin-top: 32px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_URL || "https://vendor.awlindia.com"}" class="btn" style="background-color: #e11d48;">
-            Review & Resubmit
-        </a>
-    </div>
-  `;
-
-  const bodyText = `Your ${rejectionDetails.type} "${rejectionDetails.entityName}" has been rejected by ${rejectionDetails.rejectedBy}.\n\nReason: ${rejectionDetails.reason}${rejectionDetails.affectedLRs ? `\nAffected LRs: ${rejectionDetails.affectedLRs}` : ""}`;
+  // Simple HTML wrap
+  const html = `<div style="font-family: sans-serif; padding: 20px;">
+        <h2 style="color: #dc2626;">Rejection Notice</h2>
+        <p>Your <strong>${rejectionDetails.type}</strong> "${rejectionDetails.entityName}" has been rejected.</p>
+        <p><strong>Rejected by:</strong> ${rejectionDetails.rejectedBy}</p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <strong>Reason for rejection:</strong><br/>
+            ${rejectionDetails.reason.replace(/\n/g, '<br/>')}
+        </div>
+        ${rejectionDetails.affectedLRs ? `<p><strong>Affected LRs:</strong> ${rejectionDetails.affectedLRs}</p>` : ""}
+        <p style="color: #6b7280; font-size: 14px;">This is an automated notification from the Vendor Portal Workflow.</p>
+    </div>`;
 
   return sendEmail({
     to: recipientEmail,
-    cc,
+    // cc,
     recipientId: recipientId || undefined,
     subject,
     text: bodyText,
-    html: getEmailTemplate(content, "#e11d48"),
+    html: getEmailTemplate(subject, "#e11d48"),
     templateType: "REJECTION",
     relatedModel: rejectionDetails.type,
     relatedId: rejectionDetails.entityName,
@@ -397,15 +373,14 @@ export async function sendApprovalEmail(
             <td class="label">Approved By</td>
             <td class="value">${approvalDetails.approvedBy}</td>
         </tr>
-        ${
-          approvalDetails.nextStep
-            ? `
+        ${approvalDetails.nextStep
+      ? `
         <tr>
             <td class="label">Next Action</td>
             <td class="value">${approvalDetails.nextStep}</td>
         </tr>`
-            : ""
-        }
+      : ""
+    }
     </table>
 
     <div style="margin-top: 32px; text-align: center;">
@@ -450,15 +425,14 @@ export async function sendStatusChangeEmail(
             <td class="label">Reference</td>
             <td class="value">${details.entityName}</td>
         </tr>
-        ${
-          details.fromStatus
-            ? `
+        ${details.fromStatus
+      ? `
         <tr>
             <td class="label">From</td>
             <td class="value"><span style="text-decoration: line-through; opacity: 0.5;">${details.fromStatus}</span></td>
         </tr>`
-            : ""
-        }
+      : ""
+    }
         <tr>
             <td class="label">New Status</td>
             <td class="value"><span class="badge" style="background-color: #eff6ff; color: #1e40af;">${details.toStatus}</span></td>

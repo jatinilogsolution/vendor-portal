@@ -1,0 +1,387 @@
+// src/app/vendor-portal/(admin)/admin/procurement/_components/procurement-form.tsx
+"use client"
+
+import { useEffect, useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
+import {
+    Form, FormControl, FormField, FormItem,
+    FormLabel, FormMessage,
+} from "@/components/ui/form"
+import {
+    Select, SelectContent, SelectItem,
+    SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { VpLineItemsEditor, ItemOption } from "@/components/ui/vp-line-items-editor"
+import { VpTotalsBar } from "@/components/ui/vp-totals-bar"
+import { procurementSchema, ProcurementFormValues } from "@/validations/vp/procurement"
+import { createVpProcurement } from "@/actions/vp/procurement.action"
+import { getVpVendors } from "@/actions/vp/vendor.action"
+import { getVpCategoriesFlat } from "@/actions/vp/category.action"
+import { getVpItemsForSelect } from "@/actions/vp/item.action"
+import { getAllBillToAddresses, BillToOption } from "@/actions/vp/bill-to.action"
+
+export function ProcurementForm() {
+    const router = useRouter()
+    const [isPending, startTransition] = useTransition()
+    const [vendors, setVendors] = useState<{ id: string; name: string; vendorType: string }[]>([])
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+    const [items, setItems] = useState<ItemOption[]>([])
+    const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
+    const [vendorSearchInput, setVendorSearchInput] = useState("")
+    const [vendorSearch, setVendorSearch] = useState("")
+
+    const form = useForm<ProcurementFormValues>({
+        resolver: zodResolver(procurementSchema) as any,
+        defaultValues: {
+            title: "",
+            description: "",
+            categoryId: "",
+            requiredByDate: "",
+            deliveryAddress: "",
+            billToId: "",
+            billTo: "",
+            billToGstin: "",
+            taxRate: 0,
+            items: [{ itemId: "", description: "", qty: 1, estimatedUnitPrice: 0, total: 0 }],
+            vendorIds: [],
+        },
+    })
+
+    const selectedVendorIds = form.watch("vendorIds")
+    const filteredVendors = useMemo(() => {
+        const q = vendorSearch.trim().toLowerCase()
+        if (!q) return vendors
+        return vendors.filter((v) => v.name.toLowerCase().includes(q))
+    }, [vendors, vendorSearch])
+
+    const runVendorSearch = () => {
+        setVendorSearch(vendorSearchInput.trim())
+    }
+
+    const categoryId = form.watch("categoryId")
+    useEffect(() => {
+        if (categoryId) {
+            getVpItemsForSelect(categoryId).then((res) => {
+                if (res.success) setItems(res.data)
+            })
+        } else {
+            setItems([])
+        }
+    }, [categoryId])
+
+    useEffect(() => {
+        Promise.all([
+            getVpVendors({ per_page: 200, status: "ACTIVE" }),
+            getVpCategoriesFlat(),
+            getAllBillToAddresses(),
+        ]).then(([vRes, cRes, billRes]) => {
+            if (vRes.success) setVendors(
+                vRes.data.data.map((v) => ({
+                    id: v.id,
+                    name: v.vendor.name,
+                    vendorType: v.vendorType,
+                })),
+            )
+            if (cRes.success) setCategories(cRes.data.map((c) => ({ id: c.id, name: c.name })))
+            setBillToOpts(billRes)
+        })
+    }, [])
+
+    const toggleVendor = (vendorId: string) => {
+        const current = form.getValues("vendorIds")
+        form.setValue(
+            "vendorIds",
+            current.includes(vendorId)
+                ? current.filter((id) => id !== vendorId)
+                : [...current, vendorId],
+        )
+    }
+
+    const onSubmit = (values: ProcurementFormValues) => {
+        startTransition(async () => {
+            const result = await createVpProcurement(values)
+            if (!result.success) { toast.error(result.error); return }
+            toast.success(`Procurement ${result.data.prNumber} created`)
+            router.push(`/vendor-portal/admin/procurement/${result.data.id}`)
+        })
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+                {/* Basic info */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Request Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <FormField control={form.control} name="title" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Title <span className="text-destructive">*</span></FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. Q2 Laptop Procurement – Operations" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description / Scope</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="Describe what you need, why, and any special requirements…"
+                                        rows={3}
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <div className="grid gap-4 sm:grid-cols-3">
+                            <FormField control={form.control} name="categoryId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Category</FormLabel>
+                                    <Select 
+                                        value={field.value || "none"} 
+                                        onValueChange={(v) => field.onChange(v === "none" ? "" : v)}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            {categories.map((c) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="requiredByDate" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Required By</FormLabel>
+                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="taxRate" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>GST Rate (%)</FormLabel>
+                                    <Select
+                                        value={String(field.value)}
+                                        onValueChange={(v) => field.onChange(Number(v))}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {[0, 5, 12, 18, 28].map((r) => (
+                                                <SelectItem key={r} value={String(r)}>{r}%</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Delivery Address</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Where should items be delivered?" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField control={form.control} name="billToId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bill To (Select Layout/Warehouse)</FormLabel>
+                                    <Select
+                                        value={field.value || "none"}
+                                        onValueChange={(id) => {
+                                            const val = id === "none" ? "" : id
+                                            field.onChange(val)
+                                            const opt = billToOpts.find((b) => b.id === val)
+                                            if (opt) {
+                                                form.setValue("billTo", opt.address)
+                                                form.setValue("billToGstin", opt.gstin)
+                                            } else {
+                                                form.setValue("billTo", "")
+                                                form.setValue("billToGstin", "")
+                                            }
+                                        }}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select warehouse" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            {billToOpts.map((b) => (
+                                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="billToGstin" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bill To GSTIN</FormLabel>
+                                    <FormControl><Input placeholder="GSTIN (auto-filled)" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        <FormField control={form.control} name="billTo" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Billing Address (Full)</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Full billing address" rows={2} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </CardContent>
+                </Card>
+
+                {/* Items */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Required Items</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <VpLineItemsEditor
+                            fieldArrayName="items"
+                            items={items}
+                            priceFieldLabel="Est. Unit Price"
+                            priceFieldName="estimatedUnitPrice"
+                        />
+                        <Separator />
+                        <VpTotalsBar itemsField="items" taxRateField="taxRate" priceFieldName="estimatedUnitPrice" />
+                    </CardContent>
+                </Card>
+
+                {/* Vendor selection */}
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base">
+                            Invite Vendors to Quote
+                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                ({selectedVendorIds.length} selected)
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <Input
+                                value={vendorSearchInput}
+                                onChange={(e) => setVendorSearchInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        runVendorSearch()
+                                    }
+                                }}
+                                placeholder="Search by vendor name"
+                                className="h-9 w-full sm:max-w-sm"
+                            />
+                            <Button type="button" variant="outline" size="sm" onClick={runVendorSearch}>
+                                Search
+                            </Button>
+                            {vendorSearch && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setVendorSearch("")
+                                        setVendorSearchInput("")
+                                    }}
+                                >
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
+
+                        {vendors.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No active vendors found.</p>
+                        ) : filteredVendors.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No vendors found{vendorSearch ? ` for "${vendorSearch}".` : "."}
+                            </p>
+                        ) : (
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {filteredVendors.map((v) => {
+                                    const selected = selectedVendorIds.includes(v.id)
+                                    return (
+                                        <div
+                                            key={v.id}
+                                            // onClick={() => toggleVendor(v.id)}
+                                            className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors ${selected
+                                                ? "border-primary bg-primary/5"
+                                                : "hover:bg-muted/50"
+                                                }`}
+                                        >
+                                            <Checkbox
+                                                checked={selected}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onCheckedChange={() => toggleVendor(v.id)}
+                                            />
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-medium">{v.name}</p>
+                                                <Badge variant="outline" className="mt-0.5 text-[10px]">
+                                                    {v.vendorType}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        {form.formState.errors.vendorIds && (
+                            <p className="mt-2 text-xs text-destructive">
+                                {form.formState.errors.vendorIds.message}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <div className="flex items-center justify-end gap-3">
+                    <Button
+                        type="button" variant="outline"
+                        onClick={() => router.push("/vendor-portal/admin/procurement")}
+                        disabled={isPending}
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={isPending}>
+                        {isPending ? "Creating…" : "Create Procurement Request"}
+                    </Button>
+                </div>
+            </form>
+        </Form>
+    )
+}

@@ -12,6 +12,7 @@ const protectedPages = [
   "/profile",
   "/settings",
   "/api",
+  "/vendor-portal",
 ];
 
 export async function proxy(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function proxy(req: NextRequest) {
 
   //   const isApiRoute = pathname.startsWith("/api");
   const isAuthPage = pathname.startsWith("/auth/");
-  const isProtectedPage = protectedPages.includes(pathname);
+  const isProtectedPage = protectedPages.some(page => pathname === page || pathname.startsWith(page + "/"));
 
   // 🔒 Protected pages must be authenticated
   if (isProtectedPage && !isLoggedIn) {
@@ -32,7 +33,7 @@ export async function proxy(req: NextRequest) {
 
   // 🔄 Redirect logged-in users away from auth pages
   if (isAuthPage && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/post-login", req.url));
   }
 
   return NextResponse.next();

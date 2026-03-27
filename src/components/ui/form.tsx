@@ -45,13 +45,14 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
+
+  if (!fieldContext?.name) {
+    throw new Error("useFormField should be used within <FormField>")
+  }
+
   const { getFieldState } = useFormContext()
   const formState = useFormState({ name: fieldContext.name })
   const fieldState = getFieldState(fieldContext.name, formState)
-
-  if (!fieldContext) {
-    throw new Error("useFormField should be used within <FormField>")
-  }
 
   const { id } = itemContext
 
@@ -74,7 +75,13 @@ const FormItemContext = React.createContext<FormItemContextValue>(
 )
 
 function FormItem({ className, ...props }: React.ComponentProps<"div">) {
-  const id = React.useId()
+  const generatedId = React.useId()
+  const fieldContext = React.useContext(FormFieldContext)
+  const stableNameId =
+    typeof fieldContext?.name === "string"
+      ? `form-item-${fieldContext.name.replace(/[^a-zA-Z0-9_-]+/g, "-")}`
+      : generatedId
+  const id = stableNameId
 
   return (
     <FormItemContext.Provider value={{ id }}>

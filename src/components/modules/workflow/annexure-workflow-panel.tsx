@@ -79,6 +79,7 @@ export function AnnexureWorkflowPanel({
         // Navigate to invoice page if invoiceId is returned from action OR passed as prop
         const targetInvoiceId = res.invoiceId || invoiceId;
         if (targetInvoiceId) {
+          console.log("targetInvoiceId");
           router.push(`/invoices/${targetInvoiceId}`);
         } else {
           onUpdate();
