@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils"
 
 import { createVpUser, getVpVendorsForSelect } from "@/actions/vp/user.action"
 import { UserRoleEnum } from "@/utils/constant"
+import { getAllVendorForCreatingNewVendor, signUpEmailAction } from "@/actions/auth.action"
 
 // ── Form schema ────────────────────────────────────────────────
 const schema = z.object({
@@ -42,7 +43,7 @@ const schema = z.object({
     email: z.email("Invalid email"),
     password: z.string().min(8, "Minimum 8 characters"),
     role: z.enum(["ADMIN", "BOSS", "VENDOR"]),
-    vpVendorId: z.string().optional(),
+    vendorId: z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -69,20 +70,35 @@ export function CreateVpUserButton({ onSuccess }: CreateVpUserButtonProps = {}) 
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
-        defaultValues: { name: "", email: "", password: "", role: "VENDOR", vpVendorId: "" },
+        defaultValues: { name: "", email: "", password: "", role: "VENDOR", vendorId: "" },
     })
 
     const selectedRole = form.watch("role")
-    const selectedVendorId = form.watch("vpVendorId")
+    const selectedVendorId = form.watch("vendorId")
 
     // Fetch VP vendors once on open
-    useEffect(() => {
-        if (!open) return
-        getVpVendorsForSelect().then((res) => {
-            if (res.success) setVendors(res.data)
-            else toast.error("Could not load vendors")
-        })
-    }, [open])
+    // useEffect(() => {
+    //     if (!open) return
+    //     getVpVendorsForSelect().then((res) => {
+    //         if (res.success) setVendors(res.data)
+    //         else toast.error("Could not load vendors")
+    //     })
+    // }, [open])
+      useEffect(() => {
+        const fetchVendors = async () => {
+           if (!open) return;
+         
+          const { data, error } = await getAllVendorForCreatingNewVendor()
+          if (error) {
+            console.error("Error fetching vendors:", error)
+            toast.error("Error in fetching vendors")
+            return
+          }
+          setVendors(data as any)
+        }
+        fetchVendors()
+      }, [open])
+    
 
     const filteredVendors = useMemo(() => {
         if (!vendorSearch) return vendors
@@ -103,8 +119,8 @@ export function CreateVpUserButton({ onSuccess }: CreateVpUserButtonProps = {}) 
 
     const onSubmit = (values: FormValues) => {
         startTransition(async () => {
-            const result = await createVpUser(values)
-            if (!result.success) { toast.error(result.error); return }
+            const result = await signUpEmailAction(values)
+            if (result.error) { toast.error(result.error); return }
             toast.success("User created successfully")
             form.reset()
             setOpen(false)
@@ -187,7 +203,7 @@ export function CreateVpUserButton({ onSuccess }: CreateVpUserButtonProps = {}) 
 
                         {/* Vendor picker — only when role = VENDOR */}
                         {selectedRole === "VENDOR" && (
-                            <FormField control={form.control} name="vpVendorId" render={({ field }) => (
+                            <FormField control={form.control} name="vendorId" render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                     <FormLabel>Assign to Vendor</FormLabel>
                                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
@@ -235,7 +251,7 @@ export function CreateVpUserButton({ onSuccess }: CreateVpUserButtonProps = {}) 
                                                                                     <CommandItem
                                                                                         value={v.name}
                                                                                         onSelect={() => {
-                                                                                            form.setValue("vpVendorId", v.id)
+                                                                                            form.setValue("vendorId", v.id)
                                                                                             setComboOpen(false)
                                                                                         }}
                                                                                     >

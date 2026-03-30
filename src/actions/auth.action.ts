@@ -76,7 +76,8 @@ export async function signUpEmailAction(data: RegisterSchema) {
   if (!password) return { error: "Please enter your password" };
 
   try {
-    const newUser = await auth.api.createUser({
+
+     const newUser = await auth.api.createUser({
       body: {
         email: email,
         password: password,

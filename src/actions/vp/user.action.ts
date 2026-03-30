@@ -62,25 +62,28 @@ export async function createVpUser(
     }
 
     // If role is VENDOR, we need the core vendorId from the vpVendor record
-    let coreVendorId: string | undefined = undefined
-    if (role === "VENDOR" && vpVendorId) {
-        const vpVendor = await prisma.vpVendor.findUnique({
-            where: { id: vpVendorId },
-            select: { existingVendorId: true }
-        })
-        if (!vpVendor) return { success: false, error: "Selected vendor not found" }
-        coreVendorId = vpVendor.existingVendorId
-    }
+    // let coreVendorId: string | undefined = undefined
+    // if (role === "VENDOR" && vpVendorId) {
+    //     const vpVendor = await prisma.vendor.findUnique({
+    //         where: { id: vpVendorId },
+    //         // select: { existingVendorId: true }
+    //     })
+    //     if (!vpVendor) return { success: false, error: "Selected vendor not found" }
+    //     coreVendorId = vpVendor.id
+    // }
 
     try {
         // Use better-auth to create the user (handles password hashing)
+
+
+        console.log(">>>>", name, email,password, role,vpVendorId)
         const result = await auth.api.signUpEmail({
             body: {
                 name,
                 email,
                 password,
                 role,
-                vendorId: coreVendorId,
+                vendorId: vpVendorId,
             },
         })
 

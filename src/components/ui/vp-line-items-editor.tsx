@@ -72,7 +72,7 @@ function LineRow({
 
     return (
         <div className="rounded-md border bg-muted/20 p-3">
-            <div className="grid grid-cols-12 gap-2">
+            <div className="grid grid-cols-13 gap-2">
 
                 {/* Item picker (col 1-3) */}
                 <div className="col-span-12 sm:col-span-3">
