@@ -43,6 +43,7 @@
 import { z } from "zod"
 
 export const vpInvoiceLineItemSchema = z.object({
+  poLineItemId: z.string().optional().or(z.literal("")),
   description: z.string().min(1, "Description is required"),
   qty:         z.coerce.number<number>().min(0.01, "Qty must be > 0"),
   unitPrice:   z.coerce.number<number>().min(0, "Price must be ≥ 0"),
@@ -55,6 +56,7 @@ export const vpInvoiceSchema = z.object({
   // ADVANCE removed — only STANDARD and RECURRING
   billType:      z.enum(["STANDARD", "RECURRING"]).default("STANDARD"),
   type:          z.enum(["PDF", "DIGITAL"]).default("DIGITAL"),
+  companyId:     z.string().min(1, "Company is required"),
   // Bill-to (vendor selects from warehouse API)
   billToId:      z.string().optional().or(z.literal("")),
   billTo:        z.string().optional().or(z.literal("")),
@@ -74,6 +76,7 @@ export const vpPaymentSchema = z.object({
   amount:         z.coerce.number<number>().min(1, "Amount is required"),
   paymentMode:    z.enum(["NEFT", "RTGS", "CHEQUE", "UPI"]),
   transactionRef: z.string().optional().or(z.literal("")),
+  notes:          z.string().optional().or(z.literal("")),
   paymentDate:    z.string().min(1, "Payment date is required"),
   proofUrl:       z.string().optional().or(z.literal("")),
 })

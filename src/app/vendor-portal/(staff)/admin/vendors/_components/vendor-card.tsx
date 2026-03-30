@@ -31,6 +31,9 @@ export function VendorCard({ vendor, canEdit, onRefresh }: VendorCardProps) {
     const cycleLabel = vendor.recurringCycle
         ? VP_RECURRING_CYCLE_LABELS[vendor.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS]
         : null
+    const categorySummary = vendor.categoryNames.length > 0
+        ? vendor.categoryNames.slice(0, 2).join(", ") + (vendor.categoryNames.length > 2 ? ` +${vendor.categoryNames.length - 2}` : "")
+        : null
 
     const handleToggle = () => {
         startTransition(async () => {
@@ -53,8 +56,8 @@ export function VendorCard({ vendor, canEdit, onRefresh }: VendorCardProps) {
                             </div>
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">{v.name}</p>
-                                {vendor.categoryName && (
-                                    <p className="truncate text-xs text-muted-foreground">{vendor.categoryName}</p>
+                                {categorySummary && (
+                                    <p className="truncate text-xs text-muted-foreground">{categorySummary}</p>
                                 )}
                             </div>
                         </div>
@@ -90,6 +93,11 @@ export function VendorCard({ vendor, canEdit, onRefresh }: VendorCardProps) {
                     {/* Tags row */}
                     <div className="flex flex-wrap gap-1.5">
                         <VpStatusBadge status={vendor.vendorType} />
+                        {vendor.categoryNames.map((categoryName) => (
+                            <Badge key={categoryName} variant="secondary" className="text-[10px] px-1.5 py-0">
+                                {categoryName}
+                            </Badge>
+                        ))}
                         {vendor.billingType?.map(bt => (
                             <Badge key={bt} variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
                                 {VP_BILLING_TYPE_LABELS[bt as keyof typeof VP_BILLING_TYPE_LABELS] || bt}

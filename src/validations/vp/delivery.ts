@@ -3,8 +3,8 @@ import { z } from "zod"
 
 export const deliveryItemSchema = z.object({
     poLineItemId: z.string().min(1, "Line item is required"),
-    qtyDelivered: z.number().min(0.01, "Qty must be > 0"),
-    condition: z.enum(["GOOD", "DAMAGED", "PARTIAL"]),
+    qtyDelivered: z.coerce.number().min(0.01, "Qty must be > 0"),
+    condition: z.enum(["GOOD", "DAMAGED", "PARTIAL", "EXTRA"]),
 })
 
 

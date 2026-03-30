@@ -33,9 +33,11 @@ export async function getVpItems(
         const where: any = {}
         if (params.search) {
             where.OR = [
+                { id: { contains: params.search } },
                 { name: { contains: params.search } },
                 { code: { contains: params.search } },
                 { hsnCode: { contains: params.search } },
+                { description: { contains: params.search } },
             ]
         }
         if (params.categoryId) where.categoryId = params.categoryId
@@ -87,11 +89,18 @@ export async function getVpItems(
 }
 
 // For select dropdowns (filtered by category)
-export async function getVpItemsForSelect(categoryId?: string): Promise<VpActionResult<{ id: string; code: string; name: string; uom: string; defaultPrice: number }[]>
+export async function getVpItemsForSelect(
+    categoryIds?: string | string[],
+): Promise<VpActionResult<{ id: string; code: string; name: string; uom: string; defaultPrice: number }[]>
 > {
     try {
+        const normalizedCategoryIds = Array.isArray(categoryIds)
+            ? [...new Set(categoryIds.filter(Boolean))]
+            : categoryIds ? [categoryIds] : []
         const items = await prisma.vpItem.findMany({
-            where: categoryId ? { categoryId } : undefined,
+            where: normalizedCategoryIds.length > 0
+                ? { categoryId: { in: normalizedCategoryIds } }
+                : undefined,
             select: { id: true, code: true, name: true, uom: true, defaultPrice: true },
             orderBy: { name: "asc" },
         })

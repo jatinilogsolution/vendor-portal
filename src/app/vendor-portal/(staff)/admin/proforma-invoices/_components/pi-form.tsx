@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -49,6 +49,7 @@ export function PiForm({ editing }: PiFormProps) {
         resolver: zodResolver(proformaInvoiceSchema),
         defaultValues: {
             vendorId: editing?.vendor.id ?? "",
+            companyId: editing?.companyId ?? "",
             categoryId: editing?.categoryId ?? "",
             notes: editing?.notes ?? "",
             validityDate: editing?.validityDate
@@ -71,8 +72,20 @@ export function PiForm({ editing }: PiFormProps) {
 
     const selectedVendorId = form.watch("vendorId")
     const selectedVendor = vendors.find((v) => v.id === selectedVendorId)
+    const companyOptions = selectedVendor?.companies ?? []
 
     const categoryId = form.watch("categoryId")
+    const availableVendors = useMemo(
+        () => categoryId ? vendors.filter((vendor) => vendor.categoryIds.includes(categoryId)) : vendors,
+        [categoryId, vendors],
+    )
+    const categoryOptions = useMemo(
+        () => selectedVendor
+            ? categories.filter((category) => selectedVendor.categoryIds.includes(category.id))
+            : categories,
+        [categories, selectedVendor],
+    )
+
     useEffect(() => {
         if (categoryId) {
             getVpItemsForSelect(categoryId).then((res) => {
@@ -94,6 +107,45 @@ export function PiForm({ editing }: PiFormProps) {
             setBillToOpts(bRes)
         })
     }, [])
+
+    useEffect(() => {
+        const currentCompanyId = form.getValues("companyId")
+        if (!selectedVendor) {
+            if (selectedVendorId && vendors.length === 0) return
+            if (currentCompanyId) form.setValue("companyId", "")
+            return
+        }
+
+        const hasCurrent = selectedVendor.companies.some((company) => company.id === currentCompanyId)
+        if (hasCurrent) return
+
+        if (selectedVendor.defaultInvoiceCompanyId) {
+            form.setValue("companyId", selectedVendor.defaultInvoiceCompanyId)
+            return
+        }
+
+        if (selectedVendor.companies.length === 1) {
+            form.setValue("companyId", selectedVendor.companies[0].id)
+            return
+        }
+
+        form.setValue("companyId", "")
+    }, [form, selectedVendor, selectedVendorId, vendors.length])
+
+    useEffect(() => {
+        if (!selectedVendorId || !selectedVendor) return
+        if (!categoryId && selectedVendor.categoryIds.length === 1) {
+            form.setValue("categoryId", selectedVendor.categoryIds[0], { shouldValidate: true })
+            return
+        }
+        if (categoryId && !selectedVendor.categoryIds.includes(categoryId)) {
+            form.setValue(
+                "categoryId",
+                selectedVendor.categoryIds.length === 1 ? selectedVendor.categoryIds[0] : "",
+                { shouldValidate: true },
+            )
+        }
+    }, [categoryId, form, selectedVendor, selectedVendorId])
 
     const onSubmit = (values: ProformaInvoiceValues) => {
         startTransition(async () => {
@@ -121,7 +173,7 @@ export function PiForm({ editing }: PiFormProps) {
                         <CardTitle className="text-base">Proforma Details</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
                             {/* Vendor */}
                             <FormField control={form.control} name="vendorId" render={({ field }) => (
@@ -139,7 +191,7 @@ export function PiForm({ editing }: PiFormProps) {
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="none">None</SelectItem>
-                                            {vendors.map((v) => (
+                                            {availableVendors.map((v) => (
                                                 <SelectItem key={v.id} value={v.id}>
                                                     {v.vendor.name}
                                                 </SelectItem>
@@ -165,6 +217,31 @@ export function PiForm({ editing }: PiFormProps) {
                                 </FormItem>
                             )} />
 
+                            <FormField control={form.control} name="companyId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
+                                    <Select
+                                        value={field.value || ""}
+                                        onValueChange={field.onChange}
+                                        disabled={!selectedVendor}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder={selectedVendor ? "Select company" : "Select vendor first"} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {companyOptions.map((company) => (
+                                                <SelectItem key={company.id} value={company.id}>
+                                                    {company.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
                             {/* Category */}
                             <FormField control={form.control} name="categoryId" render={({ field }) => (
                                 <FormItem>
@@ -181,7 +258,7 @@ export function PiForm({ editing }: PiFormProps) {
                                         <SelectContent>
                                             <SelectGroup>
                                                 <SelectItem value="none">— None —</SelectItem>
-                                                {categories.map((c) => (
+                                                {categoryOptions.map((c) => (
                                                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                                 ))}
                                             </SelectGroup>

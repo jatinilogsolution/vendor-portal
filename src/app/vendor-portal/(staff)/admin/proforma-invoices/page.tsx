@@ -111,13 +111,14 @@ export default function AdminProformaInvoicesPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                </div>
-                <VpDateFilter
+                      <VpDateFilter
                     from={from} to={to}
                     onFrom={(v) => { setFrom(v); setPage(1) }}
                     onTo={(v) => { setTo(v); setPage(1) }}
                     onClear={() => { setFrom(""); setTo(""); setPage(1) }}
                 />
+                </div>
+              
             </div>
 
             {/* Table */}

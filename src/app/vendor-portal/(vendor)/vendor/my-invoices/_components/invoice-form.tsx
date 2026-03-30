@@ -35,6 +35,7 @@ import {
   getVendorPosForInvoice, addVpInvoiceDocument,
   VpInvoiceDetail,
 } from "@/actions/vp/invoice.action"
+import { getMyVpInvoiceCompanyConfig } from "@/actions/vp/company.action"
 import {
   getMyRecurringSchedules, VpRecurringRow,
 } from "@/actions/vp/recurring.action"
@@ -44,7 +45,7 @@ import {
 } from "@/actions/vp/bill-to.action"
 
 import {
-  getPoLineItemsForDelivery,
+  getPoLineItemsForInvoice,
 } from "@/actions/vp/delivery.action"
 import Link from "next/link"
 import { uploadAttachmentToAzure } from "@/services/azure-blob"
@@ -53,8 +54,15 @@ interface InvoiceFormProps {
   editing?: VpInvoiceDetail | null
 }
 
-type PoOption = { id: string; poNumber: string; grandTotal: number }
+type PoOption = {
+  id: string
+  poNumber: string
+  grandTotal: number
+  companyId: string | null
+  companyName: string | null
+}
 type BillToOption = { id: string; name: string; address: string; gstin: string }
+type CompanyOption = { id: string; name: string; code: string | null; gstin: string | null }
 
 function vpInvoiceDocPath(scope: string, invoiceId: string, fileName: string) {
   const safeFile = fileName.replace(/[^a-zA-Z0-9._-]+/g, "_")
@@ -68,6 +76,9 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
   const [isPending, startTransition] = useTransition()
   const [pos, setPos] = useState<PoOption[]>([])
+  const [companies, setCompanies] = useState<CompanyOption[]>([])
+  const [defaultInvoiceCompanyId, setDefaultInvoiceCompanyId] = useState<string | null>(null)
+  const [restrictInvoiceToDefaultCompany, setRestrictInvoiceToDefaultCompany] = useState(false)
   const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
   const [schedules, setSchedules] = useState<VpRecurringRow[]>([])
   const [poItemsLoading, setPoLoading] = useState(false)
@@ -86,6 +97,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       invoiceNumber: editing?.invoiceNumber ?? "",
       billType: "STANDARD",
       type: (editing?.type ?? "DIGITAL") as "PDF" | "DIGITAL",
+      companyId: editing?.companyId ?? "",
       billToId: editing?.billToId ?? "",
       billTo: editing?.billTo ?? "",
       billToGstin: editing?.billToGstin ?? "",
@@ -94,12 +106,13 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       taxRate: editing?.taxRate ?? 18,
       recurringScheduleId: "",
       items: editing?.items.map((i) => ({
+        poLineItemId: i.poLineItemId ?? "",
         description: i.description,
         qty: i.qty,
         unitPrice: i.unitPrice,
         tax: i.tax,
         total: i.total,
-      })) ?? [{ description: "", qty: 1, unitPrice: 0, tax: 0, total: 0 }],
+      })) ?? [{ poLineItemId: "", description: "", qty: 1, unitPrice: 0, tax: 0, total: 0 }],
     },
   })
 
@@ -110,7 +123,9 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
   const billType = form.watch("billType")
   const invoiceType = form.watch("type")
+  const invoiceTaxRate = useWatch({ control: form.control, name: "taxRate" }) ?? 0
   const selectedPoId = form.watch("poId")
+  const selectedCompanyId = form.watch("companyId")
   const selectedBillToId = form.watch("billToId")
 
   // ── Load reference data ──────────────────────────────────────
@@ -118,14 +133,31 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   useEffect(() => {
     Promise.all([
       getVendorPosForInvoice(),
+      getMyVpInvoiceCompanyConfig(),
       getAllBillToAddresses(),
       getMyRecurringSchedules(),
-    ]).then(([poRes, billRes, schRes]) => {
+    ]).then(([poRes, companyRes, billRes, schRes]) => {
       if (poRes.success) setPos(poRes.data)
+      if (companyRes.success) {
+        setCompanies(companyRes.data.companies.map((company) => ({
+          id: company.id,
+          name: company.name,
+          code: company.code,
+          gstin: company.gstin,
+        })))
+        setDefaultInvoiceCompanyId(companyRes.data.defaultInvoiceCompanyId)
+        setRestrictInvoiceToDefaultCompany(companyRes.data.restrictInvoiceToDefaultCompany)
+        if (!editing) {
+          form.setValue(
+            "companyId",
+            companyRes.data.defaultInvoiceCompanyId ?? companyRes.data.companies[0]?.id ?? "",
+          )
+        }
+      }
       setBillToOpts(billRes)
       if (schRes.success) setSchedules(schRes.data)
     })
-  }, [])
+  }, [editing, form])
 
   // Pre-fill if schedule in URL
   useEffect(() => {
@@ -136,10 +168,11 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
         form.setValue("recurringScheduleId", s.id)
         replace(
           (s.itemsSnapshot as any[]).map((item) => ({
+            poLineItemId: "",
             description: item.description,
             qty: item.qty,
             unitPrice: item.unitPrice,
-            tax: 0,
+            tax: Number(form.getValues("taxRate") ?? 0),
             total: item.qty * item.unitPrice,
           })),
         )
@@ -158,25 +191,37 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
     if (!poId) {
       // Clear lock, reset items to one empty row
-      replace([{ description: "", qty: 1, unitPrice: 0, tax: 0, total: 0 }])
+      replace([{ poLineItemId: "", description: "", qty: 1, unitPrice: 0, tax: Number(form.getValues("taxRate") ?? 0), total: 0 }])
       return
     }
 
     setPoLoading(true)
     try {
       // 1. Auto-fill line items from PO
-      const itemRes = await getPoLineItemsForDelivery(poId)
+      const itemRes = await getPoLineItemsForInvoice(poId)
       if (itemRes.success && itemRes.data.length > 0) {
+        const invoiceableItems = itemRes.data.filter((li) => li.invoiceableQty > 0)
+        if (invoiceableItems.length === 0) {
+          replace([])
+          toast.error("No invoiceable delivered quantity is available for this PO yet")
+          return
+        }
         replace(
-          itemRes.data.map((li) => ({
+          invoiceableItems.map((li) => ({
+            poLineItemId: li.id,
             description: li.description,
-            qty: li.qty,
+            qty: li.invoiceableQty,
             unitPrice: li.unitPrice,
-            tax: 0,
-            total: li.qty * li.unitPrice,
+            tax: Number(form.getValues("taxRate") ?? 0),
+            total: li.invoiceableQty * li.unitPrice,
           })),
         )
-        toast.success("Line items auto-filled from PO")
+        toast.success("Invoice quantities auto-filled from PO availability")
+      }
+
+      const selectedPo = pos.find((po) => po.id === poId)
+      if (selectedPo?.companyId) {
+        form.setValue("companyId", selectedPo.companyId)
       }
 
       // 2. Auto-fill bill-to from PO delivery address
@@ -205,7 +250,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
     } finally {
       setPoLoading(false)
     }
-  }, [form, replace, billToOpts])
+  }, [form, replace, billToOpts, pos])
 
   // Bill-to auto-fill name/gstin when selected
   const handleBillToSelect = (id: string) => {
@@ -216,6 +261,31 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       form.setValue("billToGstin", opt.gstin)
     }
   }
+
+  useEffect(() => {
+    if (companies.length === 0) return
+
+    const currentCompanyId = form.getValues("companyId")
+    const hasCurrentCompany = companies.some((company) => company.id === currentCompanyId)
+    if (hasCurrentCompany && !restrictInvoiceToDefaultCompany) return
+
+    if (restrictInvoiceToDefaultCompany && defaultInvoiceCompanyId) {
+      form.setValue("companyId", defaultInvoiceCompanyId)
+      return
+    }
+
+    if (!hasCurrentCompany) {
+      form.setValue("companyId", defaultInvoiceCompanyId ?? companies[0]?.id ?? "")
+    }
+  }, [companies, defaultInvoiceCompanyId, form, restrictInvoiceToDefaultCompany])
+
+  useEffect(() => {
+    fields.forEach((_, index) => {
+      if (form.getValues(`items.${index}.tax`) !== Number(invoiceTaxRate)) {
+        form.setValue(`items.${index}.tax`, Number(invoiceTaxRate))
+      }
+    })
+  }, [fields, form, invoiceTaxRate])
 
   // ── File upload ──────────────────────────────────────────────
 
@@ -337,6 +407,36 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                 </FormItem>
               )} />
 
+              <FormField control={form.control} name="companyId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    disabled={restrictInvoiceToDefaultCompany}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select company" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-xs">
+                    {restrictInvoiceToDefaultCompany
+                      ? "Your account is restricted to the configured default raise company."
+                      : "Select the company against which you are raising this invoice."}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
               {/* GST Rate */}
               <FormField control={form.control} name="taxRate" render={({ field }) => (
                 <FormItem>
@@ -354,6 +454,9 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormDescription className="text-xs">
+                    This is the single GST applied across the invoice. Item rows now follow this same GST rate.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -372,10 +475,11 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                         if (s) {
                           replace(
                             (s.itemsSnapshot as any[]).map((item) => ({
+                              poLineItemId: "",
                               description: item.description,
                               qty: item.qty,
                               unitPrice: item.unitPrice,
-                              tax: 0,
+                              tax: Number(form.getValues("taxRate") ?? 0),
                               total: item.qty * item.unitPrice,
                             })),
                           )
@@ -470,6 +574,16 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                   <FormDescription className="flex items-center gap-1.5 text-xs text-amber-600">
                     <span>🔒</span>
                     Line items are locked to the PO. You cannot add or modify them.
+                  </FormDescription>
+                )}
+                {selectedPoId && (
+                  <FormDescription className="text-xs">
+                    Invoice quantity is taken from delivered quantity still not invoiced. If no delivery is recorded yet, it falls back to PO quantity. Extra delivered quantity is also supported.
+                  </FormDescription>
+                )}
+                {selectedPoId && selectedCompanyId && (
+                  <FormDescription className="text-xs">
+                    The company is auto-aligned from the selected purchase order.
                   </FormDescription>
                 )}
                 <FormMessage />
@@ -618,7 +732,8 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                 <Button
                   type="button" variant="outline" size="sm"
                   onClick={() => append({
-                    description: "", qty: 1, unitPrice: 0, tax: 0, total: 0,
+                    poLineItemId: "",
+                    description: "", qty: 1, unitPrice: 0, tax: Number(form.getValues("taxRate") ?? 0), total: 0,
                   })}
                 >
                   <IconPlus size={13} className="mr-1" />
@@ -631,7 +746,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
             {fields.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 {selectedPoId
-                  ? "Loading items from PO…"
+                  ? (poItemsLoading ? "Loading items from PO…" : "No invoiceable quantity is available for this PO yet.")
                   : "Add at least one line item."}
               </p>
             )}
@@ -724,36 +839,13 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                       />
                     </div>
 
-                    {/* Tax % */}
+                    {/* GST basis */}
                     <div className="col-span-3 sm:col-span-2">
-                      <p className="mb-1 text-xs text-muted-foreground">Tax %</p>
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.tax`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <Select
-                              value={String(f.value ?? 0)}
-                              onValueChange={(v) => f.onChange(Number(v))}
-                              disabled={false} // tax can always be adjusted
-                            >
-                              <FormControl>
-                                <SelectTrigger className="h-8 w-full text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {[0, 5, 12, 18, 28].map((r) => (
-                                  <SelectItem key={r} value={String(r)} className="text-xs">
-                                    {r}%
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <p className="mb-1 text-xs text-muted-foreground">GST</p>
+                      <div className="flex h-8 items-center justify-center rounded-md border bg-muted/40 text-xs font-medium">
+                        {Number(invoiceTaxRate)}% invoice GST
+                      </div>
+                      <input type="hidden" {...form.register(`items.${index}.tax`)} />
                     </div>
 
                     {/* Total (read-only) */}

@@ -2,6 +2,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
+import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import {
     IconPackage, IconPlus, IconSearch,
@@ -34,13 +35,15 @@ import { VpEmptyState } from "@/components/ui/vp-empty-state"
 import { VpPageHeader } from "@/components/ui/vp-page-header"
 
 export default function ItemsPage() {
+    const searchParams = useSearchParams()
+    const initialQuery = searchParams.get("q") ?? ""
     const { data: session } = useSession()
     const canEdit = ["ADMIN", "BOSS"].includes(session?.user?.role ?? "")
 
     const [items, setItems] = useState<VpItemRow[]>([])
     const [total, setTotal] = useState(0)
     const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState("")
+    const [search, setSearch] = useState(initialQuery)
     const [catFilter, setCatFilter] = useState("")
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [dialogOpen, setDialogOpen] = useState(false)
@@ -68,6 +71,10 @@ export default function ItemsPage() {
             if (r.success) setCategories(r.data.map((c) => ({ id: c.id, name: c.name })))
         })
     }, [])
+
+    useEffect(() => {
+        setSearch(initialQuery)
+    }, [initialQuery])
 
     // Reload when filters change (debounced via key)
     useEffect(() => {
@@ -117,7 +124,7 @@ export default function ItemsPage() {
                 <div className="relative flex-1">
                     <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                        placeholder="Search by name, code or HSN..."
+                        placeholder="Search by name, code, HSN or ID..."
                         className="pl-9"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}

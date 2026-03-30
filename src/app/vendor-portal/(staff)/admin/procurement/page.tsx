@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/procurement/page.tsx
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { Activity, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 import {
@@ -29,6 +29,8 @@ import {
 } from "@/actions/vp/procurement.action"
 import { VpPaginationMeta } from "@/types/vendor-portal"
 import { VpExportButton } from "@/components/ui/vp-export-button"
+ import { useSession } from "@/lib/auth-client"
+import { UserRoleEnum } from "@/utils/constant"
 
 const PR_STATUSES = [
     "DRAFT", "SUBMITTED", "APPROVED", "OPEN_FOR_QUOTES",
@@ -67,6 +69,7 @@ export default function AdminProcurementPage() {
         return () => clearTimeout(t)
     }, [load])
 
+    const session = useSession()
     return (
         <div className="space-y-6">
             <VpPageHeader
@@ -77,12 +80,16 @@ export default function AdminProcurementPage() {
                         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
                             <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
                         </Button>
+                        <Activity mode={session.data?.user.role === UserRoleEnum.ADMIN ? "visible": "hidden"}>
+
                         <Button size="sm" asChild>
                             <Link href="/vendor-portal/admin/procurement/new">
                                 <IconPlus className="mr-1 h-4 w-4" />
                                 New Request
                             </Link>
                         </Button>
+                        </Activity>
+
                         <VpExportButton
                             data={prs}
                             filename="procurement-requests"
@@ -180,8 +187,14 @@ export default function AdminProcurementPage() {
                                         <p className="truncate text-sm">{pr.title}</p>
                                     </TableCell>
                                     <TableCell>
-                                        {pr.categoryName
-                                            ? <Badge variant="outline" className="text-xs">{pr.categoryName}</Badge>
+                                        {pr.categoryNames.length > 0
+                                            ? <div className="flex flex-wrap gap-1">
+                                                {pr.categoryNames.map((categoryName) => (
+                                                    <Badge key={categoryName} variant="outline" className="text-xs">
+                                                        {categoryName}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                             : <span className="text-xs text-muted-foreground">—</span>
                                         }
                                     </TableCell>

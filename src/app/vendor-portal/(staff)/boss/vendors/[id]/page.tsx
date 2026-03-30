@@ -35,7 +35,7 @@ export default async function BossVendorDetailPage({
         <div className="space-y-6">
             <VpPageHeader
                 title={vv.name}
-                description={v.categoryName ?? "No category assigned"}
+                description={v.categoryNames.length > 0 ? v.categoryNames.join(", ") : "No categories assigned"}
                 actions={
                     <Button variant="outline" size="sm" asChild>
                         <Link href="/vendor-portal/boss/vendors">
@@ -59,6 +59,19 @@ export default async function BossVendorDetailPage({
                             </Row>
                             <Row label="Vendor Type">
                                 <VpStatusBadge status={v.vendorType} />
+                            </Row>
+                            <Row label="Categories">
+                                {v.categoryNames.length > 0 ? (
+                                    <div className="flex flex-wrap justify-end gap-1">
+                                        {v.categoryNames.map((categoryName) => (
+                                            <Badge key={categoryName} variant="outline" className="text-xs">
+                                                {categoryName}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                )}
                             </Row>
                             {v.billingType && v.billingType.length > 0 && (
                                 <Row label="Billing">
@@ -85,6 +98,35 @@ export default async function BossVendorDetailPage({
                             )}
                             <Row label="Enrolled on">
                                 {new Date(v.createdAt).toLocaleDateString("en-IN")}
+                            </Row>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Company Coverage</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            {v.companies.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No companies assigned.</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {v.companies.map((company) => (
+                                        <Badge key={company.id} variant={company.isDefaultInvoiceCompany ? "default" : "outline"} className="text-xs">
+                                            {company.name}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
+                            {v.defaultInvoiceCompanyId && (
+                                <Row label="Default raise company">
+                                    {v.companies.find((company) => company.id === v.defaultInvoiceCompanyId)?.name ?? "—"}
+                                </Row>
+                            )}
+                            <Row label="Vendor billing rule">
+                                <Badge variant="outline" className="text-xs">
+                                    {v.restrictInvoiceToDefaultCompany ? "Default company only" : "Any assigned company"}
+                                </Badge>
                             </Row>
                         </CardContent>
                     </Card>

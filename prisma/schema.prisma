@@ -44,10 +44,12 @@ model User {
 
   // ── Vendor Portal relations ─────────────────
   vpVendorsCreated           VpVendor[]            @relation("VpVendor_createdBy")
+  vpCompaniesCreated         VpCompany[]           @relation("VpCompany_createdBy")
   vpPurchaseOrdersCreated    VpPurchaseOrder[]     @relation("VpPurchaseOrder_createdBy")
   vpPurchaseOrdersApproved   VpPurchaseOrder[]     @relation("VpPurchaseOrder_approvedBy")
   vpProformaInvoicesCreated  VpProformaInvoice[]   @relation("VpProformaInvoice_createdBy")
   vpProformaInvoicesApproved VpProformaInvoice[]   @relation("VpProformaInvoice_approvedBy")
+  vpProformaInvoiceDocumentsUploaded VpProformaInvoiceDocument[] @relation("VpProformaInvoiceDocument_uploadedBy")
   vpInvoicesCreated          VpInvoice[]           @relation("VpInvoice_createdBy")
   vpInvoicesReviewed         VpInvoice[]           @relation("VpInvoice_reviewedBy")
   vpInvoiceDocumentsUploaded VpInvoiceDocument[]   @relation("VpInvoiceDocument_uploadedBy")
@@ -583,11 +585,14 @@ model VpCategory {
 
   // Usage
   vendors          VpVendor[]
+  vendorAssignments VpVendorCategory[]
   items            VpItem[]
   purchaseOrders   VpPurchaseOrder[]
+  purchaseOrderAssignments VpPurchaseOrderCategory[]
   proformaInvoices VpProformaInvoice[]
 
   procurements VpProcurement[]
+  procurementAssignments VpProcurementCategory[]
 
   @@index([parentId])
   @@index([status])
@@ -642,6 +647,9 @@ model VpVendor {
   // Billing configuration
   billingType    String? // ONE_TIME | RECURRING | RENTAL
   recurringCycle String? // MONTHLY | QUARTERLY | YEARLY (only when RECURRING)
+  defaultInvoiceCompanyId String?
+  defaultInvoiceCompany   VpCompany?        @relation("VpVendor_defaultInvoiceCompany", fields: [defaultInvoiceCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  restrictInvoiceToDefaultCompany Boolean   @default(false)
 
   createdById String?
   createdBy   User?   @relation("VpVendor_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -652,11 +660,75 @@ model VpVendor {
   procurementInvites VpProcurementVendor[]
   recurringSchedules VpRecurringSchedule[]
   bankDetails        VpVendorBankDetails?
+  categories         VpVendorCategory[]
+  companies          VpVendorCompany[]
 
   @@index([existingVendorId])
   @@index([categoryId])
   @@index([portalStatus])
   @@map("vp_vendors")
+}
+
+model VpVendorCategory {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   VpCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, categoryId])
+  @@index([vendorId])
+  @@index([categoryId])
+  @@map("vp_vendor_categories")
+}
+
+model VpCompany {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  code      String?
+  legalName String?
+  gstin     String?
+  pan       String?
+  email     String?
+  phone     String?
+  address   String?  @db.NVarChar(Max)
+  isActive  Boolean  @default(true)
+
+  createdById String?
+  createdBy   User?   @relation("VpCompany_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  vendorAssignments VpVendorCompany[]
+  defaultForVendors VpVendor[]            @relation("VpVendor_defaultInvoiceCompany")
+  purchaseOrders    VpPurchaseOrder[]
+  proformaInvoices  VpProformaInvoice[]
+  invoices          VpInvoice[]
+  procurements      VpProcurement[]
+
+  @@index([isActive])
+  @@index([name])
+  @@map("vp_companies")
+}
+
+model VpVendorCompany {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vendorId String
+  vendor   VpVendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   VpCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, companyId])
+  @@index([vendorId])
+  @@index([companyId])
+  @@map("vp_vendor_companies")
 }
 
 // ── 4. Purchase Orders ──────────────────────────────────────────────────────
@@ -674,6 +746,8 @@ model VpPurchaseOrder {
 
   vendorId String
   vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companyId String?
+  company   VpCompany? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   categoryId String?
   category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -709,10 +783,28 @@ model VpPurchaseOrder {
   items      VpPoLineItem[]
   invoices   VpInvoice[]
   deliveries VpDeliveryRecord[]
+  categories VpPurchaseOrderCategory[]
 
   @@index([vendorId])
+  @@index([companyId])
   @@index([status])
   @@map("vp_purchase_orders")
+}
+
+model VpPurchaseOrderCategory {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  purchaseOrderId String
+  purchaseOrder   VpPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   VpCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseOrderId, categoryId])
+  @@index([purchaseOrderId])
+  @@index([categoryId])
+  @@map("vp_purchase_order_categories")
 }
 
 model VpPoLineItem {
@@ -732,6 +824,7 @@ model VpPoLineItem {
   total       Float
 
   deliveryItems VpDeliveryItem[]
+  invoiceLineItems VpInvoiceLineItem[]
 
   @@index([poId])
   @@index([itemId])
@@ -752,6 +845,8 @@ model VpProformaInvoice {
 
   vendorId String
   vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companyId String?
+  company   VpCompany? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   categoryId String?
   category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -792,10 +887,12 @@ model VpProformaInvoice {
   raisedByVendor  Boolean        @default(false)
   fulfillmentDate DateTime? // vendor's promised delivery date
 
-  items    VpPiLineItem[]
-  invoices VpInvoice[]
+  items     VpPiLineItem[]
+  invoices  VpInvoice[]
+  documents VpProformaInvoiceDocument[]
 
   @@index([vendorId])
+  @@index([companyId])
   @@index([status])
   @@map("vp_proforma_invoices")
 }
@@ -821,6 +918,23 @@ model VpPiLineItem {
   @@map("vp_pi_line_items")
 }
 
+model VpProformaInvoiceDocument {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  piId            String
+  proformaInvoice VpProformaInvoice @relation(fields: [piId], references: [id], onDelete: Cascade)
+
+  filePath   String
+  uploadedAt DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User? @relation("VpProformaInvoiceDocument_uploadedBy", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([piId])
+  @@map("vp_proforma_invoice_documents")
+}
+
 // ── 6. Vendor Invoices (Bills submitted by VENDOR) ──────────────────────────
 // DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED → PAYMENT_INITIATED → PAYMENT_CONFIRMED
 //                                 ↘ REJECTED  (vendor can resubmit)
@@ -836,6 +950,8 @@ model VpInvoice {
 
   vendorId String
   vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companyId String?
+  company   VpCompany? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   // Optional links — a vendor bill may reference a PO or a PI
   poId          String?
@@ -875,6 +991,7 @@ model VpInvoice {
   parentInvoiceId     String? // for recurring — links to previous cycle's invoice
 
   @@index([vendorId])
+  @@index([companyId])
   @@index([status])
   @@map("vp_invoices")
 }
@@ -887,6 +1004,9 @@ model VpInvoiceLineItem {
   invoiceId String
   invoice   VpInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
+  poLineItemId String?
+  poLineItem   VpPoLineItem? @relation(fields: [poLineItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   description String
   qty         Float
   unitPrice   Float
@@ -894,6 +1014,7 @@ model VpInvoiceLineItem {
   total       Float
 
   @@index([invoiceId])
+  @@index([poLineItemId])
   @@map("vp_invoice_line_items")
 }
 
@@ -931,6 +1052,7 @@ model VpPayment {
   paymentDate    DateTime?
   paymentMode    String? // NEFT | RTGS | CHEQUE | UPI
   transactionRef String?
+  notes          String?   @db.NVarChar(Max)
   status         String    @default("INITIATED") // INITIATED | PROCESSING | COMPLETED | FAILED
 
   initiatedById   String?
@@ -1045,6 +1167,8 @@ model VpProcurement {
 
   categoryId String?
   category   VpCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companyId String?
+  company   VpCompany? @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   requiredByDate  DateTime?
   deliveryAddress String?
@@ -1071,12 +1195,30 @@ model VpProcurement {
   lineItems        VpProcurementLineItem[]
   vendorInvites    VpProcurementVendor[]
   proformaInvoices VpProformaInvoice[]
+  categories       VpProcurementCategory[]
   user             User?                   @relation(fields: [userId], references: [id])
   userId           String?
 
   @@index([status])
   @@index([categoryId])
+  @@index([companyId])
   @@map("vp_procurements")
+}
+
+model VpProcurementCategory {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  procurementId String
+  procurement   VpProcurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   VpCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([procurementId, categoryId])
+  @@index([procurementId])
+  @@index([categoryId])
+  @@map("vp_procurement_categories")
 }
 
 model VpProcurementLineItem {

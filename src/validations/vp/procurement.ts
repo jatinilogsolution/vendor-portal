@@ -11,8 +11,9 @@ export const procurementLineItemSchema = z.object({
 
 export const procurementSchema = z.object({
     title: z.string().min(3, "Title is required"),
+    companyId: z.string().min(1, "Company is required"),
     description: z.string().optional().or(z.literal("")),
-    categoryId: z.string().optional().or(z.literal("")),
+    categoryIds: z.array(z.string()).default([]),
     requiredByDate: z.string().optional().or(z.literal("")),
     deliveryAddress: z.string().optional().or(z.literal("")),
     billToId: z.string().optional().or(z.literal("")),
@@ -34,6 +35,7 @@ export const vendorPiSchema = z.object({
     validityDate: z.string().optional().or(z.literal("")),
     paymentTerms: z.string().optional().or(z.literal("")),
     fulfillmentDate: z.string().optional().or(z.literal("")),
+    attachmentUrls: z.array(z.string()).default([]),
     taxRate: z.coerce.number<number>().min(0).max(100).default(18),
     items: z.array(z.object({
         procurementLineItemId: z.string().optional().or(z.literal("")),

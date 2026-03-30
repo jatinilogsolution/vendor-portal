@@ -15,6 +15,7 @@ export type VpPaymentRow = {
     amount: number
     paymentMode: string | null
     transactionRef: string | null
+    notes: string | null
     paymentDate: Date | null
     status: string
     createdAt: Date
@@ -54,6 +55,7 @@ export async function getVpPayments(
                     amount: true,
                     paymentMode: true,
                     transactionRef: true,
+                    notes: true,
                     paymentDate: true,
                     status: true,
                     createdAt: true,
@@ -80,6 +82,7 @@ export async function getVpPayments(
                     amount: r.amount,
                     paymentMode: r.paymentMode,
                     transactionRef: r.transactionRef,
+                    notes: r.notes,
                     paymentDate: r.paymentDate,
                     status: r.status,
                     createdAt: r.createdAt,
@@ -131,6 +134,7 @@ export async function initiateVpPayment(
                     amount: d.amount,
                     paymentMode: d.paymentMode,
                     transactionRef: d.transactionRef || null,
+                    notes: d.notes || null,
                     paymentDate: new Date(d.paymentDate),
                     proofUrl: d.proofUrl || null,
                     proofUploadedAt: d.proofUrl ? new Date() : null,
@@ -159,7 +163,7 @@ export async function initiateVpPayment(
             entityId: payment.id,
             description: `Initiated payment ₹${d.amount} for invoice ${inv.invoiceNumber}`,
         })
-        await emailPaymentInitiated(invoiceId, d.amount)
+        await emailPaymentInitiated(invoiceId, d.amount, d.notes || null)
 
         return { success: true, data: { paymentId: payment.id } }
     } catch (e) {
@@ -183,6 +187,7 @@ export async function confirmVpPayment(
             status: true,
             invoiceId: true,
             amount: true,
+            notes: true,
             invoice: { select: { invoiceNumber: true, createdById: true } },
         },
     })
@@ -216,7 +221,7 @@ export async function confirmVpPayment(
         entityId: paymentId,
         description: `Confirmed payment for invoice ${payment.invoice.invoiceNumber}`,
     })
-    await emailPaymentConfirmed(payment.invoiceId, payment.amount)
+    await emailPaymentConfirmed(payment.invoiceId, payment.amount, payment.notes ?? null)
 
     return { success: true, data: null }
 }

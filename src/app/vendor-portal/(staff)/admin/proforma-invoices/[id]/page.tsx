@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import {
     IconArrowLeft, IconPencil, IconSend,
     IconCheck, IconX, IconTrash,
-    IconArrowRight,
+    IconArrowRight, IconFile,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -34,6 +34,7 @@ import {
     acceptVpProformaInvoice, declineVpProformaInvoice,
     convertPiToPo, deleteVpProformaInvoice, VpPiDetail,
 } from "@/actions/vp/proforma-invoice.action"
+import { requestProcurementQuoteRevision } from "@/actions/vp/procurement.action"
 import { useSession } from "@/lib/auth-client"
 import { VP_BILLING_TYPE_LABELS } from "@/types/vendor-portal"
 
@@ -90,6 +91,7 @@ export default function ProformaInvoiceDetailPage() {
     const canDecline = role === "VENDOR" && pi.status === "SENT_TO_VENDOR"
     const canConvert = role === "ADMIN" && pi.status === "ACCEPTED" && !pi.convertedToPoId
     const canDelete = role === "ADMIN" && pi.status === "DRAFT"
+    const canRequestRevision = ["ADMIN", "BOSS"].includes(role) && !!pi.procurementId && !pi.convertedToPoId
 
     return (
         <div className="space-y-6">
@@ -153,6 +155,20 @@ export default function ProformaInvoiceDetailPage() {
                             >
                                 <IconSend size={14} className="mr-1.5" />
                                 Send to Vendor
+                            </Button>
+                        )}
+                        {canRequestRevision && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => act(
+                                    () => requestProcurementQuoteRevision(pi.procurementId!, [pi.vendor.id]),
+                                    "Vendor asked to submit a revised quote",
+                                )}
+                                disabled={isPending}
+                            >
+                                <IconSend size={14} className="mr-1.5" />
+                                Ask for Revised Quote
                             </Button>
                         )}
                         {canAccept && (
@@ -220,6 +236,7 @@ export default function ProformaInvoiceDetailPage() {
                         <CardContent className="space-y-2.5 text-sm">
                             <Row label="Status">     <VpStatusBadge status={pi.status} /></Row>
                             <Row label="Vendor">     {pi.vendor.vendorName}</Row>
+                            <Row label="Company">    {pi.companyName ?? "—"}</Row>
                             {pi.vendor.billingType && (
                                 <Row label="Billing">
                                     <Badge variant="outline" className="text-xs">
@@ -236,6 +253,16 @@ export default function ProformaInvoiceDetailPage() {
                                 </Row>
                             )}
                             {pi.paymentTerms && <Row label="Payment">{pi.paymentTerms}</Row>}
+                            {pi.procurementId && (
+                                <Row label="Procurement">
+                                    <Link
+                                        href={`/vendor-portal/admin/procurement/${pi.procurementId}`}
+                                        className="font-mono text-xs text-primary hover:underline"
+                                    >
+                                        View Request
+                                    </Link>
+                                </Row>
+                            )}
                             {pi.notes && <><Separator /><p className="text-xs text-muted-foreground">{pi.notes}</p></>}
                         </CardContent>
                     </Card>
@@ -252,6 +279,30 @@ export default function ProformaInvoiceDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {pi.documents.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm">Attachments ({pi.documents.length})</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {pi.documents.map((doc) => (
+                                    <a
+                                        key={doc.id}
+                                        href={doc.filePath}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                    >
+                                        <IconFile size={14} className="shrink-0 text-muted-foreground" />
+                                        <span className="truncate flex-1 text-xs">
+                                            {doc.filePath.split("/").pop()}
+                                        </span>
+                                    </a>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Invoices & Payments */}
                     {pi.invoices.length > 0 && (
@@ -288,6 +339,9 @@ export default function ProformaInvoiceDetailPage() {
                                                             <span className="font-bold text-emerald-700">₹{p.amount.toLocaleString("en-IN")}</span>
                                                             <Badge variant="outline" className="text-[10px] lowercase">{p.status}</Badge>
                                                         </div>
+                                                        {p.notes && (
+                                                            <p className="text-[10px] text-muted-foreground">{p.notes}</p>
+                                                        )}
                                                         {p.proofUrl && (
                                                             <a
                                                                 href={p.proofUrl}

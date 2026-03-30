@@ -39,7 +39,7 @@ export type VpRecurringCycle = (typeof VP_RECURRING_CYCLES)[number]
 export type VpPaymentMode = (typeof VP_PAYMENT_MODES)[number]
 
 export const VP_ENTITY_TYPES = [
-    "VpVendor", "VpCategory", "VpItem",
+    "VpCompany", "VpVendor", "VpCategory", "VpItem",
     "VpPurchaseOrder", "VpProformaInvoice",
     "VpInvoice", "VpPayment", "VpDeliveryRecord",
     "VpProcurement",
@@ -64,6 +64,7 @@ export type VpListParams = {
     to?: string
     vendorId?: string
     categoryId?: string
+    companyId?: string
     type?: string
 }
 

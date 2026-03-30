@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
 import { isAdmin, isBoss, isAdminOrBoss } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { mapAssignedCategories, validateVpVendorCategoryAccess } from "@/lib/vendor-portal/category"
+import { getVpCompanyOptions, validateVpVendorCompanyAccess } from "@/lib/vendor-portal/company"
 import { createVpNotification } from "@/lib/vendor-portal/notify"
 import { emailProcurementOpenForQuotes, emailProcurementSubmitted } from "@/lib/vp-email"
 import { VpActionResult, VpListParams, VpListResult } from "@/types/vendor-portal"
@@ -18,7 +20,15 @@ export type VpProcurementRow = {
     title: string
     description: string | null
     status: string
+    categoryId: string | null
+    categoryIds: string[]
     categoryName: string | null
+    categoryNames: string[]
+    categories: { id: string; name: string }[]
+    companyId: string | null
+    companyName: string | null
+    companyCode: string | null
+    companyGstin: string | null
     requiredByDate: Date | null
     grandTotal: number
     createdAt: Date
@@ -65,6 +75,7 @@ export type VpProcurementDetail = VpProcurementRow & {
         id: string
         piNumber: string
         status: string
+        convertedToPoId: string | null
         grandTotal: number
         validityDate: Date | null
         paymentTerms: string | null
@@ -84,6 +95,7 @@ export type VpProcurementDetail = VpProcurementRow & {
             status: string
             paymentMode: string | null
             transactionRef: string | null
+            notes: string | null
             paymentDate: Date | null
             proofUrl: string | null
         }[]
@@ -111,6 +123,7 @@ const PR_SELECT = {
     taxRate: true,
     taxAmount: true,
     requiredByDate: true,
+    companyId: true,
     deliveryAddress: true,
     billToId: true,
     billTo: true,
@@ -119,7 +132,20 @@ const PR_SELECT = {
     submittedAt: true,
     approvedAt: true,
     createdAt: true,
-    category: { select: { name: true } },
+    categoryId: true,
+    category: { select: { id: true, name: true } },
+    categories: {
+        select: {
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+        orderBy: { category: { name: "asc" } },
+    },
+    company: { select: { name: true, code: true, gstin: true } },
     createdBy: { select: { name: true } },
     approvedBy: { select: { name: true } },
     _count: {
@@ -132,13 +158,22 @@ const PR_SELECT = {
 } as const
 
 function mapRow(r: any): VpProcurementRow {
+    const assignedCategories = mapAssignedCategories(r)
     return {
         id: r.id,
         prNumber: r.prNumber,
         title: r.title,
         description: r.description,
         status: r.status,
-        categoryName: r.category?.name ?? null,
+        categoryId: assignedCategories[0]?.id ?? r.categoryId ?? null,
+        categoryIds: assignedCategories.map((category) => category.id),
+        categoryName: assignedCategories[0]?.name ?? r.category?.name ?? null,
+        categoryNames: assignedCategories.map((category) => category.name),
+        categories: assignedCategories,
+        companyId: r.companyId ?? null,
+        companyName: r.company?.name ?? null,
+        companyCode: r.company?.code ?? null,
+        companyGstin: r.company?.gstin ?? null,
         requiredByDate: r.requiredByDate,
         grandTotal: r.grandTotal,
         createdAt: r.createdAt,
@@ -159,14 +194,28 @@ export async function getVpProcurements(
         const skip = (page - 1) * per_page
 
         const where: any = {}
+        const andFilters: any[] = []
         if (params.status) where.status = params.status
-        if (params.categoryId) where.categoryId = params.categoryId
-        if (params.search) where.OR = [
-            { title: { contains: params.search } },
-            { prNumber: { contains: params.search } },
-        ]
+        if (params.categoryId) {
+            andFilters.push({
+                OR: [
+                { categoryId: params.categoryId },
+                { categories: { some: { categoryId: params.categoryId } } },
+                ],
+            })
+        }
+        if (params.companyId) where.companyId = params.companyId
+        if (params.search) {
+            andFilters.push({
+                OR: [
+                    { title: { contains: params.search } },
+                    { prNumber: { contains: params.search } },
+                ],
+            })
+        }
         if (params.from) where.createdAt = { ...where.createdAt, gte: new Date(params.from) }
         if (params.to) where.createdAt = { ...where.createdAt, lte: new Date(params.to) }
+        if (andFilters.length > 0) where.AND = andFilters
 
         const [total, rows] = await Promise.all([
             prisma.vpProcurement.count({ where }),
@@ -250,6 +299,7 @@ export async function getVpProcurementById(
                 id: true,
                 piNumber: true,
                 status: true,
+                convertedToPoId: true,
                 grandTotal: true,
                 validityDate: true,
                 paymentTerms: true,
@@ -310,6 +360,7 @@ export async function getVpProcurementById(
                     id: q.id,
                     piNumber: q.piNumber,
                     status: q.status,
+                    convertedToPoId: q.convertedToPoId,
                     grandTotal: q.grandTotal,
                     validityDate: q.validityDate,
                     paymentTerms: q.paymentTerms,
@@ -336,6 +387,7 @@ export async function getVpProcurementById(
                                 status: true,
                                 paymentMode: true,
                                 transactionRef: true,
+                                notes: true,
                                 paymentDate: true,
                                 proofUrl: true,
                             }
@@ -367,6 +419,27 @@ export async function createVpProcurement(
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
 
     const d = parsed.data
+    const categoryIds = [...new Set(d.categoryIds.filter(Boolean))]
+    const companyOptions = await getVpCompanyOptions({ activeOnly: false })
+    if (!companyOptions.some((company) => company.id === d.companyId)) {
+        return { success: false, error: "Selected company is invalid" }
+    }
+
+    for (const vendorId of d.vendorIds) {
+        const companyError = await validateVpVendorCompanyAccess({
+            vpVendorId: vendorId,
+            companyId: d.companyId,
+        })
+        if (companyError) return { success: false, error: companyError }
+
+        const categoryError = await validateVpVendorCategoryAccess({
+            vpVendorId: vendorId,
+            categoryIds,
+            matchMode: "any",
+        })
+        if (categoryError) return { success: false, error: categoryError }
+    }
+
     const subtotal = d.items.reduce((s, i) => s + i.qty * i.estimatedUnitPrice, 0)
     const taxAmount = (subtotal * d.taxRate) / 100
     const grandTotal = subtotal + taxAmount
@@ -378,8 +451,9 @@ export async function createVpProcurement(
             data: {
                 prNumber,
                 title: d.title,
+                companyId: d.companyId,
                 description: d.description || null,
-                categoryId: d.categoryId || null,
+                categoryId: categoryIds[0] || null,
                 requiredByDate: d.requiredByDate ? new Date(d.requiredByDate) : null,
                 deliveryAddress: d.deliveryAddress || null,
                 billToId: d.billToId || null,
@@ -406,6 +480,11 @@ export async function createVpProcurement(
                         status: "INVITED",
                     })),
                 },
+                categories: categoryIds.length > 0
+                    ? {
+                        create: categoryIds.map((categoryId) => ({ categoryId })),
+                    }
+                    : undefined,
             },
         })
 
@@ -585,6 +664,25 @@ export async function selectProcurementQuote(
         return { success: false, error: "Insufficient permissions" }
 
     await prisma.$transaction([
+        prisma.vpProformaInvoice.update({
+            where: { id: piId },
+            data: {
+                status: "ACCEPTED",
+                acceptedAt: new Date(),
+                declinedAt: null,
+            },
+        }),
+        prisma.vpProformaInvoice.updateMany({
+            where: {
+                procurementId,
+                id: { not: piId },
+                convertedToPoId: null,
+            },
+            data: {
+                status: "DECLINED",
+                declinedAt: new Date(),
+            },
+        }),
         // Mark selected vendor
         prisma.vpProcurementVendor.updateMany({
             where: { procurementId, vendorId },
@@ -605,12 +703,95 @@ export async function selectProcurementQuote(
     return { success: true, data: null }
 }
 
+export async function requestProcurementQuoteRevision(
+    procurementId: string,
+    vendorIds: string[],
+): Promise<VpActionResult<null>> {
+    const session = await getCustomSession()
+    if (!isAdminOrBoss(session.user.role))
+        return { success: false, error: "Insufficient permissions" }
+    if (vendorIds.length === 0)
+        return { success: false, error: "Select at least one vendor" }
+
+    const procurement = await prisma.vpProcurement.findUnique({
+        where: { id: procurementId },
+        select: {
+            id: true,
+            prNumber: true,
+            status: true,
+            proformaInvoices: {
+                select: { convertedToPoId: true },
+            },
+            vendorInvites: {
+                where: { vendorId: { in: vendorIds } },
+                select: {
+                    vendor: {
+                        select: {
+                            existingVendor: { select: { users: { select: { id: true } } } },
+                        },
+                    },
+                },
+            },
+        },
+    })
+
+    if (!procurement) return { success: false, error: "Procurement not found" }
+    if (!["OPEN_FOR_QUOTES", "QUOTE_SELECTED"].includes(procurement.status))
+        return { success: false, error: "Quote revision can only be requested while procurement is active" }
+    if (procurement.proformaInvoices.some((quote) => quote.convertedToPoId))
+        return { success: false, error: "A PO has already been created from this procurement" }
+
+    await prisma.$transaction([
+        prisma.vpProcurement.update({
+            where: { id: procurementId },
+            data: { status: "OPEN_FOR_QUOTES", closedAt: null },
+        }),
+        prisma.vpProcurementVendor.updateMany({
+            where: { procurementId, vendorId: { in: vendorIds } },
+            data: { status: "INVITED", respondedAt: null },
+        }),
+        prisma.vpProcurementVendor.updateMany({
+            where: {
+                procurementId,
+                status: "SELECTED",
+                vendorId: { notIn: vendorIds },
+            },
+            data: { status: "QUOTED" },
+        }),
+    ])
+
+    const vendorUserIds = procurement.vendorInvites.flatMap((invite) =>
+        invite.vendor.existingVendor.users.map((user) => user.id),
+    )
+
+    if (vendorUserIds.length > 0) {
+        await createVpNotification({
+            userIds: vendorUserIds,
+            type: "PO_SENT_TO_VENDOR",
+            message: `Please submit a revised quote for Procurement ${procurement.prNumber}. Negotiation updates are available.`,
+            refDocType: "VpProcurement",
+            refDocId: procurementId,
+        })
+    }
+
+    await logVpAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "VpProcurement",
+        entityId: procurementId,
+        description: `Requested revised quotes from ${vendorIds.length} vendor(s) for ${procurement.prNumber}`,
+    })
+
+    return { success: true, data: null }
+}
+
 // ── Fetch open procurements for vendor to quote ────────────────
 
 export async function getOpenProcurementsForVendor(): Promise<VpActionResult<{
     id: string
     prNumber: string
     title: string
+    companyName: string | null
     requiredByDate: Date | null
     lineItems: { id: string; description: string; qty: number }[]
 }[]>
@@ -636,11 +817,22 @@ export async function getOpenProcurementsForVendor(): Promise<VpActionResult<{
                 id: true,
                 prNumber: true,
                 title: true,
+                company: { select: { name: true } },
                 requiredByDate: true,
                 lineItems: { select: { id: true, description: true, qty: true } },
             },
         })
-        return { success: true, data: prs }
+        return {
+            success: true,
+            data: prs.map((pr) => ({
+                id: pr.id,
+                prNumber: pr.prNumber,
+                title: pr.title,
+                companyName: pr.company?.name ?? null,
+                requiredByDate: pr.requiredByDate,
+                lineItems: pr.lineItems,
+            })),
+        }
     } catch (e) {
         return { success: false, error: "Failed to fetch open procurements" }
     }

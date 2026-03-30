@@ -11,6 +11,7 @@ export const piLineItemSchema = z.object({
 
 export const proformaInvoiceSchema = z.object({
     vendorId: z.string().min(1, "Vendor is required"),
+    companyId: z.string().min(1, "Company is required"),
     categoryId: z.string().optional().or(z.literal("")),
     notes: z.string().optional().or(z.literal("")),
     validityDate: z.string().optional().or(z.literal("")),

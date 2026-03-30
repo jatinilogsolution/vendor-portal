@@ -29,11 +29,20 @@ import { getVpVendors } from "@/actions/vp/vendor.action"
 import { getVpCategoriesFlat } from "@/actions/vp/category.action"
 import { getVpItemsForSelect } from "@/actions/vp/item.action"
 import { getAllBillToAddresses, BillToOption } from "@/actions/vp/bill-to.action"
+import { getVpCompanySelectionOptions } from "@/actions/vp/company.action"
 
 export function ProcurementForm() {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
-    const [vendors, setVendors] = useState<{ id: string; name: string; vendorType: string }[]>([])
+    const [vendors, setVendors] = useState<{
+        id: string
+        name: string
+        vendorType: string
+        companyIds: string[]
+        categoryIds: string[]
+        categoryNames: string[]
+    }[]>([])
+    const [companies, setCompanies] = useState<{ id: string; name: string }[]>([])
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [items, setItems] = useState<ItemOption[]>([])
     const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
@@ -44,8 +53,9 @@ export function ProcurementForm() {
         resolver: zodResolver(procurementSchema) as any,
         defaultValues: {
             title: "",
+            companyId: "",
             description: "",
-            categoryId: "",
+            categoryIds: [],
             requiredByDate: "",
             deliveryAddress: "",
             billToId: "",
@@ -58,44 +68,81 @@ export function ProcurementForm() {
     })
 
     const selectedVendorIds = form.watch("vendorIds")
+    const selectedCompanyId = form.watch("companyId")
+    const selectedCategoryIds = form.watch("categoryIds")
     const filteredVendors = useMemo(() => {
         const q = vendorSearch.trim().toLowerCase()
-        if (!q) return vendors
-        return vendors.filter((v) => v.name.toLowerCase().includes(q))
-    }, [vendors, vendorSearch])
+        return vendors.filter((v) => {
+            const matchesSearch = q ? v.name.toLowerCase().includes(q) : true
+            const matchesCompany = selectedCompanyId ? v.companyIds.includes(selectedCompanyId) : true
+            const matchesCategory = selectedCategoryIds.length > 0
+                ? v.categoryIds.some((categoryId) => selectedCategoryIds.includes(categoryId))
+                : true
+            return matchesSearch && matchesCompany && matchesCategory
+        })
+    }, [selectedCategoryIds, selectedCompanyId, vendorSearch, vendors])
 
     const runVendorSearch = () => {
         setVendorSearch(vendorSearchInput.trim())
     }
 
-    const categoryId = form.watch("categoryId")
     useEffect(() => {
-        if (categoryId) {
-            getVpItemsForSelect(categoryId).then((res) => {
+        if (selectedCategoryIds.length > 0) {
+            getVpItemsForSelect(selectedCategoryIds).then((res) => {
                 if (res.success) setItems(res.data)
             })
         } else {
             setItems([])
         }
-    }, [categoryId])
+    }, [selectedCategoryIds])
 
     useEffect(() => {
         Promise.all([
             getVpVendors({ per_page: 200, status: "ACTIVE" }),
             getVpCategoriesFlat(),
             getAllBillToAddresses(),
-        ]).then(([vRes, cRes, billRes]) => {
+            getVpCompanySelectionOptions({ activeOnly: true }),
+        ]).then(([vRes, cRes, billRes, companyRes]) => {
             if (vRes.success) setVendors(
                 vRes.data.data.map((v) => ({
                     id: v.id,
                     name: v.vendor.name,
                     vendorType: v.vendorType,
+                    companyIds: v.companies.map((company) => company.id),
+                    categoryIds: v.categoryIds,
+                    categoryNames: v.categoryNames,
                 })),
             )
             if (cRes.success) setCategories(cRes.data.map((c) => ({ id: c.id, name: c.name })))
             setBillToOpts(billRes)
+            if (companyRes.success) {
+                setCompanies(companyRes.data.map((company) => ({ id: company.id, name: company.name })))
+            }
         })
     }, [])
+
+    useEffect(() => {
+        const nextVendorIds = form.getValues("vendorIds").filter((vendorId) => {
+            const vendor = vendors.find((row) => row.id === vendorId)
+            if (!vendor) return false
+            const matchesCompany = selectedCompanyId ? vendor.companyIds.includes(selectedCompanyId) : true
+            const matchesCategory = selectedCategoryIds.length > 0
+                ? vendor.categoryIds.some((categoryId) => selectedCategoryIds.includes(categoryId))
+                : true
+            return matchesCompany && matchesCategory
+        })
+        if (nextVendorIds.length !== form.getValues("vendorIds").length) {
+            form.setValue("vendorIds", nextVendorIds)
+        }
+    }, [form, selectedCategoryIds, selectedCompanyId, vendors])
+
+    const toggleCategory = (categoryId: string, checked: boolean) => {
+        const current = form.getValues("categoryIds")
+        const next = checked
+            ? [...new Set([...current, categoryId])]
+            : current.filter((id) => id !== categoryId)
+        form.setValue("categoryIds", next, { shouldValidate: true })
+    }
 
     const toggleVendor = (vendorId: string) => {
         const current = form.getValues("vendorIds")
@@ -151,22 +198,18 @@ export function ProcurementForm() {
                         )} />
 
                         <div className="grid gap-4 sm:grid-cols-3">
-                            <FormField control={form.control} name="categoryId" render={({ field }) => (
+                            <FormField control={form.control} name="companyId" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <Select 
-                                        value={field.value || "none"} 
-                                        onValueChange={(v) => field.onChange(v === "none" ? "" : v)}
-                                    >
+                                    <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
+                                    <Select value={field.value || ""} onValueChange={field.onChange}>
                                         <FormControl>
                                             <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select category" />
+                                                <SelectValue placeholder="Select company" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="none">None</SelectItem>
-                                            {categories.map((c) => (
-                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            {companies.map((company) => (
+                                                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -202,6 +245,42 @@ export function ProcurementForm() {
                                 </FormItem>
                             )} />
                         </div>
+
+                        <FormField control={form.control} name="categoryIds" render={() => (
+                            <FormItem>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <FormLabel>Categories</FormLabel>
+                                        <p className="text-xs text-muted-foreground">
+                                            Select one or more categories for this procurement request.
+                                        </p>
+                                    </div>
+                                    {selectedCategoryIds.length > 0 && (
+                                        <Badge variant="outline" className="text-xs">
+                                            {selectedCategoryIds.length} selected
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {categories.map((category) => {
+                                        const checked = selectedCategoryIds.includes(category.id)
+                                        return (
+                                            <label
+                                                key={category.id}
+                                                className="flex items-start gap-3 rounded-md border bg-background px-3 py-2"
+                                            >
+                                                <Checkbox
+                                                    checked={checked}
+                                                    onCheckedChange={(value) => toggleCategory(category.id, value === true)}
+                                                />
+                                                <span className="text-sm font-medium">{category.name}</span>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
 
                         <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
                             <FormItem>
@@ -352,9 +431,16 @@ export function ProcurementForm() {
                                             />
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium">{v.name}</p>
-                                                <Badge variant="outline" className="mt-0.5 text-[10px]">
-                                                    {v.vendorType}
-                                                </Badge>
+                                                <div className="mt-1 flex flex-wrap gap-1">
+                                                    <Badge variant="outline" className="text-[10px]">
+                                                        {v.vendorType}
+                                                    </Badge>
+                                                    {v.categoryNames.map((categoryName) => (
+                                                        <Badge key={categoryName} variant="secondary" className="text-[10px]">
+                                                            {categoryName}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     )

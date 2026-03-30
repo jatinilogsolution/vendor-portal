@@ -4,6 +4,7 @@ import { UserRoleEnum } from "@/utils/constant"
 
 const ADMIN_NAV = [
     { title: "Dashboard", href: "/vendor-portal/admin", icon: "dashboard" },
+    { title: "Companies", href: "/vendor-portal/admin/companies", icon: "companies" },
     { title: "Vendors", href: "/vendor-portal/admin/vendors", icon: "vendors" },
     { title: "Categories", href: "/vendor-portal/admin/categories", icon: "categories" },
     { title: "Item Master", href: "/vendor-portal/admin/items", icon: "items" },
@@ -24,6 +25,7 @@ const BOSS_NAV = [
     { title: "Dashboard", href: "/vendor-portal/boss", icon: "dashboard" },
     // ── Approval queue ──
     { title: "Approval Queue", href: "/vendor-portal/boss/approvals", icon: "approvals" },
+    { title: "Companies", href: "/vendor-portal/admin/companies", icon: "companies" },
     // ── View all (same admin pages — boss can see them via admin layout) ──
     { title: "Procurement", href: "/vendor-portal/admin/procurement", icon: "procurement" },
     { title: "Purchase Orders", href: "/vendor-portal/admin/purchase-orders", icon: "pos" },

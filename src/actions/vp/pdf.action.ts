@@ -4,11 +4,11 @@
 import { prisma } from "@/lib/prisma"
 import { getVpSetting } from "@/actions/vp/settings.action"
 import { getBillToById } from "@/actions/vp/bill-to.action"
+import { getCompanyForDocument } from "@/lib/vendor-portal/company"
 import { VpActionResult } from "@/types/vendor-portal"
 import type { PoPdfData, PiPdfData, InvoicePdfData } from "@/lib/vp-pdf"
 
-// Company details from settings
-async function getCompanyInfo() {
+async function getFallbackCompanyInfo() {
     const [name, gstin, address] = await Promise.all([
         getVpSetting("GENERAL", "company_name"),
         getVpSetting("GENERAL", "company_gstin"),
@@ -21,54 +21,66 @@ async function getCompanyInfo() {
     }
 }
 
+async function getResolvedCompanyInfo(companyId?: string | null) {
+    const company = await getCompanyForDocument(companyId)
+    if (company) {
+        return {
+            companyName: company.name,
+            companyGstin: company.gstin ?? "",
+            companyAddress: company.address ?? "",
+        }
+    }
+
+    return getFallbackCompanyInfo()
+}
+
 // ── PO PDF data ────────────────────────────────────────────────
 
 export async function getVpPoPdfData(
     id: string,
 ): Promise<VpActionResult<PoPdfData>> {
     try {
-        const [po, company] = await Promise.all([
-            prisma.vpPurchaseOrder.findUnique({
-                where: { id },
-                select: {
-                    poNumber: true,
-                    status: true,
-                    subtotal: true,
-                    taxRate: true,
-                    taxAmount: true,
-                    grandTotal: true,
-                    notes: true,
-                    deliveryDate: true,
-                    deliveryAddress: true,
-                    createdAt: true,
-                    category: { select: { name: true } },
-                    approvedBy: { select: { name: true } },
-                    vendor: {
-                        select: {
-                            existingVendor: {
-                                select: {
-                                    name: true,
-                                    gstNumber: true,
-                                    contactEmail: true,
-                                    Address: { select: { line1: true, city: true, state: true } },
-                                },
+        const po = await prisma.vpPurchaseOrder.findUnique({
+            where: { id },
+            select: {
+                poNumber: true,
+                status: true,
+                subtotal: true,
+                taxRate: true,
+                taxAmount: true,
+                grandTotal: true,
+                notes: true,
+                deliveryDate: true,
+                deliveryAddress: true,
+                createdAt: true,
+                companyId: true,
+                category: { select: { name: true } },
+                approvedBy: { select: { name: true } },
+                vendor: {
+                    select: {
+                        existingVendor: {
+                            select: {
+                                name: true,
+                                gstNumber: true,
+                                contactEmail: true,
+                                Address: { select: { line1: true, city: true, state: true } },
                             },
                         },
                     },
-                    items: {
-                        select: {
-                            description: true,
-                            qty: true,
-                            unitPrice: true,
-                            total: true,
-                        },
+                },
+                items: {
+                    select: {
+                        description: true,
+                        qty: true,
+                        unitPrice: true,
+                        total: true,
                     },
                 },
-            }),
-            getCompanyInfo(),
-        ])
+            },
+        })
 
         if (!po) return { success: false, error: "PO not found" }
+        const company = await getResolvedCompanyInfo(po.companyId)
 
         const ev = po.vendor.existingVendor
         const addr = ev.Address[0]
@@ -108,43 +120,42 @@ export async function getVpPiPdfData(
     id: string,
 ): Promise<VpActionResult<PiPdfData>> {
     try {
-        const [pi, company] = await Promise.all([
-            prisma.vpProformaInvoice.findUnique({
-                where: { id },
-                select: {
-                    piNumber: true,
-                    status: true,
-                    subtotal: true,
-                    taxRate: true,
-                    taxAmount: true,
-                    grandTotal: true,
-                    notes: true,
-                    validityDate: true,
-                    paymentTerms: true,
-                    createdAt: true,
-                    category: { select: { name: true } },
-                    approvedBy: { select: { name: true } },
-                    vendor: {
-                        select: {
-                            existingVendor: {
-                                select: { name: true, gstNumber: true },
-                            },
-                        },
-                    },
-                    items: {
-                        select: {
-                            description: true,
-                            qty: true,
-                            unitPrice: true,
-                            total: true,
+        const pi = await prisma.vpProformaInvoice.findUnique({
+            where: { id },
+            select: {
+                piNumber: true,
+                status: true,
+                subtotal: true,
+                taxRate: true,
+                taxAmount: true,
+                grandTotal: true,
+                notes: true,
+                validityDate: true,
+                paymentTerms: true,
+                createdAt: true,
+                companyId: true,
+                category: { select: { name: true } },
+                approvedBy: { select: { name: true } },
+                vendor: {
+                    select: {
+                        existingVendor: {
+                            select: { name: true, gstNumber: true },
                         },
                     },
                 },
-            }),
-            getCompanyInfo(),
-        ])
+                items: {
+                    select: {
+                        description: true,
+                        qty: true,
+                        unitPrice: true,
+                        total: true,
+                    },
+                },
+            },
+        })
 
         if (!pi) return { success: false, error: "PI not found" }
+        const company = await getResolvedCompanyInfo(pi.companyId)
 
         return {
             success: true,
@@ -187,6 +198,7 @@ export async function getVpInvoicePdfData(
                 taxRate: true,
                 taxAmount: true,
                 totalAmount: true,
+                companyId: true,
                 billToId: true,
                 notes: true,
                 createdAt: true,
@@ -228,7 +240,7 @@ export async function getVpInvoicePdfData(
 
         if (!inv) return { success: false, error: "Invoice not found" }
 
-        const company = await getCompanyInfo()
+        const company = await getResolvedCompanyInfo(inv.companyId)
 
         let billToDetails = {
             name: company.companyName,
@@ -240,9 +252,9 @@ export async function getVpInvoicePdfData(
             const wh = await getBillToById(inv.billToId)
             if (wh) {
                 billToDetails = {
-                    name: wh.name,
-                    address: wh.address,
-                    gstin: wh.gstin,
+                    name: company.companyName,
+                    address: wh.address || company.companyAddress,
+                    gstin: wh.gstin || company.companyGstin,
                 }
             }
         }

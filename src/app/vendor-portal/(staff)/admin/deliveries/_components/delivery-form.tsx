@@ -2,7 +2,7 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -25,19 +25,30 @@ import { createVpDelivery } from "@/actions/vp/delivery.action"
 import {
     getAcknowledgedPosForDelivery,
     getPoLineItemsForDelivery,
+    getVpDeliveryForPo,
 } from "@/actions/vp/delivery.action"
 
 type PoOption = { id: string; poNumber: string; vendorName: string }
-type LineItem = { id: string; description: string; qty: number; unitPrice: number; totalDelivered: number }
+type LineItem = {
+    id: string
+    description: string
+    qty: number
+    unitPrice: number
+    totalDelivered: number
+    remainingQty: number
+}
 
-const CONDITION_LABELS = { GOOD: "Good", DAMAGED: "Damaged", PARTIAL: "Partial" }
+const CONDITION_LABELS = { GOOD: "Good", DAMAGED: "Damaged", PARTIAL: "Partial", EXTRA: "Extra" }
 
 export function DeliveryForm() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const prefillPoId = searchParams.get("poId") ?? ""
     const [isPending, startTransition] = useTransition()
     const [pos, setPos] = useState<PoOption[]>([])
     const [lineItems, setLineItems] = useState<LineItem[]>([])
     const [loadingItems, setLoadingItems] = useState(false)
+    const [editingExistingDelivery, setEditingExistingDelivery] = useState(false)
 
     const form = useForm<DeliveryRecordValues>({
         resolver: zodResolver(deliveryRecordSchema) as any,
@@ -60,23 +71,60 @@ export function DeliveryForm() {
         })
     }, [])
 
+    useEffect(() => {
+        if (!prefillPoId || form.getValues("poId")) return
+        form.setValue("poId", prefillPoId)
+    }, [form, prefillPoId])
+
     // When PO changes, load its line items and pre-populate rows
     useEffect(() => {
         if (!selectedPoId) { replace([]); setLineItems([]); return }
         setLoadingItems(true)
-        getPoLineItemsForDelivery(selectedPoId).then((res) => {
-            if (!res.success) { toast.error(res.error); return }
-            setLineItems(res.data)
+        Promise.all([
+            getPoLineItemsForDelivery(selectedPoId),
+            getVpDeliveryForPo(selectedPoId),
+        ]).then(([itemsRes, deliveryRes]) => {
+            if (!itemsRes.success) {
+                toast.error(itemsRes.error)
+                setLoadingItems(false)
+                return
+            }
+
+            setLineItems(itemsRes.data)
+            const existingDelivery = deliveryRes.success ? deliveryRes.data : null
+            setEditingExistingDelivery(Boolean(existingDelivery))
+
+            if (existingDelivery) {
+                form.setValue(
+                    "deliveryDate",
+                    existingDelivery.deliveryDate
+                        ? new Date(existingDelivery.deliveryDate).toISOString().split("T")[0]
+                        : new Date().toISOString().split("T")[0],
+                )
+                form.setValue("dispatchedBy", existingDelivery.dispatchedBy ?? "")
+                form.setValue("receivedBy", existingDelivery.receivedBy ?? "")
+                form.setValue("notes", existingDelivery.notes ?? "")
+            } else {
+                form.setValue("deliveryDate", new Date().toISOString().split("T")[0])
+                form.setValue("dispatchedBy", "")
+                form.setValue("receivedBy", "")
+                form.setValue("notes", "")
+            }
+
             replace(
-                res.data.map((li) => ({
+                itemsRes.data.map((li) => ({
                     poLineItemId: li.id,
-                    qtyDelivered: Math.max(0, li.qty - li.totalDelivered),
-                    condition: "GOOD" as const,
+                    qtyDelivered: li.totalDelivered > 0 ? li.totalDelivered : li.qty,
+                    condition: li.totalDelivered > li.qty
+                        ? "EXTRA" as const
+                        : li.totalDelivered > 0 && li.totalDelivered < li.qty
+                            ? "PARTIAL" as const
+                            : "GOOD" as const,
                 })),
             )
             setLoadingItems(false)
         })
-    }, [selectedPoId])
+    }, [form, replace, selectedPoId])
 
     const selectedPo = pos.find((p) => p.id === selectedPoId)
 
@@ -123,6 +171,9 @@ export function DeliveryForm() {
                                             }
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        One delivery record is maintained per PO. Selecting the same PO again updates that delivery instead of creating another one.
+                                    </p>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -186,6 +237,11 @@ export function DeliveryForm() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            {editingExistingDelivery && (
+                                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                    You are updating the current delivery for this PO. Enter the delivered quantities as they stand now, and add date-wise notes below when needed.
+                                </div>
+                            )}
                             {loadingItems ? (
                                 <p className="py-4 text-center text-sm text-muted-foreground">Loading line items…</p>
                             ) : fields.length === 0 ? (
@@ -198,15 +254,17 @@ export function DeliveryForm() {
                                     <div className="hidden grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
                                         <div className="col-span-5">Item</div>
                                         <div className="col-span-2 text-center">Ordered</div>
-                                        <div className="col-span-2 text-center">Previous</div>
-                                        <div className="col-span-2 text-center">Delivering</div>
+                                        <div className="col-span-2 text-center">Delivered</div>
+                                        <div className="col-span-2 text-center">Update Total</div>
                                         <div className="col-span-1">Condition</div>
                                     </div>
 
                                     {fields.map((field, index) => {
                                         const li = lineItems[index]
                                         if (!li) return null
-                                        const remaining = Math.max(0, li.qty - li.totalDelivered)
+                                        const remaining = li.remainingQty
+                                        const deliveringQty = Number(form.watch(`items.${index}.qtyDelivered`) ?? 0)
+                                        const isExtraDelivery = deliveringQty > li.qty
 
                                         return (
                                             <div
@@ -219,6 +277,14 @@ export function DeliveryForm() {
                                                     <p className="text-xs text-muted-foreground">
                                                         ₹{li.unitPrice.toLocaleString("en-IN")} / unit
                                                     </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Remaining to complete PO: {remaining}
+                                                    </p>
+                                                    {isExtraDelivery && (
+                                                        <p className="text-xs font-medium text-amber-600">
+                                                            Extra delivery detected: {Math.max(0, deliveringQty - li.qty)}
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 {/* Ordered qty */}
@@ -229,7 +295,7 @@ export function DeliveryForm() {
 
                                                 {/* Previous deliveries */}
                                                 <div className="col-span-4 sm:col-span-2 text-center">
-                                                    <p className="text-xs text-muted-foreground mb-0.5">Prev.</p>
+                                                    <p className="text-xs text-muted-foreground mb-0.5">Delivered</p>
                                                     <Badge
                                                         variant={li.totalDelivered > 0 ? "secondary" : "outline"}
                                                         className="text-xs"
@@ -240,7 +306,7 @@ export function DeliveryForm() {
 
                                                 {/* Qty to deliver */}
                                                 <div className="col-span-4 sm:col-span-2">
-                                                    <p className="text-xs text-muted-foreground mb-0.5">Delivering</p>
+                                                    <p className="text-xs text-muted-foreground mb-0.5">Update Total</p>
                                                     <FormField
                                                         control={form.control}
                                                         name={`items.${index}.qtyDelivered`}
@@ -250,10 +316,15 @@ export function DeliveryForm() {
                                                                     <Input
                                                                         type="number"
                                                                         min={0}
-                                                                        max={remaining}
                                                                         step={0.01}
                                                                         className="h-8 text-xs text-center"
                                                                         {...f}
+                                                                        value={f.value ?? ""}
+                                                                        onChange={(e) => f.onChange(
+                                                                            e.target.value === ""
+                                                                                ? ""
+                                                                                : Number(e.target.value),
+                                                                        )}
                                                                     />
                                                                 </FormControl>
                                                                 <FormMessage />
@@ -305,7 +376,7 @@ export function DeliveryForm() {
                         Cancel
                     </Button>
                     <Button type="submit" disabled={isPending || !selectedPoId || fields.length === 0}>
-                        {isPending ? "Saving…" : "Record Delivery"}
+                        {isPending ? "Saving…" : editingExistingDelivery ? "Update Delivery" : "Save Delivery"}
                     </Button>
                 </div>
             </form>

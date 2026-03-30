@@ -1,7 +1,7 @@
 // src/app/(vendor)/vendor/my-quotes/new/page.tsx
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,13 +21,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { IconPlus, IconTrash, IconArrowLeft } from "@tabler/icons-react"
+import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconFile, IconX } from "@tabler/icons-react"
 import { VpTotalsBar } from "@/components/ui/vp-totals-bar"
 import { vendorPiSchema, VendorPiFormValues } from "@/validations/vp/procurement"
 import { createVendorProformaInvoice } from "@/actions/vp/proforma-invoice.action"
 import { getOpenProcurementsForVendor } from "@/actions/vp/procurement.action"
 import { VpPageHeader } from "@/components/ui/vp-page-header"
 import Link from "next/link"
+import { uploadAttachmentToAzure } from "@/services/azure-blob"
 
 type VendorPiFormInput = z.input<typeof vendorPiSchema>
 
@@ -37,6 +38,9 @@ export default function VendorNewQuotePage() {
     const [isPending, startTransition] = useTransition()
     const [openPrs, setOpenPrs] = useState<any[]>([])
     const [selectedPr, setSelectedPr] = useState<any | null>(null)
+    const [uploadingAttachment, setUploadingAttachment] = useState(false)
+    const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
+    const fileRef = useRef<HTMLInputElement>(null)
 
     const prefillPrId = searchParams.get("procurementId") ?? ""
 
@@ -48,6 +52,7 @@ export default function VendorNewQuotePage() {
             validityDate: "",
             paymentTerms: "",
             fulfillmentDate: "",
+            attachmentUrls: [],
             taxRate: 18,
             items: [{ procurementLineItemId: "", itemId: "", description: "", qty: 1, unitPrice: 0, total: 0 }],
         },
@@ -92,10 +97,36 @@ export default function VendorNewQuotePage() {
         }
     }, [prefillPrId, openPrs])
 
+    const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? [])
+        if (files.length === 0) return
+        setUploadingAttachment(true)
+        try {
+            const uploadedUrls: string[] = []
+            for (const file of files) {
+                const formData = new FormData()
+                formData.append("file", file)
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_")
+                const path = `vp/proforma-invoices/vendor/temp-${Date.now()}_${safeName}`
+                const url = await uploadAttachmentToAzure(path, formData)
+                uploadedUrls.push(url)
+            }
+            setAttachmentUrls((current) => {
+                const next = [...current, ...uploadedUrls]
+                form.setValue("attachmentUrls", next)
+                return next
+            })
+            toast.success(`${uploadedUrls.length} attachment${uploadedUrls.length > 1 ? "s" : ""} uploaded`)
+        } catch {
+            toast.error("Failed to upload attachment")
+        } finally {
+            setUploadingAttachment(false)
+            if (fileRef.current) fileRef.current.value = ""
+        }
+    }
+
     const onSubmit = (values: VendorPiFormValues) => {
         startTransition(async () => {
-            // Map to the existing createVpProformaInvoice signature
-            // We need to get the vendorId for this session's vendor
             const result = await createVendorProformaInvoice(values)
             if (!result.success) { toast.error(result.error); return }
             toast.success("Quote submitted successfully")
@@ -156,6 +187,12 @@ export default function VendorNewQuotePage() {
 
                             {selectedPr && (
                                 <div className="grid gap-4 sm:grid-cols-2 rounded-md border bg-muted/20 p-4 text-sm mt-2">
+                                    {selectedPr.companyName && (
+                                        <div>
+                                            <p className="font-semibold mb-1 text-muted-foreground uppercase text-[10px] tracking-wider">Company</p>
+                                            <p>{selectedPr.companyName}</p>
+                                        </div>
+                                    )}
                                     {selectedPr.deliveryAddress && (
                                         <div>
                                             <p className="font-semibold mb-1 text-muted-foreground uppercase text-[10px] tracking-wider">Deliver To</p>
@@ -236,6 +273,66 @@ export default function VendorNewQuotePage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
+
+                            <div className="space-y-2">
+                                <div>
+                                    <p className="text-sm font-medium">Attachments</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Upload quotation PDFs, spec sheets, or supporting files. Admin and boss will see these attachments on the quote.
+                                    </p>
+                                </div>
+                                {attachmentUrls.length > 0 && (
+                                    <div className="space-y-2">
+                                        {attachmentUrls.map((url) => (
+                                            <div key={url} className="flex items-center gap-3 rounded-md border bg-muted/30 px-4 py-3">
+                                                <IconFile size={18} className="shrink-0 text-muted-foreground" />
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 truncate text-sm text-primary hover:underline"
+                                                >
+                                                    {url.split("/").pop()}
+                                                </a>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={() => setAttachmentUrls((current) => {
+                                                        const next = current.filter((item) => item !== url)
+                                                        form.setValue("attachmentUrls", next)
+                                                        return next
+                                                    })}
+                                                >
+                                                    <IconX size={13} />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div
+                                    className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-6 transition-colors hover:bg-muted/30"
+                                    onClick={() => fileRef.current?.click()}
+                                >
+                                    <IconUpload size={22} className="mb-2 text-muted-foreground" />
+                                    <p className="text-sm font-medium">
+                                        {uploadingAttachment ? "Uploading…" : "Click to upload attachments"}
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                        PDF, JPG or PNG · multiple files supported
+                                    </p>
+                                </div>
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleAttachmentUpload}
+                                    disabled={uploadingAttachment}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -388,7 +485,7 @@ export default function VendorNewQuotePage() {
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isPending}>
+                        <Button type="submit" disabled={isPending || uploadingAttachment}>
                             {isPending ? "Submitting…" : "Submit Quote"}
                         </Button>
                     </div>

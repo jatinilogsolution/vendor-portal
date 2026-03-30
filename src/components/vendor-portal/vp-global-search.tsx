@@ -16,6 +16,10 @@ const TYPE_COLOR: Record<string, string> = {
   INVOICE:     "bg-emerald-100 text-emerald-700",
   VENDOR:      "bg-amber-100 text-amber-700",
   PROCUREMENT: "bg-slate-100 text-slate-700",
+  DELIVERY:    "bg-cyan-100 text-cyan-700",
+  ITEM:        "bg-orange-100 text-orange-700",
+  CATEGORY:    "bg-fuchsia-100 text-fuchsia-700",
+  USER:        "bg-indigo-100 text-indigo-700",
 }
 
 export function VpGlobalSearch() {
@@ -60,15 +64,15 @@ export function VpGlobalSearch() {
   }
 
   return (
-    <div ref={ref} className="relative w-full max-w-xs">
+    <div ref={ref} className="relative w-full max-w-lg">
       <div className="relative">
         <IconSearch
           size={14}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
         <Input
-          placeholder="Search PO, PI, invoice, vendor…"
-          className="h-8 pl-8 pr-8 text-xs"
+          placeholder="Search PO, invoice, delivery, item, category, user…"
+          className="h-8 pl-8 pr-8 shadow-2xl text-xs"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
@@ -98,7 +102,7 @@ export function VpGlobalSearch() {
                 <p className="truncate text-xs font-medium">{r.title}</p>
                 <p className="truncate text-[10px] text-muted-foreground">{r.subtitle}</p>
               </div>
-              <VpStatusBadge status={r.status} />
+              {r.status ? <VpStatusBadge status={r.status} /> : null}
             </button>
           ))}
         </div>

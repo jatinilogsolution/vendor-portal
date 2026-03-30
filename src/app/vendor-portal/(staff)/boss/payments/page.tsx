@@ -28,6 +28,7 @@ import {
     FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { VpPageHeader } from "@/components/ui/vp-page-header"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { getVpInvoices, VpInvoiceRow } from "@/actions/vp/invoice.action"
@@ -98,6 +99,7 @@ export default function BossPaymentsPage() {
             amount: 0,
             paymentMode: "NEFT",  // must be exactly "NEFT" | "RTGS" | "CHEQUE" | "UPI"
             transactionRef: "",
+            notes: "",
             paymentDate: new Date().toISOString().split("T")[0],
             proofUrl: "",
         },
@@ -208,13 +210,18 @@ export default function BossPaymentsPage() {
                     </div>
                 }
             />
-            <VpDateFilter
+            
+            <div className=" absolute  right-10">
+
+              <VpDateFilter
                 from={from}
                 to={to}
                 onFrom={(v) => { setFrom(v); setApprovedPage(1); setPaymentsPage(1) }}
                 onTo={(v) => { setTo(v); setApprovedPage(1); setPaymentsPage(1) }}
                 onClear={() => { setFrom(""); setTo(""); setApprovedPage(1); setPaymentsPage(1) }}
             />
+            </div>
+
 
             <Tabs value={tab} onValueChange={setTab}>
                 <TabsList>
@@ -227,7 +234,9 @@ export default function BossPaymentsPage() {
                         )}
                     </TabsTrigger>
                     <TabsTrigger value="history">Payment History</TabsTrigger>
+
                 </TabsList>
+
 
                 {/* ── Approved invoices awaiting payment ── */}
                 <TabsContent value="pending" className="mt-4">
@@ -241,6 +250,7 @@ export default function BossPaymentsPage() {
                                         <TableHead>Invoice No.</TableHead>
                                         <TableHead>Vendor</TableHead>
                                         <TableHead>Reference</TableHead>
+                                        <TableHead>Delivery</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
                                         <TableHead>Approved</TableHead>
                                         <TableHead className="w-36" />
@@ -266,6 +276,12 @@ export default function BossPaymentsPage() {
                                                         : <span className="text-xs text-muted-foreground">Open</span>
                                                 }
                                             </TableCell>
+                                            <TableCell>
+                                                {inv.deliveryStatus
+                                                    ? <VpStatusBadge status={inv.deliveryStatus} />
+                                                    : <span className="text-xs text-muted-foreground">—</span>
+                                                }
+                                            </TableCell>
                                             <TableCell className="text-right font-bold text-sm">
                                                 ₹{inv.totalAmount.toLocaleString("en-IN")}
                                             </TableCell>
@@ -279,9 +295,12 @@ export default function BossPaymentsPage() {
                                                     size="sm"
                                                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
                                                     onClick={() => setPayTarget(inv)}
+                                                    disabled={!!inv.poId && !["PARTIAL_DELIVERY", "FULLY_DELIVERED", "APPROVED"].includes(inv.deliveryStatus ?? "")}
                                                 >
                                                     <IconCash size={14} className="mr-1.5" />
-                                                    Pay Now
+                                                    {!!inv.poId && !["PARTIAL_DELIVERY", "FULLY_DELIVERED", "APPROVED"].includes(inv.deliveryStatus ?? "")
+                                                        ? "Await Delivery"
+                                                        : "Pay Now"}
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -340,6 +359,9 @@ export default function BossPaymentsPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <code className="text-xs">{p.transactionRef ?? "—"}</code>
+                                                {p.notes && (
+                                                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{p.notes}</p>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
                                                 {p.paymentDate
@@ -378,7 +400,7 @@ export default function BossPaymentsPage() {
 
             {/* Payment initiation dialog */}
             <Dialog open={!!payTarget} onOpenChange={(v) => { if (!v) { setPayTarget(null); form.reset() } }}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="min-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Initiate Payment</DialogTitle>
                         <DialogDescription>
@@ -399,7 +421,18 @@ export default function BossPaymentsPage() {
                                     <FormItem>
                                         <FormLabel>Amount (₹) <span className="text-destructive">*</span></FormLabel>
                                         <FormControl>
-                                            <Input type="number" min={1} step={0.01} {...field} />
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                step={0.01}
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                onChange={(e) => field.onChange(
+                                                    e.target.value === ""
+                                                        ? ""
+                                                        : Number(e.target.value),
+                                                )}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -439,6 +472,20 @@ export default function BossPaymentsPage() {
                                     <FormLabel>Transaction / UTR</FormLabel>
                                     <FormControl>
                                         <Input placeholder="e.g. UTR123456789" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="notes" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Payment Note</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            rows={3}
+                                            placeholder="Optional note for admin, boss, and vendor context"
+                                            {...field}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

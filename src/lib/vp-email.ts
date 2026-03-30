@@ -2,7 +2,7 @@
 // Drop-in email triggers for every VP status change.
 // Import and call from server actions — never from client.
 
- import { prisma }    from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 import { sendEmail } from "@/services/mail"
 
 // ── Shared resolver ────────────────────────────────────────────
@@ -23,7 +23,7 @@ async function getInternalEmails(): Promise<string[]> {
     where:  { role: { in: ["ADMIN", "BOSS"] } },
     select: { email: true },
   })
-  return users.map((u) => u.email)
+  return users.map((u) => u.email).filter(Boolean)
 }
 
 async function getAdminEmails(): Promise<string[]> {
@@ -31,7 +31,7 @@ async function getAdminEmails(): Promise<string[]> {
     where:  { role: "ADMIN" },
     select: { email: true },
   })
-  return users.map((u) => u.email)
+  return users.map((u) => u.email).filter(Boolean)
 }
 
 async function getBossEmails(): Promise<string[]> {
@@ -39,7 +39,18 @@ async function getBossEmails(): Promise<string[]> {
     where:  { role: "BOSS" },
     select: { email: true },
   })
-  return users.map((u) => u.email)
+  return users.map((u) => u.email).filter(Boolean)
+}
+
+async function getInternalCc(recipients: string | string[]): Promise<string[]> {
+  const current = new Set(
+    (Array.isArray(recipients) ? recipients : [recipients])
+      .filter(Boolean)
+      .map((email) => email.toLowerCase()),
+  )
+
+  const internal = await getInternalEmails()
+  return internal.filter((email) => !current.has(email.toLowerCase()))
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -105,7 +116,8 @@ export async function emailPoSubmitted(poId: string) {
 
   await sendEmail({
     to:           bossEmails,
-    subject:      `PO ${po.poNumber} submitted for approval`,
+    cc:           await getInternalCc(bossEmails),
+    subject:      `[VP][PO][SUBMITTED] ${po.poNumber} submitted for approval`,
     html:         wrap(
       "Purchase Order Awaiting Approval",
       `
@@ -138,7 +150,8 @@ export async function emailPoApproved(poId: string) {
 
   await sendEmail({
     to:           po.createdBy.email,
-    subject:      `PO ${po.poNumber} approved`,
+    cc:           await getInternalCc(po.createdBy.email),
+    subject:      `[VP][PO][APPROVED] ${po.poNumber} approved`,
     html:         wrap(
       "Purchase Order Approved ✓",
       `
@@ -167,7 +180,8 @@ export async function emailPoRejected(poId: string, reason: string) {
 
   await sendEmail({
     to:           po.createdBy.email,
-    subject:      `PO ${po.poNumber} rejected`,
+    cc:           await getInternalCc(po.createdBy.email),
+    subject:      `[VP][PO][REJECTED] ${po.poNumber} rejected`,
     html:         wrap(
       "Purchase Order Rejected",
       `
@@ -202,7 +216,8 @@ export async function emailPoSentToVendor(poId: string) {
 
   await sendEmail({
     to:           vendorEmails,
-    subject:      `New Purchase Order ${po.poNumber} from AWL India`,
+    cc:           await getInternalCc(vendorEmails),
+    subject:      `[VP][PO][ISSUED] New purchase order ${po.poNumber} from AWL India`,
     html:         wrap(
       "New Purchase Order Received",
       `
@@ -233,6 +248,7 @@ export async function emailInvoiceSubmitted(invoiceId: string) {
     select: {
       invoiceNumber: true,
       totalAmount:   true,
+      documents: { select: { id: true } },
       vendor: { select: { existingVendor: { select: { name: true } } } },
     },
   })
@@ -242,7 +258,8 @@ export async function emailInvoiceSubmitted(invoiceId: string) {
 
   await sendEmail({
     to:           adminEmails,
-    subject:      `New invoice received: ${inv.invoiceNumber ?? "—"}`,
+    cc:           await getInternalCc(adminEmails),
+    subject:      `[VP][INVOICE][SUBMITTED] New invoice received: ${inv.invoiceNumber ?? "—"}`,
     html:         wrap(
       "Vendor Invoice Submitted",
       `
@@ -251,6 +268,7 @@ export async function emailInvoiceSubmitted(invoiceId: string) {
         row("Invoice No.", inv.invoiceNumber ?? "—"),
         row("Vendor",      inv.vendor.existingVendor.name),
         row("Amount",      `₹${inv.totalAmount.toLocaleString("en-IN")}`),
+        row("Attachments", `${inv.documents.length} file(s)`),
       )}
       ${btn("Review Invoice", `${BASE}/vendor-portal/admin/invoices/${invoiceId}`)}
       `,
@@ -275,7 +293,8 @@ export async function emailInvoiceApproved(invoiceId: string) {
 
   await sendEmail({
     to:           inv.createdBy.email,
-    subject:      `Invoice ${inv.invoiceNumber ?? ""} approved — payment will be initiated`,
+    cc:           await getInternalCc(inv.createdBy.email),
+    subject:      `[VP][INVOICE][APPROVED] ${inv.invoiceNumber ?? ""} approved`,
     html:         wrap(
       "Invoice Approved ✓",
       `
@@ -307,7 +326,8 @@ export async function emailInvoiceRejected(invoiceId: string, reason: string) {
 
   await sendEmail({
     to:           inv.createdBy.email,
-    subject:      `Invoice ${inv.invoiceNumber ?? ""} rejected`,
+    cc:           await getInternalCc(inv.createdBy.email),
+    subject:      `[VP][INVOICE][REJECTED] ${inv.invoiceNumber ?? ""} rejected`,
     html:         wrap(
       "Invoice Rejected",
       `
@@ -325,7 +345,7 @@ export async function emailInvoiceRejected(invoiceId: string, reason: string) {
   })
 }
 
-export async function emailPaymentInitiated(invoiceId: string, amount: number) {
+export async function emailPaymentInitiated(invoiceId: string, amount: number, note?: string | null) {
   const inv = await prisma.vpInvoice.findUnique({
     where:  { id: invoiceId },
     select: {
@@ -337,7 +357,8 @@ export async function emailPaymentInitiated(invoiceId: string, amount: number) {
 
   await sendEmail({
     to:           inv.createdBy.email,
-    subject:      `Payment initiated for invoice ${inv.invoiceNumber ?? ""}`,
+    cc:           await getInternalCc(inv.createdBy.email),
+    subject:      `[VP][PAYMENT][INITIATED] Invoice ${inv.invoiceNumber ?? ""}`,
     html:         wrap(
       "Payment Initiated 💳",
       `
@@ -347,6 +368,7 @@ export async function emailPaymentInitiated(invoiceId: string, amount: number) {
         row("Invoice No.", inv.invoiceNumber ?? "—"),
         row("Amount",      `₹${amount.toLocaleString("en-IN")}`),
         row("Status",      "Payment Initiated — processing"),
+        ...(note ? [row("Boss Note", note)] : []),
       )}
       <p>You will receive confirmation once the payment is completed.</p>
       ${btn("View Invoice", `${BASE}/vendor-portal/vendor/my-invoices/${invoiceId}`)}
@@ -358,7 +380,7 @@ export async function emailPaymentInitiated(invoiceId: string, amount: number) {
   })
 }
 
-export async function emailPaymentConfirmed(invoiceId: string, amount: number) {
+export async function emailPaymentConfirmed(invoiceId: string, amount: number, note?: string | null) {
   const inv = await prisma.vpInvoice.findUnique({
     where:  { id: invoiceId },
     select: {
@@ -370,7 +392,8 @@ export async function emailPaymentConfirmed(invoiceId: string, amount: number) {
 
   await sendEmail({
     to:           inv.createdBy.email,
-    subject:      `Payment confirmed for invoice ${inv.invoiceNumber ?? ""}`,
+    cc:           await getInternalCc(inv.createdBy.email),
+    subject:      `[VP][PAYMENT][CONFIRMED] Invoice ${inv.invoiceNumber ?? ""}`,
     html:         wrap(
       "Payment Confirmed ✅",
       `
@@ -380,6 +403,7 @@ export async function emailPaymentConfirmed(invoiceId: string, amount: number) {
         row("Invoice No.", inv.invoiceNumber ?? "—"),
         row("Amount Paid", `₹${amount.toLocaleString("en-IN")}`),
         row("Status",      "COMPLETED"),
+        ...(note ? [row("Boss Note", note)] : []),
       )}
       ${btn("View Invoice", `${BASE}/vendor-portal/vendor/my-invoices/${invoiceId}`)}
       `,
@@ -401,6 +425,7 @@ export async function emailPiSubmitted(piId: string) {
       piNumber:     true,
       grandTotal:   true,
       raisedByVendor: true,
+      documents: { select: { id: true } },
       vendor: { select: { existingVendor: { select: { name: true } } } },
     },
   })
@@ -411,7 +436,8 @@ export async function emailPiSubmitted(piId: string) {
 
   await sendEmail({
     to:           recipients,
-    subject:      `Proforma Invoice ${pi.piNumber} ${pi.raisedByVendor ? "received" : "submitted for approval"}`,
+    cc:           await getInternalCc(recipients),
+    subject:      `[VP][PI][${pi.raisedByVendor ? "RECEIVED" : "SUBMITTED"}] ${pi.piNumber}`,
     html:         wrap(
       pi.raisedByVendor
         ? "Vendor Quote Received"
@@ -425,6 +451,7 @@ export async function emailPiSubmitted(piId: string) {
         row("PI Number", pi.piNumber),
         row("Vendor",    pi.vendor.existingVendor.name),
         row("Amount",    `₹${pi.grandTotal.toLocaleString("en-IN")}`),
+        row("Attachments", `${pi.documents.length} file(s)`),
       )}
       ${btn("View PI", `${BASE}/vendor-portal/admin/proforma-invoices/${piId}`)}
       `,
@@ -449,7 +476,8 @@ export async function emailProcurementSubmitted(prId: string) {
 
   await sendEmail({
     to:           bossEmails,
-    subject:      `Procurement Request ${pr.prNumber} awaiting approval`,
+    cc:           await getInternalCc(bossEmails),
+    subject:      `[VP][PROCUREMENT][SUBMITTED] ${pr.prNumber} awaiting approval`,
     html:         wrap(
       "Procurement Request Submitted",
       `
@@ -480,7 +508,8 @@ export async function emailProcurementOpenForQuotes(
 
   await sendEmail({
     to:           vendorEmails,
-    subject:      `Quote invitation: ${pr.prNumber} — ${pr.title}`,
+    cc:           await getInternalCc(vendorEmails),
+    subject:      `[VP][PROCUREMENT][QUOTE_REQUEST] ${pr.prNumber} - ${pr.title}`,
     html:         wrap(
       "You Are Invited to Quote",
       `

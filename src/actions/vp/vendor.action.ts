@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
 import { isAdminOrBoss, isAdmin } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { mapAssignedVpVendorCategories } from "@/lib/vendor-portal/category"
+import { VpCompanyOption } from "@/lib/vendor-portal/company"
 import { VpActionResult, VpListParams, VpListResult } from "@/types/vendor-portal"
 import { vpVendorSchema, VpVendorFormValues } from "@/validations/vp/vendor"
 
@@ -16,10 +18,16 @@ export type VpVendorRow = {
     vendorType: string
     billingType: string[]
     recurringCycle: string | null
+    defaultInvoiceCompanyId: string | null
+    restrictInvoiceToDefaultCompany: boolean
     categoryId: string | null
     categoryName: string | null
+    categoryIds: string[]
+    categoryNames: string[]
+    categories: { id: string; name: string }[]
     createdAt: Date
     existingVendorId: string
+    companies: (VpCompanyOption & { isDefaultInvoiceCompany: boolean })[]
     vendor: {
         name: string
         contactEmail: string | null
@@ -59,6 +67,48 @@ export type VpVendorDetail = VpVendorRow & {
     }[]
 }
 
+function mapAssignedCompanies(
+    rows: {
+        company: VpCompanyOption
+    }[],
+    defaultInvoiceCompanyId: string | null,
+): (VpCompanyOption & { isDefaultInvoiceCompany: boolean })[] {
+    return rows.map((row) => ({
+        ...row.company,
+        isDefaultInvoiceCompany: row.company.id === defaultInvoiceCompanyId,
+    }))
+}
+
+async function validateAssignedCompanyIds(companyIds: string[]): Promise<string | null> {
+    const uniqueCompanyIds = [...new Set(companyIds.filter(Boolean))]
+    if (uniqueCompanyIds.length === 0) return "Assign at least one company"
+
+    const count = await prisma.vpCompany.count({
+        where: { id: { in: uniqueCompanyIds } },
+    })
+
+    if (count !== uniqueCompanyIds.length) {
+        return "One or more selected companies are invalid"
+    }
+
+    return null
+}
+
+async function validateAssignedCategoryIds(categoryIds: string[]): Promise<string | null> {
+    const uniqueCategoryIds = [...new Set(categoryIds.filter(Boolean))]
+    if (uniqueCategoryIds.length === 0) return null
+
+    const count = await prisma.vpCategory.count({
+        where: { id: { in: uniqueCategoryIds } },
+    })
+
+    if (count !== uniqueCategoryIds.length) {
+        return "One or more selected categories are invalid"
+    }
+
+    return null
+}
+
 // ── READ list ──────────────────────────────────────────────────
 
 export async function getVpVendors(
@@ -71,7 +121,12 @@ export async function getVpVendors(
 
         const where: any = {}
         if (params.status) where.portalStatus = params.status
-        if (params.categoryId) where.categoryId = params.categoryId
+        if (params.categoryId) {
+            where.OR = [
+                { categoryId: params.categoryId },
+                { categories: { some: { categoryId: params.categoryId } } },
+            ]
+        }
         if (params.type) where.vendorType = params.type
         if (params.search) {
             where.existingVendor = {
@@ -92,10 +147,39 @@ export async function getVpVendors(
                     vendorType: true,
                     billingType: true,
                     recurringCycle: true,
+                    defaultInvoiceCompanyId: true,
+                    restrictInvoiceToDefaultCompany: true,
                     categoryId: true,
                     createdAt: true,
                     existingVendorId: true,
-                    category: { select: { name: true } },
+                    category: { select: { id: true, name: true } },
+                    categories: {
+                        select: {
+                            category: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                        orderBy: { category: { name: "asc" } },
+                    },
+                    companies: {
+                        select: {
+                            company: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    gstin: true,
+                                    pan: true,
+                                    address: true,
+                                    legalName: true,
+                                },
+                            },
+                        },
+                        orderBy: { company: { name: "asc" } },
+                    },
                     existingVendor: {
                         select: {
                             name: true,
@@ -119,28 +203,37 @@ export async function getVpVendors(
             }),
         ])
 
-        const data: VpVendorRow[] = rows.map((r) => ({
-            id: r.id,
-            portalStatus: r.portalStatus,
-            vendorType: r.vendorType,
-            billingType: r.billingType ? r.billingType.split(",") : [],
-            recurringCycle: r.recurringCycle,
-            categoryId: r.categoryId,
-            categoryName: r.category?.name ?? null,
-            createdAt: r.createdAt,
-            existingVendorId: r.existingVendorId,
-            vendor: {
-                name: r.existingVendor.name,
-                contactEmail: r.existingVendor.contactEmail,
-                contactPhone: r.existingVendor.contactPhone,
-                gstNumber: r.existingVendor.gstNumber,
-                panNumber: r.existingVendor.panNumber,
-                isActive: r.existingVendor.isActive,
-                paymentTerms: r.existingVendor.paymentTerms,
-                address: r.existingVendor.Address[0] ?? null,
-            },
-            _count: r._count,
-        }))
+        const data: VpVendorRow[] = rows.map((r) => {
+            const assignedCategories = mapAssignedVpVendorCategories(r)
+            return {
+                id: r.id,
+                portalStatus: r.portalStatus,
+                vendorType: r.vendorType,
+                billingType: r.billingType ? r.billingType.split(",") : [],
+                recurringCycle: r.recurringCycle,
+                defaultInvoiceCompanyId: r.defaultInvoiceCompanyId,
+                restrictInvoiceToDefaultCompany: r.restrictInvoiceToDefaultCompany,
+                categoryId: assignedCategories[0]?.id ?? r.categoryId,
+                categoryName: assignedCategories[0]?.name ?? r.category?.name ?? null,
+                categoryIds: assignedCategories.map((category) => category.id),
+                categoryNames: assignedCategories.map((category) => category.name),
+                categories: assignedCategories,
+                createdAt: r.createdAt,
+                existingVendorId: r.existingVendorId,
+                companies: mapAssignedCompanies(r.companies, r.defaultInvoiceCompanyId),
+                vendor: {
+                    name: r.existingVendor.name,
+                    contactEmail: r.existingVendor.contactEmail,
+                    contactPhone: r.existingVendor.contactPhone,
+                    gstNumber: r.existingVendor.gstNumber,
+                    panNumber: r.existingVendor.panNumber,
+                    isActive: r.existingVendor.isActive,
+                    paymentTerms: r.existingVendor.paymentTerms,
+                    address: r.existingVendor.Address[0] ?? null,
+                },
+                _count: r._count,
+            }
+        })
 
         return {
             success: true,
@@ -166,11 +259,40 @@ export async function getVpVendorById(
                 vendorType: true,
                 billingType: true,
                 recurringCycle: true,
+                defaultInvoiceCompanyId: true,
+                restrictInvoiceToDefaultCompany: true,
                 categoryId: true,
                 createdAt: true,
                 existingVendorId: true,
-                category: { select: { name: true } },
+                category: { select: { id: true, name: true } },
+                categories: {
+                    select: {
+                        category: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                    orderBy: { category: { name: "asc" } },
+                },
                 createdBy: { select: { name: true, email: true } },
+                companies: {
+                    select: {
+                        company: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                gstin: true,
+                                pan: true,
+                                address: true,
+                                legalName: true,
+                            },
+                        },
+                    },
+                    orderBy: { company: { name: "asc" } },
+                },
                 existingVendor: {
                     select: {
                         name: true,
@@ -201,6 +323,7 @@ export async function getVpVendorById(
 
         if (!r) return { success: false, error: "Vendor not found" }
 
+        const assignedCategories = mapAssignedVpVendorCategories(r)
         return {
             success: true,
             data: {
@@ -209,10 +332,16 @@ export async function getVpVendorById(
                 vendorType: r.vendorType,
                 billingType: r.billingType ? r.billingType.split(",") : [],
                 recurringCycle: r.recurringCycle,
-                categoryId: r.categoryId,
-                categoryName: r.category?.name ?? null,
+                defaultInvoiceCompanyId: r.defaultInvoiceCompanyId,
+                restrictInvoiceToDefaultCompany: r.restrictInvoiceToDefaultCompany,
+                categoryId: assignedCategories[0]?.id ?? r.categoryId,
+                categoryName: assignedCategories[0]?.name ?? r.category?.name ?? null,
+                categoryIds: assignedCategories.map((category) => category.id),
+                categoryNames: assignedCategories.map((category) => category.name),
+                categories: assignedCategories,
                 createdAt: r.createdAt,
                 existingVendorId: r.existingVendorId,
+                companies: mapAssignedCompanies(r.companies, r.defaultInvoiceCompanyId),
                 vendor: {
                     name: r.existingVendor.name,
                     contactEmail: r.existingVendor.contactEmail,
@@ -279,21 +408,37 @@ export async function enrollVpVendor(
     const d = parsed.data
 
     try {
+        const companyError = await validateAssignedCompanyIds(d.companyIds)
+        if (companyError) return { success: false, error: companyError }
+        const categoryError = await validateAssignedCategoryIds(d.categoryIds)
+        if (categoryError) return { success: false, error: categoryError }
+
         // Check not already enrolled
         const existing = await prisma.vpVendor.findFirst({
             where: { existingVendorId: d.existingVendorId },
         })
         if (existing) return { success: false, error: "This vendor is already enrolled in the portal" }
 
+        const categoryIds = [...new Set(d.categoryIds.filter(Boolean))]
+        const defaultInvoiceCompanyId = d.defaultInvoiceCompanyId || d.companyIds[0] || null
+
         const vpVendor = await prisma.vpVendor.create({
             data: {
                 existingVendorId: d.existingVendorId,
-                categoryId: d.categoryId || null,
+                categoryId: categoryIds[0] || null,
                 portalStatus: d.portalStatus,
                 vendorType: d.vendorType,
                 billingType: d.billingType?.join(",") || null,
                 recurringCycle: d.billingType?.includes("RECURRING") ? (d.recurringCycle || null) : null,
+                defaultInvoiceCompanyId,
+                restrictInvoiceToDefaultCompany: d.restrictInvoiceToDefaultCompany,
                 createdById: session.user.id,
+                companies: {
+                    create: d.companyIds.map((companyId) => ({ companyId })),
+                },
+                categories: {
+                    create: categoryIds.map((categoryId) => ({ categoryId })),
+                },
             },
         })
 
@@ -329,17 +474,35 @@ export async function updateVpVendor(
     const d = parsed.data
 
     try {
+        const companyError = await validateAssignedCompanyIds(d.companyIds)
+        if (companyError) return { success: false, error: companyError }
+        const categoryError = await validateAssignedCategoryIds(d.categoryIds)
+        if (categoryError) return { success: false, error: categoryError }
+
         const old = await prisma.vpVendor.findUnique({ where: { id } })
         if (!old) return { success: false, error: "Vendor not found" }
+
+        const categoryIds = [...new Set(d.categoryIds.filter(Boolean))]
+        const defaultInvoiceCompanyId = d.defaultInvoiceCompanyId || d.companyIds[0] || null
 
         await prisma.vpVendor.update({
             where: { id },
             data: {
-                categoryId: d.categoryId || null,
+                categoryId: categoryIds[0] || null,
                 portalStatus: d.portalStatus,
                 vendorType: d.vendorType,
                 billingType: d.billingType?.join(",") || null,
                 recurringCycle: d.billingType?.includes("RECURRING") ? (d.recurringCycle || null) : null,
+                defaultInvoiceCompanyId,
+                restrictInvoiceToDefaultCompany: d.restrictInvoiceToDefaultCompany,
+                companies: {
+                    deleteMany: {},
+                    create: d.companyIds.map((companyId) => ({ companyId })),
+                },
+                categories: {
+                    deleteMany: {},
+                    create: categoryIds.map((categoryId) => ({ categoryId })),
+                },
             },
         })
 

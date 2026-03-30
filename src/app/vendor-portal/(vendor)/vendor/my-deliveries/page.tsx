@@ -103,7 +103,7 @@ export default function VendorMyDeliveriesPage() {
                                     <TableCell><VpStatusBadge status={d.status} /></TableCell>
                                     <TableCell>
                                         <Button size="sm" variant="outline" asChild>
-                                            <Link href={`/vendor-portal/admin/deliveries/${d.id}`}>View</Link>
+                                            <Link href={`/vendor-portal/vendor/my-deliveries/${d.id}`}>View</Link>
                                         </Button>
                                     </TableCell>
                                 </TableRow>

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
 import { isAdmin, isAdminOrBoss, isBoss } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { mapAssignedCategories, validateVpVendorCategoryAccess } from "@/lib/vendor-portal/category"
+import { validateVpVendorCompanyAccess } from "@/lib/vendor-portal/company"
 import { createVpNotification, getInternalUserIds } from "@/lib/vendor-portal/notify"
 import {
     emailPoApproved,
@@ -32,6 +34,7 @@ export type VpPoRow = {
     id: string
     poNumber: string
     status: string
+    deliveryStatus: string | null
     subtotal: number
     taxRate: number
     taxAmount: number
@@ -39,11 +42,19 @@ export type VpPoRow = {
     notes: string | null
     deliveryDate: Date | null
     deliveryAddress: string | null
+    companyId: string | null
+    companyName: string | null
+    companyCode: string | null
+    companyGstin: string | null
     billToId: string | null
     billTo: string | null
     billToGstin: string | null
+    categoryId: string | null
+    categoryIds: string[]
     createdAt: Date
     categoryName: string | null
+    categoryNames: string[]
+    categories: { id: string; name: string }[]
     vendor: {
         id: string
         vendorName: string
@@ -65,6 +76,8 @@ export type VpPoDetail = VpPoRow & {
         id: string
         status: string
         deliveryDate: Date | null
+        dispatchedBy: string | null
+        receivedBy: string | null
         _count: { items: number }
     }[]
     invoices: {
@@ -78,6 +91,7 @@ export type VpPoDetail = VpPoRow & {
             status: string
             paymentMode: string | null
             transactionRef: string | null
+            notes: string | null
             paymentDate: Date | null
             proofUrl: string | null
         }[]
@@ -107,10 +121,17 @@ function computeTotals(items: { qty: number; unitPrice: number }[], taxRate: num
 // ── Row mapper ─────────────────────────────────────────────────
 
 function mapRow(r: any): VpPoRow {
+    const assignedCategories = mapAssignedCategories(r)
     return {
         id: r.id,
         poNumber: r.poNumber,
         status: r.status,
+        deliveryStatus:
+            r.deliveries?.find((d: { status: string }) => d.status === "APPROVED")?.status ??
+            r.deliveries?.find((d: { status: string }) => d.status === "FULLY_DELIVERED")?.status ??
+            r.deliveries?.find((d: { status: string }) => d.status === "PARTIAL_DELIVERY")?.status ??
+            r.deliveries?.[0]?.status ??
+            null,
         subtotal: r.subtotal,
         taxRate: r.taxRate,
         taxAmount: r.taxAmount,
@@ -118,11 +139,19 @@ function mapRow(r: any): VpPoRow {
         notes: r.notes,
         deliveryDate: r.deliveryDate,
         deliveryAddress: r.deliveryAddress,
+        companyId: r.companyId ?? null,
+        companyName: r.company?.name ?? null,
+        companyCode: r.company?.code ?? null,
+        companyGstin: r.company?.gstin ?? null,
         billToId: r.billToId,
         billTo: r.billTo,
         billToGstin: r.billToGstin,
+        categoryId: assignedCategories[0]?.id ?? r.categoryId ?? null,
+        categoryIds: assignedCategories.map((category) => category.id),
         createdAt: r.createdAt,
-        categoryName: r.category?.name ?? null,
+        categoryName: assignedCategories[0]?.name ?? r.category?.name ?? null,
+        categoryNames: assignedCategories.map((category) => category.name),
+        categories: assignedCategories,
         vendor: {
             id: r.vendor.id,
             vendorName: r.vendor.existingVendor.name,
@@ -150,6 +179,20 @@ const PO_SELECT = {
     notes: true,
     deliveryDate: true,
     deliveryAddress: true,
+    companyId: true,
+    categoryId: true,
+    categories: {
+        select: {
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+        orderBy: { category: { name: "asc" } },
+    },
+    company: { select: { name: true, code: true, gstin: true } },
     billToId: true,
     billTo: true,
     billToGstin: true,
@@ -160,7 +203,11 @@ const PO_SELECT = {
     acknowledgedAt: true,
     rejectedAt: true,
     rejectionReason: true,
-    category: { select: { name: true } },
+    deliveries: {
+        select: { status: true },
+        orderBy: { createdAt: "desc" },
+    },
+    category: { select: { id: true, name: true } },
     vendor: { select: { id: true, vendorType: true, existingVendor: { select: { name: true } } } },
     createdBy: { select: { id: true, name: true } },
     approvedBy: { select: { id: true, name: true } },
@@ -180,6 +227,13 @@ export async function getVpPurchaseOrders(
         const where: any = {}
         if (params.status) where.status = params.status
         if (params.vendorId) where.vendorId = params.vendorId
+        if (params.companyId) where.companyId = params.companyId
+        if (params.categoryId) {
+            where.OR = [
+                { categoryId: params.categoryId },
+                { categories: { some: { categoryId: params.categoryId } } },
+            ]
+        }
         if (params.from) where.createdAt = { ...where.createdAt, gte: new Date(params.from) }
         if (params.to) where.createdAt = { ...where.createdAt, lte: new Date(params.to) }
         if (params.search) where.poNumber = { contains: params.search }
@@ -258,6 +312,8 @@ export async function getVpPurchaseOrderById(
                         id: true,
                         status: true,
                         deliveryDate: true,
+                        dispatchedBy: true,
+                        receivedBy: true,
                         _count: { select: { items: true } },
                     },
                     orderBy: { createdAt: "desc" },
@@ -275,6 +331,7 @@ export async function getVpPurchaseOrderById(
                                 status: true,
                                 paymentMode: true,
                                 transactionRef: true,
+                                notes: true,
                                 paymentDate: true,
                                 proofUrl: true,
                             }
@@ -333,6 +390,17 @@ export async function createVpPurchaseOrder(
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
 
     const d = parsed.data
+    const categoryIds = [...new Set(d.categoryIds.filter(Boolean))]
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: d.vendorId,
+        companyId: d.companyId,
+    })
+    if (companyError) return { success: false, error: companyError }
+    const categoryError = await validateVpVendorCategoryAccess({
+        vpVendorId: d.vendorId,
+        categoryIds,
+    })
+    if (categoryError) return { success: false, error: categoryError }
     const { subtotal, taxAmount, grandTotal } = computeTotals(d.items, d.taxRate)
 
     try {
@@ -343,7 +411,8 @@ export async function createVpPurchaseOrder(
                 poNumber,
                 status: "DRAFT",
                 vendorId: d.vendorId,
-                categoryId: d.categoryId || null,
+                companyId: d.companyId,
+                categoryId: categoryIds[0] || null,
                 notes: d.notes || null,
                 deliveryDate: d.deliveryDate ? new Date(d.deliveryDate) : null,
                 deliveryAddress: d.deliveryAddress || null,
@@ -364,6 +433,11 @@ export async function createVpPurchaseOrder(
                         total: item.qty * item.unitPrice,
                     })),
                 },
+                categories: categoryIds.length > 0
+                    ? {
+                        create: categoryIds.map((categoryId) => ({ categoryId })),
+                    }
+                    : undefined,
             },
         })
 
@@ -403,6 +477,17 @@ export async function updateVpPurchaseOrder(
         return { success: false, error: "Only DRAFT purchase orders can be edited" }
 
     const d = parsed.data
+    const categoryIds = [...new Set(d.categoryIds.filter(Boolean))]
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: d.vendorId,
+        companyId: d.companyId,
+    })
+    if (companyError) return { success: false, error: companyError }
+    const categoryError = await validateVpVendorCategoryAccess({
+        vpVendorId: d.vendorId,
+        categoryIds,
+    })
+    if (categoryError) return { success: false, error: categoryError }
     const { subtotal, taxAmount, grandTotal } = computeTotals(d.items, d.taxRate)
 
     try {
@@ -412,7 +497,8 @@ export async function updateVpPurchaseOrder(
             where: { id },
             data: {
                 vendorId: d.vendorId,
-                categoryId: d.categoryId || null,
+                companyId: d.companyId,
+                categoryId: categoryIds[0] || null,
                 notes: d.notes || null,
                 deliveryDate: d.deliveryDate ? new Date(d.deliveryDate) : null,
                 deliveryAddress: d.deliveryAddress || null,
@@ -431,6 +517,10 @@ export async function updateVpPurchaseOrder(
                         unitPrice: item.unitPrice,
                         total: item.qty * item.unitPrice,
                     })),
+                },
+                categories: {
+                    deleteMany: {},
+                    create: categoryIds.map((categoryId) => ({ categoryId })),
                 },
             },
         })

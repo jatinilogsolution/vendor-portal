@@ -39,7 +39,7 @@ export default function BossApprovalsPage() {
     const [isPending, startTransition] = useTransition()
     const [rejectTarget, setRejectTarget] = useState<string | null>(null)
     const [rejectReason, setRejectReason] = useState("")
-const [selected, setSelected] = useState<string[]>([])
+    const [selected, setSelected] = useState<string[]>([])
 
     const load = useCallback(async () => {
         setLoading(true)
@@ -92,23 +92,25 @@ const [selected, setSelected] = useState<string[]>([])
                 }
             />
 
-            <Tabs defaultValue="invoice">
+            <Tabs defaultValue="invoice" >
                 <TabsList>
-                    <TabsTrigger value="pr">
-                        Procurements
-                        {prs.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{prs.length}</Badge>}
-                    </TabsTrigger>
+
                     <TabsTrigger value="po">
                         POs
                         {pos.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{pos.length}</Badge>}
+                    </TabsTrigger>
+
+                    <TabsTrigger value="invoice">
+                        Vendor Bills
+                        {invoices.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{invoices.length}</Badge>}
                     </TabsTrigger>
                     <TabsTrigger value="pi">
                         Proforma Invoices
                         {pis.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{pis.length}</Badge>}
                     </TabsTrigger>
-                    <TabsTrigger value="invoice">
-                        Vendor Bills
-                        {invoices.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{invoices.length}</Badge>}
+                    <TabsTrigger value="pr">
+                        Procurements
+                        {prs.length > 0 && <Badge className="ml-2 h-5 min-w-5 px-1.5 text-[10px]">{prs.length}</Badge>}
                     </TabsTrigger>
                 </TabsList>
 

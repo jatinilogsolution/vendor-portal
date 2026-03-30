@@ -20,7 +20,7 @@ import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { VpEmptyState } from "@/components/ui/vp-empty-state"
 import { VpDateFilter } from "@/components/ui/vp-date-filter"
 import { VpPagination } from "@/components/ui/vp-pagination"
- import {
+import {
     getVpDeliveries, approveVpDelivery, VpDeliveryRow,
 } from "@/actions/vp/delivery.action"
 import { VP_DELIVERY_STATUSES } from "@/types/vendor-portal"
@@ -93,14 +93,13 @@ export default function AdminDeliveriesPage() {
                                         : "",
                                 },
                                 { header: "Status", accessor: (r) => r.status },
-                                { header: "Items", accessor: (r) => r._count.items },
                             ]}
                         />
                     </div>
                 }
             />
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-4">
                 <Select value={statusF} onValueChange={(v) => { setStatusF(v); setPage(1) }}>
                     <SelectTrigger className="w-52">
                         <SelectValue placeholder="All Statuses" />
@@ -112,14 +111,15 @@ export default function AdminDeliveriesPage() {
                         ))}
                     </SelectContent>
                 </Select>
+                <VpDateFilter
+                    from={from}
+                    to={to}
+                    onFrom={(v) => { setFrom(v); setPage(1) }}
+                    onTo={(v) => { setTo(v); setPage(1) }}
+                    onClear={() => { setFrom(""); setTo(""); setPage(1) }}
+                />
             </div>
-            <VpDateFilter
-                from={from}
-                to={to}
-                onFrom={(v) => { setFrom(v); setPage(1) }}
-                onTo={(v) => { setTo(v); setPage(1) }}
-                onClear={() => { setFrom(""); setTo(""); setPage(1) }}
-            />
+
 
             {loading ? (
                 <div className="space-y-2">
@@ -142,7 +142,6 @@ export default function AdminDeliveriesPage() {
                                 <TableHead>Vendor</TableHead>
                                 <TableHead>Delivery Date</TableHead>
                                 <TableHead>Received By</TableHead>
-                                <TableHead className="text-center">Items</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="w-36" />
                             </TableRow>
@@ -165,7 +164,6 @@ export default function AdminDeliveriesPage() {
                                             : "—"}
                                     </TableCell>
                                     <TableCell className="text-sm">{d.receivedBy ?? "—"}</TableCell>
-                                    <TableCell className="text-center text-sm">{d._count.items}</TableCell>
                                     <TableCell><VpStatusBadge status={d.status} /></TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-1.5">

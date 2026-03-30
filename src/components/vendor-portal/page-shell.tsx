@@ -144,7 +144,7 @@
 //           {mounted && <VpNotificationBell role={role} />}
 //           {/* <span className="text-sm font-medium">{data?.user?.name ?? "—"}</span> */}
 
-         
+
 //         </div>
 //       </header>
 
@@ -208,10 +208,10 @@ import {
   IconPackage, IconShoppingCart, IconFileInvoice,
   IconReceipt, IconTruckDelivery, IconSettings,
   IconCheckbox, IconCash, IconChartBar, IconBell, IconUsers,
-  IconClipboardList, IconRepeat, IconUser,
+  IconClipboardList, IconRepeat, IconUser, IconBuilding,
 } from "@tabler/icons-react"
-import { VpNotificationBell }  from "./vp-notification-bell"
-import { VpGlobalSearch }      from "./vp-global-search"
+import { VpNotificationBell } from "./vp-notification-bell"
+import { VpGlobalSearch } from "./vp-global-search"
 import { useEffect, useState } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
@@ -221,24 +221,25 @@ import { toast } from "sonner"
 
 export interface VpNavItem {
   title: string
-  href:  string
-  icon:  string
+  href: string
+  icon: string
 }
 
 interface VpShellProps {
-  children:     React.ReactNode
-  nav:          VpNavItem[]
-  role:         "ADMIN" | "BOSS" | "VENDOR"
+  children: React.ReactNode
+  nav: VpNavItem[]
+  role: "ADMIN" | "BOSS" | "VENDOR"
   sidebarTitle: string
 }
 
 const CONTEXTS = [
   { value: "transport", label: "Transport Portal", href: "/dashboard" },
-  { value: "vendor",    label: "Vendor Portal",    href: "/vendor-portal" },
+  { value: "vendor", label: "Vendor Portal", href: "/vendor-portal" },
 ] as const
 
 const ICON_MAP: Record<string, any> = {
   dashboard: IconLayoutDashboard,
+  companies: IconBuilding,
   vendors: IconBuildingStore,
   categories: IconCategory,
   items: IconPackage,
@@ -260,11 +261,11 @@ const ICON_MAP: Record<string, any> = {
 export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
   const { data } = useSession()
   const pathname = usePathname()
-  const router   = useRouter()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [isPending, setIsPending] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
     setMounted(true)
   }, [])
 
@@ -290,9 +291,9 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
     }
   }
 
-  const userRole     = data?.user?.role
-  const isBoss       = userRole === "BOSS"
-  const currentCtx   = pathname?.startsWith("/vendor-portal") ? "vendor" : "transport"
+  const userRole = data?.user?.role
+  const isBoss = userRole === "BOSS"
+  const currentCtx = pathname?.startsWith("/vendor-portal") ? "vendor" : "transport"
 
   // Boss is viewing admin pages — show "Back to My View" button
   const bossOnAdminPage =
@@ -303,14 +304,14 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
       {/* ── Top bar ─────────────────────────────────────────── */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
-         <Link href={"/"}>
-       <h2 className="text-xl text-center font-bold w-full ">
-             <span className="text-primary">Vendor</span>{" "}
-           <span className=" text-foreground">Portal</span>
-         </h2>
-         </Link>
+          <Link href={"/"}>
+            <h2 className="text-xl text-center font-bold w-full ">
+              <span className="text-primary">Vendor</span>{" "}
+              <span className=" text-foreground">Portal</span>
+            </h2>
+          </Link>
           {/* Boss viewing admin pages — show back button */}
-          {bossOnAdminPage && (
+          {/* {bossOnAdminPage && (
             <Button
               variant="outline"
               size="sm"
@@ -319,18 +320,47 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
             >
               ← My Dashboard
             </Button>
-          )}
+          )} */}
         </div>
+        {(role === "ADMIN" || isBoss) && <VpGlobalSearch />}
+
 
         <div className="flex items-center gap-3">
+
           {/* Global search — admin + boss only */}
-          {(role === "ADMIN" || isBoss) && <VpGlobalSearch />}
+          <div className="border-t px-3 py-3">
+
+
+            {isBoss && (
+              <div className="">
+                {/* <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Portal View
+                </p> */}
+                <Select
+                  value={currentCtx}
+                  onValueChange={(v) => {
+                    const t = CONTEXTS.find((c) => c.value === v)?.href
+                    if (t) router.push(t)
+                  }}
+                >
+                  <SelectTrigger size="sm" className="h-8 w-44 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {CONTEXTS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
           <VpNotificationBell role={role} />
-    
 
 
- {mounted && (
+
+          {mounted && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -345,7 +375,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                       {data?.user?.role?.toLowerCase()}
                     </span>
                   </div>
-                  <Avatar className="h-8 w-8 border border-primary/20 p-[2px] transition-transform group-hover:scale-105">
+                  <Avatar className="h-8 w-8 border border-primary/20 p-0.5 transition-transform group-hover:scale-105">
                     <AvatarImage
                       src={data?.user?.image || ""}
                       alt={data?.user?.name ?? "User"}
@@ -379,54 +409,54 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                   </div>
                 </DropdownMenuLabel>
 
-              <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-              <div className="p-1">
-                <DropdownMenuItem asChild className="cursor-pointer rounded-md">
-                  <Link
-                    href="/profile"
-                    className="flex items-center justify-between w-full"
+                <div className="p-1">
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-md">
+                    <Link
+                      href="/profile"
+                      className="flex items-center justify-between w-full"
+                    >
+                      <span>Account Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-md">
+                    <Link
+                      href="/notifications"
+                      className="flex items-center justify-between w-full"
+                    >
+                      <span>Notifications Center</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                <div className="px-2 py-2">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">
+                    Appearance
+                  </p>
+                  <ModeToggle />
+                </div>
+
+                <DropdownMenuSeparator />
+
+                <div className="p-1">
+                  <DropdownMenuItem
+                    onClick={handleClick}
+                    disabled={isPending}
+                    className="text-red-500 font-bold focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50 cursor-pointer rounded-md"
                   >
-                    <span>Account Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer rounded-md">
-                  <Link
-                    href="/notifications"
-                    className="flex items-center justify-between w-full"
-                  >
-                    <span>Notifications Center</span>
-                  </Link>
-                </DropdownMenuItem>
-              </div>
-
-              <DropdownMenuSeparator />
-
-              <div className="px-2 py-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">
-                  Appearance
-                </p>
-                <ModeToggle />
-              </div>
-
-              <DropdownMenuSeparator />
-
-              <div className="p-1">
-                <DropdownMenuItem
-                  onClick={handleClick}
-                  disabled={isPending}
-                  className="text-red-500 font-bold focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50 cursor-pointer rounded-md"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging out...
-                    </>
-                  ) : (
-                    "Log out"
-                  )}
-                </DropdownMenuItem>
-              </div>
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging out...
+                      </>
+                    ) : (
+                      "Log out"
+                    )}
+                  </DropdownMenuItem>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -439,7 +469,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
       {/* ── Body ─────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="flex w-56 shrink-0 flex-col border-r">
+        <aside className="flex w-64 shrink-0 flex-col border-r">
           <nav className="flex-1 overflow-y-auto py-3">
             <ul className="space-y-0.5 px-2">
               {nav.map((item) => {
@@ -474,33 +504,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
           </nav>
 
           {/* Bottom: user info */}
-          <div className="border-t px-3 py-3">
-            <p className="truncate text-xs font-medium">{data?.user?.name ?? "—"}</p>
-            <p className="truncate text-[10px] text-muted-foreground">{data?.user?.email ?? "—"}</p>
-            {isBoss && (
-              <div className="mt-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Portal View
-                </p>
-                <Select
-                  value={currentCtx}
-                  onValueChange={(v) => {
-                    const t = CONTEXTS.find((c) => c.value === v)?.href
-                    if (t) router.push(t)
-                  }}
-                >
-                  <SelectTrigger size="sm" className="h-8 w-full text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    {CONTEXTS.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+
         </aside>
 
         {/* Page content */}

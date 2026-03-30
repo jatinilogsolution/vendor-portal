@@ -1,10 +1,8 @@
-// src/app/vendor-portal/(admin)/admin/deliveries/[id]/page.tsx
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { requireVendorPortalSession } from "@/lib/vendor-portal/guard"
 import { UserRoleEnum } from "@/utils/constant"
 import { getVpDeliveryById } from "@/actions/vp/delivery.action"
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,8 +11,8 @@ import { IconArrowLeft } from "@tabler/icons-react"
 import { VpPageHeader } from "@/components/ui/vp-page-header"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 
-export default async function DeliveryDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    await requireVendorPortalSession([UserRoleEnum.ADMIN, UserRoleEnum.BOSS])
+export default async function VendorDeliveryDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    await requireVendorPortalSession([UserRoleEnum.VENDOR])
     const { id } = await params
     const res = await getVpDeliveryById(id)
     if (!res.success) notFound()
@@ -32,46 +30,30 @@ export default async function DeliveryDetailPage({ params }: { params: Promise<{
         <div className="space-y-6">
             <VpPageHeader
                 title={`Delivery — ${d.po.poNumber}`}
-                description={`${d.po.vendorName} · ${d.deliveryDate
+                description={`${d.deliveryDate
                     ? new Date(d.deliveryDate).toLocaleDateString("en-IN")
-                    : "Date not set"}`}
+                    : "Date not set"} · ${d.status.replaceAll("_", " ")}`}
                 actions={
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={`/vendor-portal/admin/deliveries/new?poId=${d.po.id}`}>
-                                Update Delivery
-                            </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href="/vendor-portal/admin/deliveries">
-                                <IconArrowLeft size={14} className="mr-1.5" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/vendor-portal/vendor/my-deliveries">
+                            <IconArrowLeft size={14} className="mr-1.5" />
+                            Back
+                        </Link>
+                    </Button>
                 }
             />
 
             <div className="grid gap-6 lg:grid-cols-3">
-                {/* Meta card */}
                 <Card className="lg:col-span-1">
                     <CardHeader className="pb-3"><CardTitle className="text-sm">Details</CardTitle></CardHeader>
                     <CardContent className="space-y-2.5 text-sm">
-                        <Row label="Status">       <VpStatusBadge status={d.status} /></Row>
-                        <Row label="PO Number">
-                            <Link
-                                href={`/vendor-portal/admin/purchase-orders/${d.po.id}`}
-                                className="font-mono text-xs text-primary hover:underline"
-                            >
-                                {d.po.poNumber}
-                            </Link>
-                        </Row>
-                        <Row label="Vendor">       {d.po.vendorName}</Row>
+                        <Row label="Status"><VpStatusBadge status={d.status} /></Row>
+                        <Row label="PO Number">{d.po.poNumber}</Row>
                         <Row label="Delivery Date">
                             {d.deliveryDate ? new Date(d.deliveryDate).toLocaleDateString("en-IN") : "—"}
                         </Row>
                         <Row label="Dispatched By">{d.dispatchedBy ?? "—"}</Row>
-                        <Row label="Received By">  {d.receivedBy ?? "—"}</Row>
+                        <Row label="Received By">{d.receivedBy ?? "—"}</Row>
                         {d.notes && (
                             <>
                                 <Separator />
@@ -81,7 +63,6 @@ export default async function DeliveryDetailPage({ params }: { params: Promise<{
                     </CardContent>
                 </Card>
 
-                {/* Line items */}
                 <Card className="lg:col-span-2">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-sm">Delivered Items ({d.items.length})</CardTitle>
@@ -129,7 +110,7 @@ export default async function DeliveryDetailPage({ params }: { params: Promise<{
                                                                 style={{ width: `${pct}%` }}
                                                             />
                                                         </div>
-                                                        <span className="text-xs text-muted-foreground w-8 text-right">
+                                                        <span className="w-8 text-right text-xs text-muted-foreground">
                                                             {pct}%
                                                         </span>
                                                     </div>

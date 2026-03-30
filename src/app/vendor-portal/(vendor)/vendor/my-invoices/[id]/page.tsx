@@ -171,6 +171,7 @@ export default function VendorInvoiceDetailPage() {
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Details</CardTitle></CardHeader>
                         <CardContent className="space-y-2.5 text-sm">
                             <Row label="Status">    <VpStatusBadge status={inv.status} /></Row>
+                            <Row label="Company">   {inv.companyName ?? "—"}</Row>
                             <Row label="Type">      <Badge variant="secondary" className="text-xs">{inv.type}</Badge></Row>
                             {inv.poNumber && <Row label="PO Ref">
                                 <Link href={`/vendor-portal/vendor/my-pos`}
@@ -220,6 +221,8 @@ export default function VendorInvoiceDetailPage() {
                                             <div className="font-medium">{p.paymentMode || "—"}</div>
                                             <div className="text-muted-foreground">Ref No:</div>
                                             <div className="font-mono">{p.transactionRef || "—"}</div>
+                                            <div className="text-muted-foreground">Boss Note:</div>
+                                            <div>{p.notes || "—"}</div>
                                             <div className="text-muted-foreground">Date:</div>
                                             <div>{p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-IN") : "—"}</div>
                                         </div>

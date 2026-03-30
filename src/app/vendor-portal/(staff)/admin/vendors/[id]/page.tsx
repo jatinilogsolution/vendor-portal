@@ -35,7 +35,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
         <div className="space-y-6">
             <VpPageHeader
                 title={vv.name}
-                description={v.categoryName ?? "No category assigned"}
+                description={v.categoryNames.length > 0 ? v.categoryNames.join(", ") : "No categories assigned"}
                 actions={
                     <Button variant="outline" size="sm" asChild>
                         <Link href="/vendor-portal/admin/vendors">
@@ -63,6 +63,20 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Vendor Type</span>
                                 <VpStatusBadge status={v.vendorType} />
+                            </div>
+                            <div className="flex justify-between gap-3">
+                                <span className="text-muted-foreground">Categories</span>
+                                {v.categoryNames.length > 0 ? (
+                                    <div className="flex flex-wrap justify-end gap-1">
+                                        {v.categoryNames.map((categoryName) => (
+                                            <Badge key={categoryName} variant="outline" className="text-[10px]">
+                                                {categoryName}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                )}
                             </div>
                             {v.billingType?.length > 0 && (
                                 <div className="flex justify-between">
@@ -95,6 +109,39 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                                 <span className="text-xs">
                                     {new Date(v.createdAt).toLocaleDateString("en-IN")}
                                 </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Company Coverage</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            {v.companies.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No companies assigned.</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {v.companies.map((company) => (
+                                        <Badge key={company.id} variant={company.isDefaultInvoiceCompany ? "default" : "outline"} className="text-xs">
+                                            {company.name}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
+                            {v.defaultInvoiceCompanyId && (
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Default raise company</span>
+                                    <span className="text-right text-xs">
+                                        {v.companies.find((company) => company.id === v.defaultInvoiceCompanyId)?.name ?? "—"}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Vendor billing rule</span>
+                                <Badge variant="outline" className="text-xs">
+                                    {v.restrictInvoiceToDefaultCompany ? "Default company only" : "Any assigned company"}
+                                </Badge>
                             </div>
                         </CardContent>
                     </Card>

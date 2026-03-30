@@ -343,7 +343,7 @@ export default function AdminRecurringPage() {
               {/* Line items */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <FormLabel>Recurring Items</FormLabel>
+                  <p className="text-sm font-medium">Recurring Items</p>
                   <Button type="button" variant="outline" size="sm" onClick={addItem}>
                     <IconPlus size={13} className="mr-1" />Add
                   </Button>

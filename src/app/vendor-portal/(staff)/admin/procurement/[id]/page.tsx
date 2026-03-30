@@ -32,22 +32,23 @@ import {
     approveVpProcurement,
     rejectVpProcurement,
     selectProcurementQuote,
+    requestProcurementQuoteRevision,
     VpProcurementDetail,
 } from "@/actions/vp/procurement.action"
 import {
-    getVpProformaInvoices,
-    VpPiRow,
+    convertPiToPo,
 } from "@/actions/vp/proforma-invoice.action"
 import { useSession } from "@/lib/auth-client"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function ProcurementDetailPage() {
     const params = useParams()
+    const router = useRouter()
     const { data: session } = useSession()
     const role = session?.user?.role ?? ""
     const id = params.id as string
 
     const [pr, setPr] = useState<VpProcurementDetail | null>(null)
-    //   const [quotes,  setQuotes]  = useState<VpPiRow[]>([])
     const quotes = pr?.quotes ?? []
 
     const [loading, setLoading] = useState(true)
@@ -60,21 +61,17 @@ export default function ProcurementDetailPage() {
         name: string
         amount: number
     } | null>(null)
+    const [revisionVendorIds, setRevisionVendorIds] = useState<string[]>([])
 
     // ── Load data ────────────────────────────────────────────────
 
     const load = async () => {
         setLoading(true)
-        const [prRes] = await Promise.all([
-            getVpProcurementById(id),
-            // ✅ Query directly by procurementId — no client-side filter needed
-            //   getVpProformaInvoices({ procurementId: id, per_page: 50 }),
-        ])
+        const [prRes] = await Promise.all([getVpProcurementById(id)])
         if (!prRes.success) { toast.error(prRes.error); setLoading(false); return }
-        // if (!quotesRes.success) { toast.error(quotesRes.error); setLoading(false); return }
 
         setPr(prRes.data)
-        // setQuotes(quotesRes.data.data)
+        setRevisionVendorIds([])
         setLoading(false)
     }
 
@@ -107,6 +104,19 @@ export default function ProcurementDetailPage() {
     const canApprove = role === "BOSS" && pr.status === "SUBMITTED"
     const canReject = role === "BOSS" && pr.status === "SUBMITTED"
     const canSelect = ["ADMIN", "BOSS"].includes(role) && pr.status === "OPEN_FOR_QUOTES"
+    const hasConvertedQuote = quotes.some((quote) => quote.convertedToPoId)
+    const canRequestRevision =
+        ["ADMIN", "BOSS"].includes(role) &&
+        ["OPEN_FOR_QUOTES", "QUOTE_SELECTED"].includes(pr.status) &&
+        !hasConvertedQuote
+
+    const toggleVendorForRevision = (vendorId: string, checked: boolean) => {
+        setRevisionVendorIds((current) =>
+            checked
+                ? [...new Set([...current, vendorId])]
+                : current.filter((id) => id !== vendorId),
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -212,7 +222,10 @@ export default function ProcurementDetailPage() {
                             <CardTitle className="text-sm">Details</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2.5 text-sm">
-                            <Row label="Category">{pr.categoryName ?? "—"}</Row>
+                            <Row label="Company">{pr.companyName ?? "—"}</Row>
+                            <Row label="Categories">
+                                {pr.categoryNames.length > 0 ? pr.categoryNames.join(", ") : "—"}
+                            </Row>
                             <Row label="Created by">{pr.createdBy.name}</Row>
                             {pr.approvedBy && (
                                 <Row label="Approved by">{pr.approvedBy.name}</Row>
@@ -263,9 +276,24 @@ export default function ProcurementDetailPage() {
                     {/* Invited vendors + their quote status */}
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">
-                                Invited Vendors ({pr.vendorInvites.length})
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-3">
+                                <CardTitle className="text-sm">
+                                    Invited Vendors ({pr.vendorInvites.length})
+                                </CardTitle>
+                                {canRequestRevision && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={isPending || revisionVendorIds.length === 0}
+                                        onClick={() => act(
+                                            () => requestProcurementQuoteRevision(id, revisionVendorIds),
+                                            `Requested revised quote from ${revisionVendorIds.length} vendor${revisionVendorIds.length > 1 ? "s" : ""}`,
+                                        )}
+                                    >
+                                        Ask Selected Vendors to Re-Quote
+                                    </Button>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-2">
                             {pr.vendorInvites.length === 0 ? (
@@ -280,13 +308,23 @@ export default function ProcurementDetailPage() {
                                     )
                                     return (
                                         <div key={vi.id} className="flex items-center justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm">{vi.vendor.vendorName}</p>
-                                                {quote && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        ₹{quote.grandTotal.toLocaleString("en-IN")}
-                                                    </p>
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                {canRequestRevision && (
+                                                    <Checkbox
+                                                        checked={revisionVendorIds.includes(vi.vendor.id)}
+                                                        onCheckedChange={(checked) =>
+                                                            toggleVendorForRevision(vi.vendor.id, checked === true)
+                                                        }
+                                                    />
                                                 )}
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm">{vi.vendor.vendorName}</p>
+                                                    {quote && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ₹{quote.grandTotal.toLocaleString("en-IN")}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                             <VpStatusBadge status={quote ? "QUOTED" : vi.status} />
                                         </div>
@@ -334,6 +372,9 @@ export default function ProcurementDetailPage() {
                                                             <span className="font-bold text-emerald-700">₹{p.amount.toLocaleString("en-IN")}</span>
                                                             <Badge variant="outline" className="text-[10px] lowercase">{p.status}</Badge>
                                                         </div>
+                                                        {p.notes && (
+                                                            <p className="text-[10px] text-muted-foreground">{p.notes}</p>
+                                                        )}
                                                         {p.proofUrl && (
                                                             <a
                                                                 href={p.proofUrl}
@@ -554,6 +595,18 @@ export default function ProcurementDetailPage() {
                                                             View Full Quote
                                                         </Link>
                                                     </Button>
+                                                    {canRequestRevision && !pi.convertedToPoId && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => act(
+                                                                () => requestProcurementQuoteRevision(id, [pi.vendor.id]),
+                                                                `Requested revised quote from ${pi.vendor.vendorName}`,
+                                                            )}
+                                                        >
+                                                            Ask to Re-Quote
+                                                        </Button>
+                                                    )}
                                                     {canSelect && !isSelected && (
                                                         <Button
                                                             size="sm"
@@ -567,6 +620,33 @@ export default function ProcurementDetailPage() {
                                                         >
                                                             <IconCheck size={13} className="mr-1.5" />
                                                             Select This Quote
+                                                        </Button>
+                                                    )}
+                                                    {role === "ADMIN" && isSelected && !pi.convertedToPoId && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            onClick={() =>
+                                                                startTransition(async () => {
+                                                                    const result = await convertPiToPo(pi.id)
+                                                                    if (!result.success) {
+                                                                        toast.error(result.error)
+                                                                        return
+                                                                    }
+                                                                    toast.success(`Created PO ${result.data.poNumber}`)
+                                                                    router.push(`/vendor-portal/admin/purchase-orders/${result.data.poId}`)
+                                                                })
+                                                            }
+                                                            disabled={isPending}
+                                                        >
+                                                            Create PO from This Quote
+                                                        </Button>
+                                                    )}
+                                                    {pi.convertedToPoId && (
+                                                        <Button variant="outline" size="sm" asChild>
+                                                            <Link href={`/vendor-portal/admin/purchase-orders/${pi.convertedToPoId}`}>
+                                                                View PO
+                                                            </Link>
                                                         </Button>
                                                     )}
                                                 </div>

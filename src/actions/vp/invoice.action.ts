@@ -3,8 +3,9 @@
 
 import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
-import { isAdmin, isAdminOrBoss, isBoss } from "@/lib/vendor-portal/roles"
+import { isAdmin, isAdminOrBoss } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { validateVpVendorCompanyAccess } from "@/lib/vendor-portal/company"
 import { createVpNotification } from "@/lib/vendor-portal/notify"
 import {
     emailInvoiceApproved,
@@ -19,6 +20,7 @@ import { bumpRecurringSchedule } from "./recurring.action"
 
 export type VpInvoiceLineItemRow = {
     id: string
+    poLineItemId: string | null
     description: string
     qty: number
     unitPrice: number
@@ -37,6 +39,7 @@ export type VpInvoiceRow = {
     id: string
     invoiceNumber: string | null
     status: string
+    deliveryStatus: string | null
     type: string
     billType: string
     subtotal: number
@@ -44,6 +47,10 @@ export type VpInvoiceRow = {
     taxAmount: number
     totalAmount: number
     notes: string | null
+    companyId: string | null
+    companyName: string | null
+    companyCode: string | null
+    companyGstin: string | null
     billToId: string | null
     billTo: string | null
     billToGstin: string | null
@@ -69,12 +76,21 @@ export type VpInvoiceRow = {
 
 export type VpInvoiceDetail = VpInvoiceRow & {
     items: VpInvoiceLineItemRow[]
+    deliveries: {
+        id: string
+        status: string
+        deliveryDate: Date | null
+        poId: string
+        poNumber: string
+        itemCount: number
+    }[]
     documents: VpInvoiceDocumentRow[]
     payments: {
         id: string
         amount: number
         paymentMode: string | null
         transactionRef: string | null
+        notes: string | null
         paymentDate: Date | null
         status: string
         proofUrl: string | null
@@ -103,6 +119,8 @@ const INVOICE_SELECT = {
     taxAmount: true,
     totalAmount: true,
     notes: true,
+    companyId: true,
+    company: { select: { name: true, code: true, gstin: true } },
     billToId: true,
     billTo: true,
     billToGstin: true,
@@ -122,7 +140,15 @@ const INVOICE_SELECT = {
             existingVendor: { select: { name: true } },
         },
     },
-    purchaseOrder: { select: { poNumber: true } },
+    purchaseOrder: {
+        select: {
+            poNumber: true,
+            deliveries: {
+                select: { status: true },
+                orderBy: { createdAt: "desc" },
+            },
+        },
+    },
     proformaInvoice: { select: { piNumber: true } },
     createdBy: { select: { id: true, name: true } },
     reviewedBy: { select: { id: true, name: true } },
@@ -133,6 +159,12 @@ function mapRow(r: any): VpInvoiceRow {
         id: r.id,
         invoiceNumber: r.invoiceNumber,
         status: r.status,
+        deliveryStatus:
+            r.purchaseOrder?.deliveries?.find((d: { status: string }) => d.status === "APPROVED")?.status ??
+            r.purchaseOrder?.deliveries?.find((d: { status: string }) => d.status === "FULLY_DELIVERED")?.status ??
+            r.purchaseOrder?.deliveries?.find((d: { status: string }) => d.status === "PARTIAL_DELIVERY")?.status ??
+            r.purchaseOrder?.deliveries?.[0]?.status ??
+            null,
         type: r.type,
         billType: r.billType,
         subtotal: r.subtotal,
@@ -140,6 +172,10 @@ function mapRow(r: any): VpInvoiceRow {
         taxAmount: r.taxAmount,
         totalAmount: r.totalAmount,
         notes: r.notes,
+        companyId: r.companyId ?? null,
+        companyName: r.company?.name ?? null,
+        companyCode: r.company?.code ?? null,
+        companyGstin: r.company?.gstin ?? null,
         billToId: r.billToId,
         billTo: r.billTo,
         billToGstin: r.billToGstin,
@@ -166,16 +202,6 @@ function mapRow(r: any): VpInvoiceRow {
     }
 }
 
-// ── Number generator ───────────────────────────────────────────
-
-async function generateInvoiceRef(): Promise<string> {
-    const now = new Date()
-    const yr = now.getFullYear().toString().slice(-2)
-    const mo = String(now.getMonth() + 1).padStart(2, "0")
-    const count = await prisma.vpInvoice.count()
-    return `VP-INV-${yr}${mo}-${String(count + 1).padStart(5, "0")}`
-}
-
 // ── Resolve vendor from session ────────────────────────────────
 
 async function getVpVendorIdForSession(userId: string): Promise<string | null> {
@@ -187,6 +213,141 @@ async function getVpVendorIdForSession(userId: string): Promise<string | null> {
         where: { existingVendorId: user.vendorId }, select: { id: true },
     })
     return vpv?.id ?? null
+}
+
+async function validateInvoiceCompanySelection(params: {
+    vpVendorId: string
+    companyId: string
+    poId?: string | null
+}): Promise<string | null> {
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: params.vpVendorId,
+        companyId: params.companyId,
+        requireDefaultForInvoice: true,
+    })
+    if (companyError) return companyError
+
+    if (params.poId) {
+        const po = await prisma.vpPurchaseOrder.findUnique({
+            where: { id: params.poId },
+            select: { vendorId: true, companyId: true },
+        })
+        if (!po || po.vendorId !== params.vpVendorId) {
+            return "Selected PO is not available for this vendor"
+        }
+        if (po.companyId && po.companyId !== params.companyId) {
+            return "Invoice company must match the selected PO company"
+        }
+    }
+
+    return null
+}
+
+type NormalizedInvoiceLineItem = {
+    poLineItemId: string | null
+    description: string
+    qty: number
+    unitPrice: number
+    tax: number
+    total: number
+}
+
+async function normalizeInvoiceLineItems(params: {
+    poId?: string | null
+    items: VpInvoiceFormValues["items"]
+    taxRate: number
+    currentInvoiceId?: string
+}): Promise<VpActionResult<NormalizedInvoiceLineItem[]>> {
+    if (!params.poId) {
+        return {
+            success: true,
+            data: params.items.map((item) => ({
+                poLineItemId: null,
+                description: item.description,
+                qty: item.qty,
+                unitPrice: item.unitPrice,
+                tax: params.taxRate,
+                total: item.qty * item.unitPrice,
+            })),
+        }
+    }
+
+    const poLineItems = await prisma.vpPoLineItem.findMany({
+        where: { poId: params.poId },
+        select: {
+            id: true,
+            description: true,
+            qty: true,
+            unitPrice: true,
+            deliveryItems: { select: { qtyDelivered: true } },
+            invoiceLineItems: {
+                where: {
+                    invoice: {
+                        poId: params.poId,
+                        status: { not: "REJECTED" },
+                        ...(params.currentInvoiceId
+                            ? { id: { not: params.currentInvoiceId } }
+                            : {}),
+                    },
+                },
+                select: { qty: true },
+            },
+        },
+    })
+
+    const poLineMap = new Map(poLineItems.map((item) => [item.id, item]))
+    const hasAnyDelivery = poLineItems.some((item) => item.deliveryItems.length > 0)
+    const seenPoLineIds = new Set<string>()
+
+    const normalizedItems: NormalizedInvoiceLineItem[] = []
+    for (const item of params.items) {
+        if (!item.poLineItemId) {
+            return {
+                success: false,
+                error: "PO-based invoices must stay linked to the related PO items",
+            }
+        }
+        if (seenPoLineIds.has(item.poLineItemId)) {
+            return {
+                success: false,
+                error: "Each PO item can only appear once in the same invoice",
+            }
+        }
+
+        const poLineItem = poLineMap.get(item.poLineItemId)
+        if (!poLineItem) {
+            return {
+                success: false,
+                error: "One or more invoice items do not belong to the selected PO",
+            }
+        }
+
+        const deliveredQty = poLineItem.deliveryItems.reduce((sum, row) => sum + row.qtyDelivered, 0)
+        const alreadyInvoicedQty = poLineItem.invoiceLineItems.reduce((sum, row) => sum + row.qty, 0)
+        const billingBasisQty = hasAnyDelivery ? deliveredQty : poLineItem.qty
+        const invoiceableQty = Math.max(0, billingBasisQty - alreadyInvoicedQty)
+
+        if (item.qty > invoiceableQty + 0.0001) {
+            return {
+                success: false,
+                error: hasAnyDelivery
+                    ? `Invoice qty for "${poLineItem.description}" exceeds delivered quantity still available to bill`
+                    : `Invoice qty for "${poLineItem.description}" exceeds PO quantity still available to bill`,
+            }
+        }
+
+        seenPoLineIds.add(item.poLineItemId)
+        normalizedItems.push({
+            poLineItemId: poLineItem.id,
+            description: poLineItem.description,
+            qty: item.qty,
+            unitPrice: poLineItem.unitPrice,
+            tax: params.taxRate,
+            total: item.qty * poLineItem.unitPrice,
+        })
+    }
+
+    return { success: true, data: normalizedItems }
 }
 
 // ── READ list ──────────────────────────────────────────────────
@@ -203,6 +364,7 @@ export async function getVpInvoices(
         const where: any = {}
         if (params.status) where.status = params.status
         if (params.vendorId) where.vendorId = params.vendorId
+        if (params.companyId) where.companyId = params.companyId
         if (params.type) where.type = params.type
         if (params.search) where.invoiceNumber = { contains: params.search }
         if (params.from) where.createdAt = { ...where.createdAt, gte: new Date(params.from) }
@@ -250,9 +412,25 @@ export async function getVpInvoiceById(
             where: { id },
             select: {
                 ...INVOICE_SELECT,
+                purchaseOrder: {
+                    select: {
+                        poNumber: true,
+                        deliveries: {
+                            select: {
+                                id: true,
+                                status: true,
+                                deliveryDate: true,
+                                _count: { select: { items: true } },
+                            },
+                            orderBy: { createdAt: "desc" },
+                        },
+                    },
+                },
                 lineItems: {
                     select: {
-                        id: true, description: true,
+                        id: true,
+                        poLineItemId: true,
+                        description: true,
                         qty: true, unitPrice: true, tax: true, total: true,
                     },
                 },
@@ -271,6 +449,7 @@ export async function getVpInvoiceById(
                         amount: true,
                         paymentMode: true,
                         transactionRef: true,
+                        notes: true,
                         paymentDate: true,
                         status: true,
                         proofUrl: true,
@@ -317,6 +496,14 @@ export async function getVpInvoiceById(
             data: {
                 ...mapRow(r),
                 items: r.lineItems,
+                deliveries: (r.purchaseOrder?.deliveries ?? []).map((delivery) => ({
+                    id: delivery.id,
+                    status: delivery.status,
+                    deliveryDate: delivery.deliveryDate,
+                    poId: r.poId ?? "",
+                    poNumber: r.purchaseOrder?.poNumber ?? "—",
+                    itemCount: delivery._count.items,
+                })),
                 documents: r.documents,
                 payments: r.payments,
                 timeline,
@@ -344,7 +531,22 @@ export async function createVpInvoice(
     const vpvId = await getVpVendorIdForSession(session.user.id)
     if (!vpvId) return { success: false, error: "Your account is not linked to a vendor. Contact admin." }
 
-    const subtotal = d.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+    const companyError = await validateInvoiceCompanySelection({
+        vpVendorId: vpvId,
+        companyId: d.companyId,
+        poId: d.poId || null,
+    })
+    if (companyError) return { success: false, error: companyError }
+
+    const normalizedItemsResult = await normalizeInvoiceLineItems({
+        poId: d.poId || null,
+        items: d.items,
+        taxRate: d.taxRate,
+    })
+    if (!normalizedItemsResult.success) return normalizedItemsResult
+
+    const normalizedItems = normalizedItemsResult.data
+    const subtotal = normalizedItems.reduce((s, i) => s + i.total, 0)
     const taxAmount = (subtotal * d.taxRate) / 100
     const totalAmount = subtotal + taxAmount
 
@@ -358,6 +560,7 @@ export async function createVpInvoice(
                 type: d.type,
                 billType: d.billType,
                 vendorId: vpvId,
+                companyId: d.companyId,
                 poId: d.poId || null,
                 // No piId — vendors don't link invoices to PI
                 billToId: d.billToId || null,
@@ -371,12 +574,13 @@ export async function createVpInvoice(
                 totalAmount,
                 createdById: session.user.id,
                 lineItems: {
-                    create: d.items.map((item) => ({
+                    create: normalizedItems.map((item) => ({
+                        poLineItemId: item.poLineItemId,
                         description: item.description,
                         qty: item.qty,
                         unitPrice: item.unitPrice,
                         tax: item.tax,
-                        total: item.qty * item.unitPrice,
+                        total: item.total,
                     })),
                 },
             },
@@ -424,7 +628,26 @@ export async function updateVpInvoice(
         return { success: false, error: "You can only edit your own invoices" }
 
     const d = parsed.data
-    const subtotal = d.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+    const vpvId = await getVpVendorIdForSession(session.user.id)
+    if (!vpvId) return { success: false, error: "Your account is not linked to a vendor. Contact admin." }
+
+    const companyError = await validateInvoiceCompanySelection({
+        vpVendorId: vpvId,
+        companyId: d.companyId,
+        poId: d.poId || null,
+    })
+    if (companyError) return { success: false, error: companyError }
+
+    const normalizedItemsResult = await normalizeInvoiceLineItems({
+        poId: d.poId || null,
+        items: d.items,
+        taxRate: d.taxRate,
+        currentInvoiceId: id,
+    })
+    if (!normalizedItemsResult.success) return normalizedItemsResult
+
+    const normalizedItems = normalizedItemsResult.data
+    const subtotal = normalizedItems.reduce((s, i) => s + i.total, 0)
     const taxAmount = (subtotal * d.taxRate) / 100
     const totalAmount = subtotal + taxAmount
 
@@ -436,6 +659,7 @@ export async function updateVpInvoice(
                 invoiceNumber: d.invoiceNumber,
                 type: d.type,
                 billType: d.billType,
+                companyId: d.companyId,
                 poId: d.poId || null,
                 notes: d.notes || null,
                 billToId: d.billToId || null,
@@ -447,12 +671,13 @@ export async function updateVpInvoice(
                 taxAmount,
                 totalAmount,
                 lineItems: {
-                    create: d.items.map((item) => ({
+                    create: normalizedItems.map((item) => ({
+                        poLineItemId: item.poLineItemId,
                         description: item.description,
                         qty: item.qty,
                         unitPrice: item.unitPrice,
                         tax: item.tax,
-                        total: item.qty * item.unitPrice,
+                        total: item.total,
                     })),
                 },
             },
@@ -697,7 +922,13 @@ export async function addVpInvoiceDocument(
 
 // ── GET vendor's own POs (for linking) ────────────────────────
 
-export async function getVendorPosForInvoice(): Promise<VpActionResult<{ id: string; poNumber: string; grandTotal: number }[]>> {
+export async function getVendorPosForInvoice(): Promise<VpActionResult<{
+    id: string
+    poNumber: string
+    grandTotal: number
+    companyId: string | null
+    companyName: string | null
+}[]>> {
     const session = await getCustomSession()
     const vpvId = await getVpVendorIdForSession(session.user.id)
     if (!vpvId) return { success: true, data: [] }
@@ -708,10 +939,25 @@ export async function getVendorPosForInvoice(): Promise<VpActionResult<{ id: str
                 vendorId: vpvId,
                 status: { in: ["ACKNOWLEDGED", "APPROVED", "SENT_TO_VENDOR"] },
             },
-            select: { id: true, poNumber: true, grandTotal: true },
+            select: {
+                id: true,
+                poNumber: true,
+                grandTotal: true,
+                companyId: true,
+                company: { select: { name: true } },
+            },
             orderBy: { createdAt: "desc" },
         })
-        return { success: true, data: pos }
+        return {
+            success: true,
+            data: pos.map((po) => ({
+                id: po.id,
+                poNumber: po.poNumber,
+                grandTotal: po.grandTotal,
+                companyId: po.companyId,
+                companyName: po.company?.name ?? null,
+            })),
+        }
     } catch (e) {
         return { success: false, error: "Failed to fetch POs" }
     }

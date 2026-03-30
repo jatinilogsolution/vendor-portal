@@ -197,7 +197,15 @@ export default function PurchaseOrderDetailPage() {
                         <CardContent className="space-y-2.5 text-sm">
                             <Row label="Status">    <VpStatusBadge status={po.status} /></Row>
                             <Row label="Vendor">    {po.vendor.vendorName}</Row>
-                            <Row label="Category">  {po.categoryName ?? "—"}</Row>
+                            <Row label="Company">   {po.companyName ?? "—"}</Row>
+                            <Row label="Categories">
+                                {po.categoryNames.length > 0 ? po.categoryNames.join(", ") : "—"}
+                            </Row>
+                            {po.deliveryStatus && (
+                                <Row label="Delivery Status">
+                                    <VpStatusBadge status={po.deliveryStatus} />
+                                </Row>
+                            )}
                             <Row label="Created by">{po.createdBy.name}</Row>
                             {po.approvedBy && <Row label="Approved by">{po.approvedBy.name}</Row>}
                             {po.deliveryDate && (
@@ -261,6 +269,9 @@ export default function PurchaseOrderDetailPage() {
                                                             <span className="font-bold text-emerald-700">₹{p.amount.toLocaleString("en-IN")}</span>
                                                             <Badge variant="outline" className="text-[10px] lowercase">{p.status}</Badge>
                                                         </div>
+                                                        {p.notes && (
+                                                            <p className="text-[10px] text-muted-foreground">{p.notes}</p>
+                                                        )}
                                                         {p.proofUrl && (
                                                             <a
                                                                 href={p.proofUrl}
@@ -275,6 +286,46 @@ export default function PurchaseOrderDetailPage() {
                                                 ))}
                                             </div>
                                         )}
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {po.deliveries.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center justify-between">
+                                    Deliveries
+                                    <Badge variant="outline" className="text-[10px]">{po.deliveries.length}</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {po.deliveries.map((delivery) => (
+                                    <div key={delivery.id} className="space-y-2 border-b last:border-0 pb-3 last:pb-0">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <Link
+                                                href={`/vendor-portal/admin/deliveries/${delivery.id}`}
+                                                className="font-mono text-xs font-semibold text-primary hover:underline"
+                                            >
+                                                {delivery.id}
+                                            </Link>
+                                            <VpStatusBadge status={delivery.status} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                            <span className="text-muted-foreground">Date</span>
+                                            <span className="text-right">
+                                                {delivery.deliveryDate
+                                                    ? new Date(delivery.deliveryDate).toLocaleDateString("en-IN")
+                                                    : "—"}
+                                            </span>
+                                            <span className="text-muted-foreground">Items</span>
+                                            <span className="text-right">{delivery._count.items}</span>
+                                            <span className="text-muted-foreground">Dispatched By</span>
+                                            <span className="text-right">{delivery.dispatchedBy ?? "—"}</span>
+                                            <span className="text-muted-foreground">Received By</span>
+                                            <span className="text-right">{delivery.receivedBy ?? "—"}</span>
+                                        </div>
                                     </div>
                                 ))}
                             </CardContent>
@@ -303,8 +354,10 @@ export default function PurchaseOrderDetailPage() {
                                         <tr key={item.id}>
                                             <td className="px-4 py-2.5">
                                                 <p className="font-medium">{item.description}</p>
-                                                {item.itemCode && (
-                                                    <p className="text-xs text-muted-foreground font-mono">{item.itemCode}</p>
+                                                {(item.itemCode || item.itemId) && (
+                                                    <p className="text-xs text-muted-foreground font-mono">
+                                                        {[item.itemCode, item.itemId].filter(Boolean).join(" · ")}
+                                                    </p>
                                                 )}
                                             </td>
                                             <td className="px-4 py-2.5 text-right">{item.qty}</td>

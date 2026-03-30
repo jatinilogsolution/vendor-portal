@@ -184,6 +184,9 @@ export default function VendorPoDetailPage() {
                                                             <span className="font-bold text-emerald-700">₹{p.amount.toLocaleString("en-IN")}</span>
                                                             <span className="text-[10px] text-muted-foreground italic">{p.status.toLowerCase()}</span>
                                                         </div>
+                                                        {p.notes && (
+                                                            <p className="text-[10px] text-muted-foreground">{p.notes}</p>
+                                                        )}
                                                         {p.proofUrl && (
                                                             <a
                                                                 href={p.proofUrl}

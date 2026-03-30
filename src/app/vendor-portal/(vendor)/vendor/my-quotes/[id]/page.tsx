@@ -5,18 +5,18 @@ import { useEffect, useState, useTransition } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { IconArrowLeft, IconArrowRight, IconSend } from "@tabler/icons-react"
-import { Button }    from "@/components/ui/button"
+import { IconArrowLeft, IconArrowRight, IconSend, IconFile } from "@tabler/icons-react"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton }  from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { VpPageHeader }      from "@/components/ui/vp-page-header"
-import { VpStatusBadge }     from "@/components/ui/vp-status-badge"
+import { VpPageHeader } from "@/components/ui/vp-page-header"
+import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { VpPiStatusStepper } from "@/components/ui/vp-pi-status-stepper"
 import {
   getVpProformaInvoiceById,
@@ -26,12 +26,12 @@ import {
 export default function VendorQuoteDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const id     = params.id as string
+  const id = params.id as string
 
-  const [pi, setPi]           = useState<VpPiDetail | null>(null)
+  const [pi, setPi] = useState<VpPiDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [convertOpen, setConvertOpen] = useState(false)
-  const [isPending, startTransition]  = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   const load = async () => {
     setLoading(true)
@@ -115,14 +115,15 @@ export default function VendorQuoteDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2.5 text-sm">
               <Row label="Status">  <VpStatusBadge status={pi.status} /></Row>
+              <Row label="Company">{pi.companyName ?? "—"}</Row>
               <Row label="Valid Until">
                 {pi.validityDate
                   ? new Date(pi.validityDate).toLocaleDateString("en-IN")
                   : "—"}
               </Row>
-              {(pi as any).fulfillmentDate && (
+              {(pi).fulfillmentDate && (
                 <Row label="Fulfillment">
-                  {new Date((pi as any).fulfillmentDate).toLocaleDateString("en-IN")}
+                  {new Date(pi.fulfillmentDate).toLocaleDateString("en-IN")}
                 </Row>
               )}
               {pi.paymentTerms && <Row label="Payment Terms">{pi.paymentTerms}</Row>}
@@ -149,6 +150,30 @@ export default function VendorQuoteDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {pi.documents.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Attachments ({pi.documents.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {pi.documents.map((doc) => (
+                  <a
+                    key={doc.id}
+                    href={doc.filePath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  >
+                    <IconFile size={14} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1 text-xs">
+                      {doc.filePath.split("/").pop()}
+                    </span>
+                  </a>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Line items */}

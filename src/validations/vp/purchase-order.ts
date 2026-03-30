@@ -11,7 +11,8 @@ export const poLineItemSchema = z.object({
 
 export const purchaseOrderSchema = z.object({
     vendorId: z.string().min(1, "Vendor is required"),
-    categoryId: z.string().optional().or(z.literal("")),
+    companyId: z.string().min(1, "Company is required"),
+    categoryIds: z.array(z.string()).default([]),
     notes: z.string().optional().or(z.literal("")),
     deliveryDate: z.string().optional().or(z.literal("")),
     deliveryAddress: z.string().optional().or(z.literal("")),
@@ -24,4 +25,3 @@ export const purchaseOrderSchema = z.object({
 
 export type PoLineItemValues = z.infer<typeof poLineItemSchema>
 export type PurchaseOrderValues = z.infer<typeof purchaseOrderSchema>
-

@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { Resolver, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import {
@@ -16,13 +16,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import { VpLineItemsEditor, ItemOption } from "@/components/ui/vp-line-items-editor"
 import { VpTotalsBar } from "@/components/ui/vp-totals-bar"
 import { purchaseOrderSchema, PurchaseOrderValues } from "@/validations/vp/purchase-order"
 import { createVpPurchaseOrder, updateVpPurchaseOrder, VpPoDetail } from "@/actions/vp/purchase-order.action"
-import { getVpVendors } from "@/actions/vp/vendor.action"
+import { getVpVendors, VpVendorRow } from "@/actions/vp/vendor.action"
 import { getVpCategoriesFlat } from "@/actions/vp/category.action"
 import { getVpItemsForSelect } from "@/actions/vp/item.action"
 import { getAllBillToAddresses, BillToOption } from "@/actions/vp/bill-to.action"
@@ -35,7 +37,7 @@ export function PoForm({ editing }: PoFormProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
 
-    const [vendors, setVendors] = useState<{ id: string; name: string }[]>([])
+    const [vendors, setVendors] = useState<VpVendorRow[]>([])
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [items, setItems] = useState<ItemOption[]>([])
     const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
@@ -43,10 +45,11 @@ export function PoForm({ editing }: PoFormProps) {
     const isEditing = !!editing
 
     const form = useForm<PurchaseOrderValues>({
-        resolver: zodResolver(purchaseOrderSchema),
+        resolver: zodResolver(purchaseOrderSchema) as Resolver<PurchaseOrderValues>,
         defaultValues: {
             vendorId: editing?.vendor.id ?? "",
-            categoryId: editing?.categoryName ? "" : "",
+            companyId: editing?.companyId ?? "",
+            categoryIds: editing?.categoryIds ?? (editing?.categoryId ? [editing.categoryId] : []),
             notes: editing?.notes ?? "",
             deliveryDate: editing?.deliveryDate
                 ? new Date(editing.deliveryDate).toISOString().split("T")[0]
@@ -67,12 +70,28 @@ export function PoForm({ editing }: PoFormProps) {
     })
 
     // Load reference data
-    const categoryId = form.watch("categoryId")
+    const selectedVendorId = form.watch("vendorId")
+    const selectedVendor = vendors.find((vendor) => vendor.id === selectedVendorId)
+    const companyOptions = selectedVendor?.companies ?? []
+    const selectedCategoryIds = form.watch("categoryIds")
+    const availableVendors = useMemo(
+        () => selectedCategoryIds.length > 0
+            ? vendors.filter((vendor) => selectedCategoryIds.every((categoryId) => vendor.categoryIds.includes(categoryId)))
+            : vendors,
+        [selectedCategoryIds, vendors],
+    )
+    const categoryOptions = useMemo(
+        () => selectedVendor
+            ? categories.filter((category) => selectedVendor.categoryIds.includes(category.id))
+            : categories,
+        [categories, selectedVendor],
+    )
+
     useEffect(() => {
-        getVpItemsForSelect(categoryId || undefined).then((res) => {
+        getVpItemsForSelect(selectedCategoryIds).then((res) => {
             if (res.success) setItems(res.data)
         })
-    }, [categoryId])
+    }, [selectedCategoryIds])
 
     useEffect(() => {
         Promise.all([
@@ -80,11 +99,61 @@ export function PoForm({ editing }: PoFormProps) {
             getVpCategoriesFlat(),
             getAllBillToAddresses(),
         ]).then(([vRes, cRes, billRes]) => {
-            if (vRes.success) setVendors(vRes.data.data.map((v) => ({ id: v.id, name: v.vendor.name })))
+            if (vRes.success) setVendors(vRes.data.data)
             if (cRes.success) setCategories(cRes.data.map((c) => ({ id: c.id, name: c.name })))
             setBillToOpts(billRes)
         })
     }, [])
+
+    useEffect(() => {
+        const currentCompanyId = form.getValues("companyId")
+        if (!selectedVendor) {
+            if (selectedVendorId && vendors.length === 0) return
+            if (currentCompanyId) form.setValue("companyId", "")
+            return
+        }
+
+        const hasCurrent = selectedVendor.companies.some((company) => company.id === currentCompanyId)
+        if (hasCurrent) return
+
+        if (selectedVendor.defaultInvoiceCompanyId) {
+            form.setValue("companyId", selectedVendor.defaultInvoiceCompanyId)
+            return
+        }
+
+        if (selectedVendor.companies.length === 1) {
+            form.setValue("companyId", selectedVendor.companies[0].id)
+            return
+        }
+
+        form.setValue("companyId", "")
+    }, [form, selectedVendor, selectedVendorId, vendors.length])
+
+    useEffect(() => {
+        if (!selectedVendorId || !selectedVendor) return
+        if (selectedCategoryIds.length === 0 && selectedVendor.categoryIds.length === 1) {
+            form.setValue("categoryIds", [selectedVendor.categoryIds[0]], { shouldValidate: true })
+            return
+        }
+        const validCategoryIds = selectedCategoryIds.filter((categoryId) => selectedVendor.categoryIds.includes(categoryId))
+        if (validCategoryIds.length !== selectedCategoryIds.length) {
+            form.setValue(
+                "categoryIds",
+                validCategoryIds.length > 0
+                    ? validCategoryIds
+                    : selectedVendor.categoryIds.length === 1 ? [selectedVendor.categoryIds[0]] : [],
+                { shouldValidate: true },
+            )
+        }
+    }, [form, selectedCategoryIds, selectedVendor, selectedVendorId])
+
+    const toggleCategory = (categoryId: string, checked: boolean) => {
+        const current = form.getValues("categoryIds")
+        const next = checked
+            ? [...new Set([...current, categoryId])]
+            : current.filter((id) => id !== categoryId)
+        form.setValue("categoryIds", next, { shouldValidate: true })
+    }
 
     const onSubmit = (values: PurchaseOrderValues) => {
         startTransition(async () => {
@@ -113,7 +182,7 @@ export function PoForm({ editing }: PoFormProps) {
                         <CardTitle className="text-base">Order Details</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
                             {/* Vendor */}
                             <FormField control={form.control} name="vendorId" render={({ field }) => (
@@ -124,8 +193,8 @@ export function PoForm({ editing }: PoFormProps) {
                                             <SelectTrigger className="w-full"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {vendors.map((v) => (
-                                                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                                            {availableVendors.map((v) => (
+                                                <SelectItem key={v.id} value={v.id}>{v.vendor.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -133,20 +202,24 @@ export function PoForm({ editing }: PoFormProps) {
                                 </FormItem>
                             )} />
 
-                            {/* Category */}
-                            <FormField control={form.control} name="categoryId" render={({ field }) => (
+                            <FormField control={form.control} name="companyId" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                                    <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
+                                    <Select
+                                        value={field.value || ""}
+                                        onValueChange={field.onChange}
+                                        disabled={!selectedVendor}
+                                    >
                                         <FormControl>
                                             <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select category (optional)" />
+                                                <SelectValue placeholder={selectedVendor ? "Select company" : "Select vendor first"} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {/* >— None —</SelectItem> */}
-                                            {categories.map((c) => (
-                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            {companyOptions.map((company) => (
+                                                <SelectItem key={company.id} value={company.id}>
+                                                    {company.name}
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -186,6 +259,42 @@ export function PoForm({ editing }: PoFormProps) {
                                 </FormItem>
                             )} />
                         </div>
+
+                        <FormField control={form.control} name="categoryIds" render={() => (
+                            <FormItem>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <FormLabel>Categories</FormLabel>
+                                        <p className="text-xs text-muted-foreground">
+                                            Select one or more categories for this PO.
+                                        </p>
+                                    </div>
+                                    {selectedCategoryIds.length > 0 && (
+                                        <Badge variant="outline" className="text-xs">
+                                            {selectedCategoryIds.length} selected
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {categoryOptions.map((category) => {
+                                        const checked = selectedCategoryIds.includes(category.id)
+                                        return (
+                                            <label
+                                                key={category.id}
+                                                className="flex items-start gap-3 rounded-md border bg-background px-3 py-2"
+                                            >
+                                                <Checkbox
+                                                    checked={checked}
+                                                    onCheckedChange={(value) => toggleCategory(category.id, value === true)}
+                                                />
+                                                <span className="text-sm font-medium">{category.name}</span>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
 
                         {/* Delivery Address */}
                         <FormField control={form.control} name="deliveryAddress" render={({ field }) => (

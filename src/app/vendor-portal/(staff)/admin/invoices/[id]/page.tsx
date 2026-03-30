@@ -172,7 +172,13 @@ export default function AdminInvoiceDetailPage() {
                         <CardContent className="space-y-2.5 text-sm">
                             <Row label="Status">    <VpStatusBadge status={inv.status} /></Row>
                             <Row label="Vendor">    {inv.vendor.vendorName}</Row>
+                            <Row label="Company">   {inv.companyName ?? "—"}</Row>
                             <Row label="Type">      <Badge variant="secondary" className="text-xs">{inv.type}</Badge></Row>
+                            {inv.deliveryStatus && (
+                                <Row label="Delivery Status">
+                                    <VpStatusBadge status={inv.deliveryStatus} />
+                                </Row>
+                            )}
                             {inv.reviewedBy && <Row label="Reviewed by">{inv.reviewedBy.name}</Row>}
                             {inv.poNumber && (
                                 <Row label="PO Ref">
@@ -216,6 +222,44 @@ export default function AdminInvoiceDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {inv.deliveries.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center justify-between">
+                                    Related Deliveries
+                                    <Badge variant="outline" className="text-[10px]">{inv.deliveries.length}</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {inv.deliveries.map((delivery) => (
+                                    <div key={delivery.id} className="space-y-2 border-b last:border-0 pb-3 last:pb-0">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <Link
+                                                href={`/vendor-portal/admin/deliveries/${delivery.id}`}
+                                                className="font-mono text-xs font-semibold text-primary hover:underline"
+                                            >
+                                                {delivery.id}
+                                            </Link>
+                                            <VpStatusBadge status={delivery.status} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                            <span className="text-muted-foreground">PO</span>
+                                            <span className="text-right font-mono">{delivery.poNumber}</span>
+                                            <span className="text-muted-foreground">Date</span>
+                                            <span className="text-right">
+                                                {delivery.deliveryDate
+                                                    ? new Date(delivery.deliveryDate).toLocaleDateString("en-IN")
+                                                    : "—"}
+                                            </span>
+                                            <span className="text-muted-foreground">Items</span>
+                                            <span className="text-right">{delivery.itemCount}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
                     
                     {inv.payments.length > 0 && (
                         <Card>
@@ -232,6 +276,8 @@ export default function AdminInvoiceDetailPage() {
                                             <div className="font-medium">{p.paymentMode || "—"}</div>
                                             <div className="text-muted-foreground">Ref No:</div>
                                             <div className="font-mono">{p.transactionRef || "—"}</div>
+                                            <div className="text-muted-foreground">Boss Note:</div>
+                                            <div>{p.notes || "—"}</div>
                                             <div className="text-muted-foreground">Date:</div>
                                             <div>{p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-IN") : "—"}</div>
                                         </div>

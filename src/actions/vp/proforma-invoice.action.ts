@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
 import { isAdmin, isAdminOrBoss, isBoss, isVendor } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { getVpVendorCategoryOptions, validateVpVendorCategoryAccess } from "@/lib/vendor-portal/category"
+import { getVpVendorCompanyConfig, validateVpVendorCompanyAccess } from "@/lib/vendor-portal/company"
 import { createVpNotification } from "@/lib/vendor-portal/notify"
 import { emailPiSubmitted } from "@/lib/vp-email"
 import { VpActionResult, VpListParams, VpListResult } from "@/types/vendor-portal"
@@ -24,6 +26,13 @@ export type VpPiLineItem = {
     total: number
 }
 
+export type VpPiDocumentRow = {
+    id: string
+    filePath: string
+    uploadedAt: Date
+    uploadedBy: { name: string } | null
+}
+
 // ── Updated VpPiRow type — add missing fields ──────────────────
 export type VpPiRow = {
   id:              string
@@ -41,6 +50,10 @@ export type VpPiRow = {
   createdAt:       Date
   categoryName:    string | null
   categoryId:      string | null      // ← ADD
+  companyId:       string | null
+  companyName:     string | null
+  companyCode:     string | null
+  companyGstin:    string | null
   billToId:        string | null
   billTo:          string | null
   billToGstin:     string | null
@@ -70,6 +83,7 @@ export type VpPiRow = {
 }
 export type VpPiDetail = Omit<VpPiRow, "items"> & {
     items: VpPiLineItem[]
+    documents: VpPiDocumentRow[]
     invoices: {
         id: string
         invoiceNumber: string | null
@@ -81,6 +95,7 @@ export type VpPiDetail = Omit<VpPiRow, "items"> & {
             status: string
             paymentMode: string | null
             transactionRef: string | null
+            notes: string | null
             paymentDate: Date | null
             proofUrl: string | null
         }[]
@@ -127,6 +142,7 @@ const PI_SELECT = {
   fulfillmentDate: true,        // ← ADD
   procurementId:   true,        // ← ADD
   raisedByVendor:  true,        // ← ADD
+  companyId:       true,
   createdAt:       true,
   convertedToPoId: true,
   submittedAt:     true,
@@ -137,6 +153,9 @@ const PI_SELECT = {
   rejectedAt:      true,
   rejectionReason: true,
   categoryId: true,
+  company: {
+    select: { name: true, code: true, gstin: true },
+  },
   billToId:    true,
   billTo:      true,
   billToGstin: true,             // ← ADD
@@ -159,6 +178,15 @@ const PI_SELECT = {
       total: true,
     },
   },
+  documents: {
+    select: {
+      id: true,
+      filePath: true,
+      uploadedAt: true,
+      uploadedBy: { select: { name: true } },
+    },
+    orderBy: { uploadedAt: "desc" },
+  },
 } as const
 
 // ── Updated mapRow — include new fields ────────────────────────
@@ -180,6 +208,10 @@ function mapRow(r: any): VpPiRow {
     createdAt:       r.createdAt,
     categoryName:    r.category?.name  ?? null,
     categoryId:      r.categoryId      ?? null,   // ← ADD
+    companyId:       r.companyId       ?? null,
+    companyName:     r.company?.name   ?? null,
+    companyCode:     r.company?.code   ?? null,
+    companyGstin:    r.company?.gstin  ?? null,
     billToId:        r.billToId        ?? null,
     billTo:          r.billTo          ?? null,
     billToGstin:     r.billToGstin     ?? null,
@@ -225,6 +257,7 @@ export async function getVpProformaInvoices(
     const where: any = {}
     if (params.status)        where.status        = params.status
     if (params.vendorId)      where.vendorId       = params.vendorId
+    if (params.companyId)     where.companyId      = params.companyId
     if (params.categoryId)    where.categoryId     = params.categoryId
     if (params.search)        where.piNumber       = { contains: params.search }
     if (params.from)          where.createdAt      = { ...where.createdAt, gte: new Date(params.from) }
@@ -309,6 +342,7 @@ export async function getVpProformaInvoiceById(
                     unitPrice: i.unitPrice,
                     total: i.total,
                 })),
+                documents: r.documents,
                 invoices: await prisma.vpInvoice.findMany({
                     where: { piId: id },
                     select: {
@@ -323,6 +357,7 @@ export async function getVpProformaInvoiceById(
                                 status: true,
                                 paymentMode: true,
                                 transactionRef: true,
+                                notes: true,
                                 paymentDate: true,
                                 proofUrl: true,
                             }
@@ -335,6 +370,65 @@ export async function getVpProformaInvoiceById(
     } catch (e) {
         console.error("[getVpProformaInvoiceById]", e)
         return { success: false, error: "Failed to fetch proforma invoice" }
+    }
+}
+
+export async function addVpProformaInvoiceDocument(
+    piId: string,
+    filePath: string,
+): Promise<VpActionResult<{ id: string }>> {
+    const session = await getCustomSession()
+    const pi = await prisma.vpProformaInvoice.findUnique({
+        where: { id: piId },
+        select: {
+            id: true,
+            vendorId: true,
+        },
+    })
+    if (!pi) return { success: false, error: "Proforma invoice not found" }
+
+    if (session.user.role === "VENDOR") {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { vendorId: true },
+        })
+        const vpv = user?.vendorId
+            ? await prisma.vpVendor.findFirst({
+                where: { existingVendorId: user.vendorId },
+                select: { id: true },
+            })
+            : null
+
+        if (!vpv || vpv.id !== pi.vendorId) {
+            return { success: false, error: "You can only attach files to your own quote" }
+        }
+    } else if (!isAdminOrBoss(session.user.role)) {
+        return { success: false, error: "You do not have permission to attach files here" }
+    }
+
+    try {
+        const document = await prisma.vpProformaInvoiceDocument.create({
+            data: {
+                piId,
+                filePath,
+                uploadedAt: new Date(),
+                uploadedById: session.user.id,
+            },
+            select: { id: true },
+        })
+
+        await logVpAudit({
+            userId: session.user.id,
+            action: "CREATE",
+            entityType: "VpProformaInvoice",
+            entityId: piId,
+            description: "Added proforma invoice attachment",
+        })
+
+        return { success: true, data: document }
+    } catch (error) {
+        console.error("[addVpProformaInvoiceDocument]", error)
+        return { success: false, error: "Failed to save proforma invoice attachment" }
     }
 }
 
@@ -351,6 +445,16 @@ export async function createVpProformaInvoice(
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
 
     const d = parsed.data
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: d.vendorId,
+        companyId: d.companyId,
+    })
+    if (companyError) return { success: false, error: companyError }
+    const categoryError = await validateVpVendorCategoryAccess({
+        vpVendorId: d.vendorId,
+        categoryId: d.categoryId,
+    })
+    if (categoryError) return { success: false, error: categoryError }
     const { subtotal, taxAmount, grandTotal } = computeTotals(d.items, d.taxRate)
 
     try {
@@ -361,6 +465,7 @@ export async function createVpProformaInvoice(
                 piNumber,
                 status: "DRAFT",
                 vendorId: d.vendorId,
+                companyId: d.companyId,
                 categoryId: d.categoryId || null,
                 notes: d.notes || null,
                 validityDate: d.validityDate ? new Date(d.validityDate) : null,
@@ -409,11 +514,42 @@ export async function createVendorProformaInvoice(
     })
     const vpv = user?.vendorId
         ? await prisma.vpVendor.findFirst({
-            where: { existingVendorId: user.vendorId }, select: { id: true, categoryId: true },
+            where: { existingVendorId: user.vendorId }, select: { id: true },
         })
         : null
 
     if (!vpv) return { success: false, error: "Your account is not linked to a vendor" }
+
+    const vendorCompanyConfig = await getVpVendorCompanyConfig(vpv.id)
+    const vendorCategoryOptions = await getVpVendorCategoryOptions(vpv.id)
+    const procurementConfig = raw.procurementId
+        ? await prisma.vpProcurement.findUnique({
+            where: { id: raw.procurementId },
+            select: { companyId: true, categoryId: true },
+        })
+        : null
+    const selectedCompanyId = procurementConfig?.companyId
+        ?? vendorCompanyConfig?.defaultInvoiceCompanyId
+        ?? vendorCompanyConfig?.companyIds[0]
+        ?? null
+    const selectedCategoryId = procurementConfig?.categoryId
+        ?? vendorCategoryOptions?.[0]?.id
+        ?? null
+
+    if (!selectedCompanyId) {
+        return { success: false, error: "No company is configured for this vendor. Contact admin." }
+    }
+
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: vpv.id,
+        companyId: selectedCompanyId,
+    })
+    if (companyError) return { success: false, error: companyError }
+    const categoryError = await validateVpVendorCategoryAccess({
+        vpVendorId: vpv.id,
+        categoryId: selectedCategoryId,
+    })
+    if (categoryError) return { success: false, error: categoryError }
 
     const subtotal = raw.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
     const taxAmount = (subtotal * raw.taxRate) / 100
@@ -427,7 +563,8 @@ export async function createVendorProformaInvoice(
                 status: "SUBMITTED", // vendor submits directly
                 raisedByVendor: true,
                 vendorId: vpv.id,
-                categoryId: vpv.categoryId,
+                companyId: selectedCompanyId,
+                categoryId: selectedCategoryId,
                 procurementId: raw.procurementId || null,
                 notes: raw.notes || null,
                 validityDate: raw.validityDate ? new Date(raw.validityDate) : null,
@@ -448,6 +585,15 @@ export async function createVendorProformaInvoice(
                         total: item.qty * item.unitPrice,
                     })),
                 },
+                documents: raw.attachmentUrls?.length
+                    ? {
+                        create: raw.attachmentUrls.map((filePath) => ({
+                            filePath,
+                            uploadedAt: new Date(),
+                            uploadedById: session.user.id,
+                        })),
+                    }
+                    : undefined,
             },
         })
 
@@ -509,6 +655,16 @@ export async function updateVpProformaInvoice(
         return { success: false, error: "Only DRAFT proforma invoices can be edited" }
 
     const d = parsed.data
+    const companyError = await validateVpVendorCompanyAccess({
+        vpVendorId: d.vendorId,
+        companyId: d.companyId,
+    })
+    if (companyError) return { success: false, error: companyError }
+    const categoryError = await validateVpVendorCategoryAccess({
+        vpVendorId: d.vendorId,
+        categoryId: d.categoryId,
+    })
+    if (categoryError) return { success: false, error: categoryError }
     const { subtotal, taxAmount, grandTotal } = computeTotals(d.items, d.taxRate)
 
     try {
@@ -517,6 +673,7 @@ export async function updateVpProformaInvoice(
             where: { id },
             data: {
                 vendorId: d.vendorId,
+                companyId: d.companyId,
                 categoryId: d.categoryId || null,
                 notes: d.notes || null,
                 validityDate: d.validityDate ? new Date(d.validityDate) : null,

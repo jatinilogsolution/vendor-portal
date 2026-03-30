@@ -23,16 +23,18 @@ interface CategoryTreeProps {
     allFlat: { id: string; name: string; parentId: string | null }[]
     canEdit: boolean
     onRefresh: () => void
+    expandAll?: boolean
 }
 
 function CategoryRow({
-    node, allFlat, canEdit, onRefresh, defaultOpen = false,
+    node, allFlat, canEdit, onRefresh, defaultOpen = false, expandAll = false,
 }: {
     node: VpCategoryFlat
     allFlat: { id: string; name: string; parentId: string | null }[]
     canEdit: boolean
     onRefresh: () => void
     defaultOpen?: boolean
+    expandAll?: boolean
 }) {
     const [expanded, setExpanded] = useState(defaultOpen)
     const [dialogOpen, setDialog] = useState(false)
@@ -137,6 +139,8 @@ function CategoryRow({
                             allFlat={allFlat}
                             canEdit={canEdit}
                             onRefresh={onRefresh}
+                            defaultOpen={expandAll}
+                            expandAll={expandAll}
                         />
                     ))}
                 </div>
@@ -186,7 +190,7 @@ function CategoryRow({
     )
 }
 
-export function CategoryTree({ tree, allFlat, canEdit, onRefresh }: CategoryTreeProps) {
+export function CategoryTree({ tree, allFlat, canEdit, onRefresh, expandAll = false }: CategoryTreeProps) {
     if (tree.length === 0) {
         return (
             <VpEmptyState
@@ -216,7 +220,8 @@ export function CategoryTree({ tree, allFlat, canEdit, onRefresh }: CategoryTree
                         allFlat={allFlat}
                         canEdit={canEdit}
                         onRefresh={onRefresh}
-                        defaultOpen={node.children.length > 0}
+                        defaultOpen={expandAll || node.children.length > 0}
+                        expandAll={expandAll}
                     />
                 ))}
             </div>

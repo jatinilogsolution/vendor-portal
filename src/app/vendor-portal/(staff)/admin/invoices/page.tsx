@@ -90,6 +90,7 @@ export default function AdminInvoicesPage() {
                                 { header: "Vendor", accessor: (r) => r.vendor.vendorName },
                                 { header: "Amount", accessor: (r) => r.totalAmount },
                                 { header: "Status", accessor: (r) => r.status },
+                                { header: "Delivery Status", accessor: (r) => r.deliveryStatus ?? "" },
                                 {
                                     header: "Submitted",
                                     accessor: (r) => r.submittedAt
@@ -123,14 +124,15 @@ export default function AdminInvoicesPage() {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
-            <VpDateFilter
+                 <VpDateFilter
                 from={from}
                 to={to}
                 onFrom={(v) => { setFrom(v); setPage(1) }}
                 onTo={(v) => { setTo(v); setPage(1) }}
                 onClear={() => { setFrom(""); setTo(""); setPage(1) }}
             />
+            </div>
+           
 
             {loading ? (
                 <div className="space-y-2">
@@ -150,6 +152,7 @@ export default function AdminInvoicesPage() {
                                 <TableHead>Reference</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Delivery</TableHead>
                                 <TableHead>Submitted</TableHead>
                                 <TableHead className="w-36" />
                             </TableRow>
@@ -178,6 +181,12 @@ export default function AdminInvoicesPage() {
                                         ₹{inv.totalAmount.toLocaleString("en-IN")}
                                     </TableCell>
                                     <TableCell><VpStatusBadge status={inv.status} /></TableCell>
+                                    <TableCell>
+                                        {inv.deliveryStatus
+                                            ? <VpStatusBadge status={inv.deliveryStatus} />
+                                            : <span className="text-xs text-muted-foreground">—</span>
+                                        }
+                                    </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">
                                         {inv.submittedAt
                                             ? new Date(inv.submittedAt).toLocaleDateString("en-IN")

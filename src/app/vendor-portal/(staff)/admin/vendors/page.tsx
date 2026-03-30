@@ -195,8 +195,14 @@ export default function AdminVendorsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {v.categoryName
-                                                    ? <Badge variant="outline" className="text-xs">{v.categoryName}</Badge>
+                                                {v.categoryNames.length > 0
+                                                    ? <div className="flex flex-wrap gap-1">
+                                                        {v.categoryNames.map((categoryName) => (
+                                                            <Badge key={categoryName} variant="outline" className="text-xs">
+                                                                {categoryName}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
                                                     : <span className="text-xs text-muted-foreground">—</span>
                                                 }
                                             </TableCell>

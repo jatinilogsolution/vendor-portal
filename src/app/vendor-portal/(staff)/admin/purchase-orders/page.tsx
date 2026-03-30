@@ -8,6 +8,7 @@ import {
     IconShoppingCart, IconPlus, IconSearch, IconRefresh,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -85,6 +86,7 @@ export default function AdminPurchaseOrdersPage() {
                                 { header: "Vendor", accessor: (r) => r.vendor.vendorName },
                                 { header: "Amount", accessor: (r) => r.grandTotal },
                                 { header: "Status", accessor: (r) => r.status },
+                                { header: "Delivery Status", accessor: (r) => r.deliveryStatus ?? "" },
                                 {
                                     header: "Created",
                                     accessor: (r) => new Date(r.createdAt).toLocaleDateString("en-IN"),
@@ -150,6 +152,7 @@ export default function AdminPurchaseOrdersPage() {
                                 <TableHead>Category</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Delivery</TableHead>
                                 <TableHead>Created</TableHead>
                                 <TableHead className="w-20" />
                             </TableRow>
@@ -167,8 +170,14 @@ export default function AdminPurchaseOrdersPage() {
                                     </TableCell>
                                     <TableCell className="text-sm">{po.vendor.vendorName}</TableCell>
                                     <TableCell>
-                                        {po.categoryName
-                                            ? <span className="text-xs">{po.categoryName}</span>
+                                        {po.categoryNames.length > 0
+                                            ? <div className="flex flex-wrap gap-1">
+                                                {po.categoryNames.map((categoryName) => (
+                                                    <Badge key={categoryName} variant="outline" className="text-xs">
+                                                        {categoryName}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                             : <span className="text-xs text-muted-foreground">—</span>
                                         }
                                     </TableCell>
@@ -176,6 +185,12 @@ export default function AdminPurchaseOrdersPage() {
                                         ₹{po.grandTotal.toLocaleString("en-IN")}
                                     </TableCell>
                                     <TableCell><VpStatusBadge status={po.status} /></TableCell>
+                                    <TableCell>
+                                        {po.deliveryStatus
+                                            ? <VpStatusBadge status={po.deliveryStatus} />
+                                            : <span className="text-xs text-muted-foreground">—</span>
+                                        }
+                                    </TableCell>
                                     <TableCell className="text-xs text-muted-foreground">
                                         {new Date(po.createdAt).toLocaleDateString("en-IN")}
                                     </TableCell>
