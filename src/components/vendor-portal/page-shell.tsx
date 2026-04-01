@@ -422,7 +422,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-md">
                     <Link
-                      href="/notifications"
+                      href="/vendor-portal/boss/notifications"
                       className="flex items-center justify-between w-full"
                     >
                       <span>Notifications Center</span>
