@@ -19,8 +19,7 @@ export const roles = {
         posts: ["create", "read", "delete:own", "update:own"],
     }),
     [UserRoleEnum.ADMIN]: ac.newRole({
-        // ...adminAc.statements,
-
+        user: ["list", "ban", "update"],
         posts: ["create", "read", "update", "delete", "delete:own", "update:own"],
     }),
     [UserRoleEnum.VENDOR]: ac.newRole({

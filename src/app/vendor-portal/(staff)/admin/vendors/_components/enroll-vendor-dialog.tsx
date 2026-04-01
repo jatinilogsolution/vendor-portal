@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { useForm, Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, X } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import {
     Dialog, DialogContent, DialogDescription,
@@ -31,6 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { vpVendorSchema, VpVendorFormValues } from "@/validations/vp/vendor"
 import {
@@ -51,6 +52,27 @@ interface EnrollVendorDialogProps {
 type RawVendor = { id: string; name: string; contactEmail: string | null }
 type Category = { id: string; name: string; parentId: string | null }
 type Company = { id: string; name: string; code: string | null; gstin: string | null }
+type CategoryOption = Category & {
+    pathLabel: string
+    parentPathLabel: string | null
+    searchText: string
+}
+
+function buildCategoryPath(categoryId: string, categoryMap: Map<string, Category>, seen = new Set<string>()): string[] {
+    if (seen.has(categoryId)) return []
+
+    const category = categoryMap.get(categoryId)
+    if (!category) return []
+
+    const nextSeen = new Set(seen)
+    nextSeen.add(categoryId)
+
+    const parentPath = category.parentId
+        ? buildCategoryPath(category.parentId, categoryMap, nextSeen)
+        : []
+
+    return [...parentPath, category.name]
+}
 
 export function EnrollVendorDialog({
     open, onClose, onSuccess, editing,
@@ -60,6 +82,7 @@ export function EnrollVendorDialog({
     const [categories, setCategories] = useState<Category[]>([])
     const [companies, setCompanies] = useState<Company[]>([])
     const [vendorSearch, setVSearch] = useState("")
+    const [categorySearch, setCategorySearch] = useState("")
     const [comboOpen, setComboOpen] = useState(false)
     const listRef = useRef<HTMLDivElement | null>(null)
     const isEditing = !!editing
@@ -96,6 +119,8 @@ export function EnrollVendorDialog({
             if (cRes.success) setCategories(cRes.data)
             if (companyRes.success) setCompanies(companyRes.data)
         })
+        setVSearch("")
+        setCategorySearch("")
 
         if (isEditing) {
             form.reset({
@@ -129,6 +154,42 @@ export function EnrollVendorDialog({
         const q = vendorSearch.toLowerCase()
         return vendors.filter((v) => v.name.toLowerCase().includes(q))
     }, [vendors, vendorSearch])
+
+    const categoryOptions = useMemo<CategoryOption[]>(() => {
+        const categoryMap = new Map(categories.map((category) => [category.id, category]))
+
+        return categories
+            .map((category) => {
+                const path = buildCategoryPath(category.id, categoryMap)
+                const parentPath = path.slice(0, -1)
+
+                return {
+                    ...category,
+                    pathLabel: path.join(" / "),
+                    parentPathLabel: parentPath.length > 0 ? parentPath.join(" / ") : null,
+                    searchText: [
+                        category.name,
+                        path.join(" "),
+                        parentPath.join(" "),
+                    ].join(" ").toLowerCase(),
+                }
+            })
+            .sort((a, b) => a.pathLabel.localeCompare(b.pathLabel))
+    }, [categories])
+
+    const filteredCategoryOptions = useMemo(() => {
+        const query = categorySearch.trim().toLowerCase()
+        if (!query) return categoryOptions
+
+        return categoryOptions.filter((category) => category.searchText.includes(query))
+    }, [categoryOptions, categorySearch])
+
+    const selectedCategoryOptions = useMemo(
+        () => selectedCategoryIds
+            .map((categoryId) => categoryOptions.find((category) => category.id === categoryId))
+            .filter((category): category is CategoryOption => Boolean(category)),
+        [categoryOptions, selectedCategoryIds],
+    )
 
     const virtualizer = useVirtualizer({
         count: filteredVendors.length,
@@ -317,9 +378,9 @@ export function EnrollVendorDialog({
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <FormLabel>Assigned Categories</FormLabel>
-                                            <FormDescription>
+                                            {/* <FormDescription>
                                                 Select all categories this vendor can be used for in procurement, PO, and PI flows.
-                                            </FormDescription>
+                                            </FormDescription> */}
                                         </div>
                                         {selectedCategoryIds.length > 0 && (
                                             <Badge variant="outline" className="text-xs">
@@ -327,28 +388,80 @@ export function EnrollVendorDialog({
                                             </Badge>
                                         )}
                                     </div>
-                                    <ScrollArea className="h-[20vh] w-full rounded-md shadow-2xl border bg-muted/20 p-3  "  >
+                                    <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+                                        <Input
+                                            value={categorySearch}
+                                            onChange={(event) => setCategorySearch(event.target.value)}
+                                            placeholder="Search category, parent, or full path..."
+                                        />
 
-                                        <div className="grid  gap-2 sm:grid-cols-2">
-                                            {categories.map((category) => {
+                                        {selectedCategoryOptions.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedCategoryOptions.map((category) => (
+                                                    <Badge
+                                                        key={category.id}
+                                                        variant="secondary"
+                                                        className="max-w-full gap-1 whitespace-normal py-1 text-left"
+                                                    >
+                                                        <span>{category.pathLabel}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
+                                                            onClick={() => toggleCategory(category.id, false)}
+                                                            aria-label={`Remove ${category.pathLabel}`}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <ScrollArea className="h-[22vh] w-full rounded-md border bg-background p-3">
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                {filteredCategoryOptions.map((category) => {
                                                 const checked = selectedCategoryIds.includes(category.id)
                                                 return (
                                                     <label
                                                         key={category.id}
-                                                        className="flex items-start gap-3 rounded-md border bg-background px-3 py-2"
+                                                        className="flex items-start gap-3 rounded-md border px-3 py-2"
                                                     >
                                                         <Checkbox
                                                             checked={checked}
                                                             onCheckedChange={(value) => toggleCategory(category.id, value === true)}
                                                         />
                                                         <div className="min-w-0 flex-1">
-                                                            <span className="text-sm font-medium">{category.name}</span>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-sm font-medium">{category.name}</span>
+                                                                {category.parentPathLabel ? (
+                                                                    <Badge variant="outline" className="text-[10px]">
+                                                                        Child Category
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="outline" className="text-[10px]">
+                                                                        Root Category
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                                Parent: {category.pathLabel}
+                                                            </p>
+                                                            {/* <p className="text-[11px] text-muted-foreground">
+                                                                Parent: {category.parentPathLabel ?? "Top level"}
+                                                            </p> */}
                                                         </div>
                                                     </label>
                                                 )
-                                            })}
-                                        </div>
-                                    </ScrollArea>
+                                                })}
+                                            </div>
+
+                                            {filteredCategoryOptions.length === 0 && (
+                                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                                    No categories matched your search.
+                                                </div>
+                                            )}
+                                        </ScrollArea>
+                                    </div>
 
                                     <FormMessage />
                                 </FormItem>
@@ -361,9 +474,9 @@ export function EnrollVendorDialog({
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <FormLabel>Assigned Companies</FormLabel>
-                                            <FormDescription>
+                                            {/* <FormDescription>
                                                 This vendor can receive POs, PIs, bills, and procurement requests only for the selected companies.
-                                            </FormDescription>
+                                            </FormDescription> */}
                                         </div>
                                         {selectedCompanyIds.length > 0 && (
                                             <Badge variant="outline" className="text-xs">
@@ -389,10 +502,11 @@ export function EnrollVendorDialog({
                                                             {company.code && (
                                                                 <Badge variant="outline" className="text-[10px]">{company.code}</Badge>
                                                             )}
-                                                        </div>
-                                                        {company.gstin && (
-                                                            <p className="text-xs text-muted-foreground">GSTIN: {company.gstin}</p>
+                                                             {company.gstin && (
+                                                            <span className="text-xs text-muted-foreground">GSTIN: {company.gstin}</span>
                                                         )}
+                                                        </div>
+                                                       
                                                     </div>
                                                 </label>
                                             )

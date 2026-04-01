@@ -18,6 +18,7 @@ const ADMIN_NAV = [
     { title: "Recurring", href: "/vendor-portal/admin/recurring", icon: "recurring" },
     // ── System ──
     { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },
+    { title: "Profile", href: "/vendor-portal/profile", icon: "user" },
     { title: "Settings", href: "/vendor-portal/admin/settings", icon: "settings" },
 ]
 
@@ -36,6 +37,7 @@ const BOSS_NAV = [
     // ── Vendors ──
     { title: "Vendors", href: "/vendor-portal/admin/vendors", icon: "vendors" },
     { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },
+    { title: "Profile", href: "/vendor-portal/profile", icon: "user" },
 
 ]
 

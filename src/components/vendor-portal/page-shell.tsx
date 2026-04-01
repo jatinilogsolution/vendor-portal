@@ -294,6 +294,14 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
   const userRole = data?.user?.role
   const isBoss = userRole === "BOSS"
   const currentCtx = pathname?.startsWith("/vendor-portal") ? "vendor" : "transport"
+  const accountSettingsHref =
+    role === "VENDOR" ? "/vendor-portal/vendor/profile" : "/vendor-portal/profile"
+  const notificationsHref =
+    role === "VENDOR"
+      ? "/vendor-portal/vendor/notifications"
+      : role === "ADMIN"
+        ? "/vendor-portal/admin/notifications"
+        : "/vendor-portal/boss/notifications"
 
   // Boss is viewing admin pages — show "Back to My View" button
   const bossOnAdminPage =
@@ -414,7 +422,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                 <div className="p-1">
                   <DropdownMenuItem asChild className="cursor-pointer rounded-md">
                     <Link
-                      href="/profile"
+                      href={accountSettingsHref}
                       className="flex items-center justify-between w-full"
                     >
                       <span>Account Settings</span>
@@ -422,7 +430,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-md">
                     <Link
-                      href="/vendor-portal/boss/notifications"
+                      href={notificationsHref}
                       className="flex items-center justify-between w-full"
                     >
                       <span>Notifications Center</span>
