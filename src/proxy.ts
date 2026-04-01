@@ -1,6 +1,11 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  isMaintenanceAllowedPath,
+  isMaintenanceEnabled,
+} from "@/lib/maintenance";
+
 const protectedPages = [
   "/dashboard",
   "/profile",
@@ -18,11 +23,22 @@ const protectedPages = [
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
+  const isApiRoute = pathname.startsWith("/api/");
+
+  if (isMaintenanceEnabled() && !isMaintenanceAllowedPath(pathname)) {
+    if (isApiRoute) {
+      return NextResponse.json(
+        { error: "Service temporarily unavailable" },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.redirect(new URL("/maintenance", req.url));
+  }
 
   const sessionCookie = getSessionCookie(req);
   const isLoggedIn = !!sessionCookie;
 
-  //   const isApiRoute = pathname.startsWith("/api");
   const isAuthPage = pathname.startsWith("/auth/");
   const isProtectedPage = protectedPages.some(page => pathname === page || pathname.startsWith(page + "/"));
 

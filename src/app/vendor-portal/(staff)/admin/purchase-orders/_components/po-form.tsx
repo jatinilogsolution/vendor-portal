@@ -16,10 +16,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { MultiSelectCommand } from "@/components/ui/multi-select-command"
 import { VpLineItemsEditor, ItemOption } from "@/components/ui/vp-line-items-editor"
 import { VpTotalsBar } from "@/components/ui/vp-totals-bar"
 import { purchaseOrderSchema, PurchaseOrderValues } from "@/validations/vp/purchase-order"
@@ -147,14 +147,6 @@ export function PoForm({ editing }: PoFormProps) {
         }
     }, [form, selectedCategoryIds, selectedVendor, selectedVendorId])
 
-    const toggleCategory = (categoryId: string, checked: boolean) => {
-        const current = form.getValues("categoryIds")
-        const next = checked
-            ? [...new Set([...current, categoryId])]
-            : current.filter((id) => id !== categoryId)
-        form.setValue("categoryIds", next, { shouldValidate: true })
-    }
-
     const onSubmit = (values: PurchaseOrderValues) => {
         startTransition(async () => {
             const result = isEditing
@@ -275,23 +267,18 @@ export function PoForm({ editing }: PoFormProps) {
                                         </Badge>
                                     )}
                                 </div>
-                                <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2 lg:grid-cols-3">
-                                    {categoryOptions.map((category) => {
-                                        const checked = selectedCategoryIds.includes(category.id)
-                                        return (
-                                            <label
-                                                key={category.id}
-                                                className="flex items-start gap-3 rounded-md border bg-background px-3 py-2"
-                                            >
-                                                <Checkbox
-                                                    checked={checked}
-                                                    onCheckedChange={(value) => toggleCategory(category.id, value === true)}
-                                                />
-                                                <span className="text-sm font-medium">{category.name}</span>
-                                            </label>
-                                        )
-                                    })}
-                                </div>
+                                <MultiSelectCommand
+                                    value={selectedCategoryIds}
+                                    onChange={(next) => form.setValue("categoryIds", next, { shouldValidate: true })}
+                                    options={categoryOptions.map((category) => ({
+                                        id: category.id,
+                                        label: category.name,
+                                    }))}
+                                    placeholder={selectedVendor ? "Search and select categories" : "Select vendor first"}
+                                    searchPlaceholder="Search categories..."
+                                    emptyMessage={selectedVendor ? "No categories found." : "Select a vendor to load categories."}
+                                    disabled={!selectedVendor}
+                                />
                                 <FormMessage />
                             </FormItem>
                         )} />

@@ -48,4 +48,6 @@ crons/
 
 /generated/prisma
 
+maintenance.flag
+
 /generated/prisma
