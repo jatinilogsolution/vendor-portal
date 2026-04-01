@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import { ItemDialog } from "./_components/item-dialog"
 import { BulkItemDialog } from "./_components/bulk-item-dialog"
+import { ItemUploadTemplateButton } from "./_components/item-upload-template-button"
 import { getVpItems, deleteVpItem, VpItemRow } from "@/actions/vp/item.action"
 import { getVpCategoriesFlat } from "@/actions/vp/category.action"
 import { useSession } from "@/lib/auth-client"
@@ -45,7 +46,7 @@ export default function ItemsPage() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState(initialQuery)
     const [catFilter, setCatFilter] = useState("")
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+    const [categories, setCategories] = useState<{ id: string; name: string; code: string | null }[]>([])
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<VpItemRow | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<VpItemRow | null>(null)
@@ -68,7 +69,7 @@ export default function ItemsPage() {
     // Load categories once
     useEffect(() => {
         getVpCategoriesFlat().then((r) => {
-            if (r.success) setCategories(r.data.map((c) => ({ id: c.id, name: c.name })))
+            if (r.success) setCategories(r.data.map((c) => ({ id: c.id, name: c.name, code: c.code })))
         })
     }, [])
 
@@ -107,6 +108,7 @@ export default function ItemsPage() {
                         </Button>
                         {canEdit && (
                             <>
+                                <ItemUploadTemplateButton categories={categories} disabled={loading} />
                                 <Button variant="secondary" size="sm" onClick={() => setBulkOpen(true)}>
                                     <IconPlus className="mr-1 h-4 w-4" /> Bulk Add (Excel)
                                 </Button>

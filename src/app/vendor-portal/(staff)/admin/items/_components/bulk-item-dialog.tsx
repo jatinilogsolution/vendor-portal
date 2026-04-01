@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect, useRef } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
 import { IconCopy, IconPlus, IconTrash, IconDeviceFloppy } from "@tabler/icons-react"
 import {
@@ -12,12 +12,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UOM_OPTIONS } from "@/validations/vp/item"
 import { createVpItem } from "@/actions/vp/item.action"
+import { ItemUploadTemplateButton } from "./item-upload-template-button"
 
 interface BulkItemDialogProps {
     open: boolean
     onClose: () => void
     onSuccess: () => void
-    categories: { id: string; name: string }[]
+    categories: { id: string; name: string; code?: string | null }[]
 }
 
 type DraftItem = {
@@ -34,6 +35,32 @@ type DraftItem = {
 export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkItemDialogProps) {
     const [isPending, startTransition] = useTransition()
     const [rows, setRows] = useState<DraftItem[]>([])
+
+    const resolveCategoryId = (input: {
+        name?: string
+        code?: string
+        id?: string
+    }) => {
+        const byId = input.id?.trim().toLowerCase()
+        if (byId) {
+            const match = categories.find((category) => category.id.toLowerCase() === byId)
+            if (match) return match.id
+        }
+
+        const byCode = input.code?.trim().toLowerCase()
+        if (byCode) {
+            const match = categories.find((category) => (category.code ?? "").toLowerCase() === byCode)
+            if (match) return match.id
+        }
+
+        const byName = input.name?.trim().toLowerCase()
+        if (byName) {
+            const match = categories.find((category) => category.name.toLowerCase() === byName)
+            if (match) return match.id
+        }
+
+        return ""
+    }
 
     // Add empty row
     const addRow = () => {
@@ -68,22 +95,33 @@ export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkIte
             e.preventDefault()
         }
 
-        const newRows: DraftItem[] = lines.map(line => {
+        const parsedRows = lines.map(line => {
             const cols = line.split("\t")
+            const firstCol = cols[0]?.trim().toLowerCase() || ""
+            const secondCol = cols[1]?.trim().toLowerCase() || ""
+
+            if (firstCol === "code" && secondCol === "name") {
+                return null
+            }
+
             const code = cols[0]?.trim() || ""
             const name = cols[1]?.trim() || ""
             let uom = cols[2]?.trim().toUpperCase() || "PCS"
             if (!UOM_OPTIONS.includes(uom as any)) uom = "PCS"
             const defaultPrice = cols[3]?.trim() || "0"
             const hsnCode = cols[4]?.trim() || ""
-
-            // Try matching category by name
-            const catNameStr = cols[5]?.trim().toLowerCase()
-            let categoryId = ""
-            if (catNameStr) {
-                const match = categories.find(c => c.name.toLowerCase() === catNameStr)
-                if (match) categoryId = match.id
-            }
+            const categoryId = resolveCategoryId({
+                name: cols[5]?.trim() || "",
+                code: cols[6]?.trim() || "",
+                id: cols[7]?.trim() || "",
+            })
+            const description = cols.length >= 9
+                ? (cols[8]?.trim() || "")
+                : cols.length === 8
+                    ? (cols[7]?.trim() || "")
+                    : cols.length === 7
+                        ? (cols[6]?.trim() || "")
+                        : ""
 
             return {
                 id: Math.random().toString(),
@@ -93,9 +131,11 @@ export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkIte
                 defaultPrice,
                 hsnCode,
                 categoryId,
-                description: ""
+                description,
             }
-        })
+        }).filter((row): row is DraftItem => Boolean(row))
+
+        const newRows: DraftItem[] = parsedRows
 
         if (newRows.length > 0) {
             // override first empty row if taking up space and user pasted
@@ -140,7 +180,7 @@ export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkIte
                 <DialogHeader className="px-2 pb-0 mb-0 space-y-1">
                     <DialogTitle>Bulk Create Items</DialogTitle>
                     <DialogDescription className="mt-1">
-                        Pasting tabular data from Excel/Google Sheets works! Columns: <br />
+                        Pasting tabular data from Excel/Google Sheets works, and the exported upload file from Items will paste back here correctly. Columns: <br />
                         <span className="font-semibold px-2 py-0.5 mt-2 bg-muted/60 border border-dashed rounded text-xs inline-flex items-center gap-2">
                             <span>1. Code</span>
                             <span className="text-muted-foreground/50">|</span>
@@ -152,10 +192,18 @@ export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkIte
                             <span className="text-muted-foreground/50">|</span>
                             <span>5. HSN</span>
                             <span className="text-muted-foreground/50">|</span>
-                            <span>6. Category</span>
+                            <span>6. Category Name</span>
+                            <span className="text-muted-foreground/50">|</span>
+                            <span>7. Category Code</span>
+                            <span className="text-muted-foreground/50">|</span>
+                            <span>8. Description</span>
                         </span>
                     </DialogDescription>
                 </DialogHeader>
+
+                <div className="px-2">
+                    <ItemUploadTemplateButton categories={categories} disabled={isPending} />
+                </div>
 
                 <div
                     className="flex-1 overflow-auto bg-background border rounded-md relative p-2"
@@ -186,7 +234,7 @@ export function BulkItemDialog({ open, onClose, onSuccess, categories }: BulkIte
                                     </td>
                                 </tr>
                             )}
-                            {rows.map((row, idx) => (
+                            {rows.map((row) => (
                                 <tr key={row.id} className="group hover:bg-muted/10 relative z-10 transition-colors">
                                     <td className="p-1">
                                         <Input
