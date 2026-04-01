@@ -7,7 +7,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import {
     IconArrowLeft, IconSend, IconTrash,
-    IconPencil, IconUpload, IconFile,
+    IconPencil, IconUpload, IconFile, IconRefresh,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -23,6 +23,7 @@ import { VpPageHeader } from "@/components/ui/vp-page-header"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { VpInvoiceStatusStepper } from "@/components/ui/vp-invoice-status-stepper"
 import { VpActivityTimeline } from "@/components/ui/vp-activity-timeline"
+import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import {
     getVpInvoiceById, submitVpInvoice,
     deleteVpInvoice, addVpInvoiceDocument, VpInvoiceDetail,
@@ -94,6 +95,10 @@ export default function VendorInvoiceDetailPage() {
     const canSubmit = inv.status === "DRAFT"
     const canDelete = inv.status === "DRAFT"
     const canUpload = ["DRAFT", "SUBMITTED"].includes(inv.status)
+    const recurringLabel = inv.recurringCycle
+        ? VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle
+        : null
+    const taxableAmount = Math.max(0, inv.subtotal - inv.discountAmount)
 
     return (
         <div className="space-y-6">
@@ -113,6 +118,16 @@ export default function VendorInvoiceDetailPage() {
                                 <Link href={`/vendor-portal/vendor/my-invoices/${id}/edit`}>
                                     <IconPencil size={14} className="mr-1.5" />
                                     Edit
+                                </Link>
+                            </Button>
+                        )}
+                        {inv.billType === "RECURRING" && (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link
+                                    href={`/vendor-portal/vendor/my-invoices/new?copyFrom=${inv.id}${inv.recurringScheduleId ? `&scheduleId=${inv.recurringScheduleId}` : ""}${inv.recurringCycle ? `&recurringCycle=${inv.recurringCycle}` : ""}`}
+                                >
+                                    <IconRefresh size={14} className="mr-1.5" />
+                                    Create Copy
                                 </Link>
                             </Button>
                         )}
@@ -173,6 +188,25 @@ export default function VendorInvoiceDetailPage() {
                             <Row label="Status">    <VpStatusBadge status={inv.status} /></Row>
                             <Row label="Company">   {inv.companyName ?? "—"}</Row>
                             <Row label="Type">      <Badge variant="secondary" className="text-xs">{inv.type}</Badge></Row>
+                            <Row label="Bill Type">
+                                <div className="flex flex-wrap justify-end gap-1">
+                                    <Badge variant="outline" className="text-xs">{inv.billType}</Badge>
+                                    {recurringLabel && (
+                                        <Badge variant="secondary" className="text-xs">{recurringLabel}</Badge>
+                                    )}
+                                </div>
+                            </Row>
+                            {inv.recurringTitle && <Row label="Recurring Schedule">{inv.recurringTitle}</Row>}
+                            {inv.parentInvoiceId && (
+                                <Row label="Copied From">
+                                    <Link
+                                        href={`/vendor-portal/vendor/my-invoices/${inv.parentInvoiceId}`}
+                                        className="font-mono text-xs text-primary hover:underline"
+                                    >
+                                        {inv.parentInvoiceNumber ?? inv.parentInvoiceId}
+                                    </Link>
+                                </Row>
+                            )}
                             {inv.poNumber && <Row label="PO Ref">
                                 <Link href={`/vendor-portal/vendor/my-pos`}
                                     className="font-mono text-xs text-primary hover:underline">
@@ -196,6 +230,10 @@ export default function VendorInvoiceDetailPage() {
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Financials</CardTitle></CardHeader>
                         <CardContent className="space-y-2 text-sm">
                             <Row label="Subtotal">₹{inv.subtotal.toLocaleString("en-IN")}</Row>
+                            {inv.discountAmount > 0 && (
+                                <Row label="Discount">- ₹{inv.discountAmount.toLocaleString("en-IN")}</Row>
+                            )}
+                            <Row label="Taxable Amount">₹{taxableAmount.toLocaleString("en-IN")}</Row>
                             <Row label={`GST (${inv.taxRate}%)`}>₹{inv.taxAmount.toLocaleString("en-IN")}</Row>
                             <Separator />
                             <div className="flex justify-between text-base font-bold">
@@ -284,6 +322,7 @@ export default function VendorInvoiceDetailPage() {
                                         <th className="px-4 py-2 text-right font-medium">Qty</th>
                                         <th className="px-4 py-2 text-right font-medium">Unit Price</th>
                                         <th className="px-4 py-2 text-right font-medium">Tax %</th>
+                                        <th className="px-4 py-2 text-center font-medium">Discount Basis</th>
                                         <th className="px-4 py-2 text-right font-medium">Total</th>
                                     </tr>
                                 </thead>
@@ -294,6 +333,9 @@ export default function VendorInvoiceDetailPage() {
                                             <td className="px-4 py-2.5 text-right">{item.qty}</td>
                                             <td className="px-4 py-2.5 text-right">₹{item.unitPrice.toLocaleString("en-IN")}</td>
                                             <td className="px-4 py-2.5 text-right">{item.tax}%</td>
+                                            <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
+                                                {inv.discountAmount > 0 ? "Overall invoice" : "—"}
+                                            </td>
                                             <td className="px-4 py-2.5 text-right font-semibold">
                                                 ₹{item.total.toLocaleString("en-IN")}
                                             </td>

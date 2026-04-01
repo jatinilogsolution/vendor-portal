@@ -99,7 +99,22 @@ function table(...rows: string[]): string {
   return `<table style="width:100%;border-collapse:collapse">${rows.join("")}</table>`
 }
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+const BASE = process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
+
+function buildRemoteAttachments(paths: string[]) {
+  return paths.map((filePath, index) => {
+    const cleanPath = filePath.split("?")[0] ?? filePath
+    const fallbackExt = cleanPath.includes(".")
+      ? cleanPath.substring(cleanPath.lastIndexOf("."))
+      : ""
+    const filename = cleanPath.split("/").pop() || `invoice-attachment-${index + 1}${fallbackExt}`
+
+    return {
+      filename,
+      path: filePath,
+    }
+  })
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PURCHASE ORDER EMAILS
@@ -248,7 +263,7 @@ export async function emailInvoiceSubmitted(invoiceId: string) {
     select: {
       invoiceNumber: true,
       totalAmount:   true,
-      documents: { select: { id: true } },
+      documents: { select: { id: true, filePath: true } },
       vendor: { select: { existingVendor: { select: { name: true } } } },
     },
   })
@@ -276,6 +291,7 @@ export async function emailInvoiceSubmitted(invoiceId: string) {
     templateType: "STATUS_CHANGE",
     relatedModel: "VpInvoice",
     relatedId:    invoiceId,
+    attachments:  buildRemoteAttachments(inv.documents.map((doc) => doc.filePath)),
   })
 }
 
@@ -286,6 +302,7 @@ export async function emailInvoiceApproved(invoiceId: string) {
       invoiceNumber: true,
       totalAmount:   true,
       vendorId:      true,
+      documents:     { select: { filePath: true } },
       createdBy:     { select: { email: true } },
     },
   })
@@ -311,6 +328,7 @@ export async function emailInvoiceApproved(invoiceId: string) {
     templateType: "APPROVAL",
     relatedModel: "VpInvoice",
     relatedId:    invoiceId,
+    attachments:  buildRemoteAttachments(inv.documents.map((doc) => doc.filePath)),
   })
 }
 
@@ -319,6 +337,7 @@ export async function emailInvoiceRejected(invoiceId: string, reason: string) {
     where:  { id: invoiceId },
     select: {
       invoiceNumber: true,
+      documents:     { select: { filePath: true } },
       createdBy:     { select: { email: true } },
     },
   })
@@ -342,6 +361,7 @@ export async function emailInvoiceRejected(invoiceId: string, reason: string) {
     templateType: "REJECTION",
     relatedModel: "VpInvoice",
     relatedId:    invoiceId,
+    attachments:  buildRemoteAttachments(inv.documents.map((doc) => doc.filePath)),
   })
 }
 
@@ -350,6 +370,7 @@ export async function emailPaymentInitiated(invoiceId: string, amount: number, n
     where:  { id: invoiceId },
     select: {
       invoiceNumber: true,
+      documents:     { select: { filePath: true } },
       createdBy:     { select: { email: true, name: true } },
     },
   })
@@ -377,6 +398,7 @@ export async function emailPaymentInitiated(invoiceId: string, amount: number, n
     templateType: "STATUS_CHANGE",
     relatedModel: "VpInvoice",
     relatedId:    invoiceId,
+    attachments:  buildRemoteAttachments(inv.documents.map((doc) => doc.filePath)),
   })
 }
 
@@ -385,6 +407,7 @@ export async function emailPaymentConfirmed(invoiceId: string, amount: number, n
     where:  { id: invoiceId },
     select: {
       invoiceNumber: true,
+      documents:     { select: { filePath: true } },
       createdBy:     { select: { email: true, name: true } },
     },
   })
@@ -411,6 +434,7 @@ export async function emailPaymentConfirmed(invoiceId: string, amount: number, n
     templateType: "APPROVAL",
     relatedModel: "VpInvoice",
     relatedId:    invoiceId,
+    attachments:  buildRemoteAttachments(inv.documents.map((doc) => doc.filePath)),
   })
 }
 

@@ -417,7 +417,7 @@ export function EnrollVendorDialog({
                                             </div>
                                         )}
 
-                                        <ScrollArea className="h-[22vh] w-full rounded-md border bg-background p-3">
+                                        <ScrollArea className="h-[22vh] w-full rounded-md border bg-background p-">
                                             <div className="grid gap-2 sm:grid-cols-2">
                                                 {filteredCategoryOptions.map((category) => {
                                                 const checked = selectedCategoryIds.includes(category.id)

@@ -43,6 +43,7 @@ export type VpInvoiceRow = {
     type: string
     billType: string
     subtotal: number
+    discountAmount: number
     taxRate: number
     taxAmount: number
     totalAmount: number
@@ -55,6 +56,9 @@ export type VpInvoiceRow = {
     billTo: string | null
     billToGstin: string | null
     recurringScheduleId: string | null
+    recurringTitle: string | null
+    recurringCycle: string | null
+    parentInvoiceId: string | null
     createdAt: Date
     submittedAt: Date | null
     approvedAt: Date | null
@@ -104,6 +108,7 @@ export type VpInvoiceDetail = VpInvoiceRow & {
         toStatus: string | null
         notes?: string | null
     }[]
+    parentInvoiceNumber: string | null
 }
 
 // ── Shared select ──────────────────────────────────────────────
@@ -115,6 +120,7 @@ const INVOICE_SELECT = {
     type: true,
     billType: true,
     subtotal: true,
+    discountAmount: true,
     taxRate: true,
     taxAmount: true,
     totalAmount: true,
@@ -125,6 +131,8 @@ const INVOICE_SELECT = {
     billTo: true,
     billToGstin: true,
     recurringScheduleId: true,
+    recurringSchedule: { select: { title: true, cycle: true } },
+    parentInvoiceId: true,
     createdAt: true,
     submittedAt: true,
     approvedAt: true,
@@ -168,6 +176,7 @@ function mapRow(r: any): VpInvoiceRow {
         type: r.type,
         billType: r.billType,
         subtotal: r.subtotal,
+        discountAmount: r.discountAmount,
         taxRate: r.taxRate,
         taxAmount: r.taxAmount,
         totalAmount: r.totalAmount,
@@ -180,6 +189,9 @@ function mapRow(r: any): VpInvoiceRow {
         billTo: r.billTo,
         billToGstin: r.billToGstin,
         recurringScheduleId: r.recurringScheduleId,
+        recurringTitle: r.recurringSchedule?.title ?? null,
+        recurringCycle: r.recurringSchedule?.cycle ?? r.vendor.recurringCycle ?? null,
+        parentInvoiceId: r.parentInvoiceId ?? null,
         createdAt: r.createdAt,
         submittedAt: r.submittedAt,
         approvedAt: r.approvedAt,
@@ -213,6 +225,29 @@ async function getVpVendorIdForSession(userId: string): Promise<string | null> {
         where: { existingVendorId: user.vendorId }, select: { id: true },
     })
     return vpv?.id ?? null
+}
+
+async function ensureVendorInvoiceNumberUnique(params: {
+    vpVendorId: string
+    invoiceNumber: string
+    excludeInvoiceId?: string
+}): Promise<string | null> {
+    const duplicate = await prisma.vpInvoice.findFirst({
+        where: {
+            vendorId: params.vpVendorId,
+            invoiceNumber: params.invoiceNumber.trim(),
+            ...(params.excludeInvoiceId
+                ? { id: { not: params.excludeInvoiceId } }
+                : {}),
+        },
+        select: { id: true },
+    })
+
+    if (duplicate) {
+        return "This invoice number is already used for your account. Please enter a unique vendor invoice number."
+    }
+
+    return null
 }
 
 async function validateInvoiceCompanySelection(params: {
@@ -350,6 +385,20 @@ async function normalizeInvoiceLineItems(params: {
     return { success: true, data: normalizedItems }
 }
 
+function computeInvoiceTotals(params: {
+    items: NormalizedInvoiceLineItem[]
+    taxRate: number
+    discountAmount: number
+}) {
+    const subtotal = params.items.reduce((sum, item) => sum + item.total, 0)
+    const discountAmount = Math.min(Math.max(params.discountAmount, 0), subtotal)
+    const taxableAmount = Math.max(0, subtotal - discountAmount)
+    const taxAmount = (taxableAmount * params.taxRate) / 100
+    const totalAmount = taxableAmount + taxAmount
+
+    return { subtotal, discountAmount, taxAmount, totalAmount }
+}
+
 // ── READ list ──────────────────────────────────────────────────
 
 export async function getVpInvoices(
@@ -408,6 +457,7 @@ export async function getVpInvoiceById(
     id: string,
 ): Promise<VpActionResult<VpInvoiceDetail>> {
     try {
+        const session = await getCustomSession()
         const r = await prisma.vpInvoice.findUnique({
             where: { id },
             select: {
@@ -460,6 +510,14 @@ export async function getVpInvoiceById(
             },
         })
         if (!r) return { success: false, error: "Invoice not found" }
+
+        if (session.user.role === "VENDOR") {
+            const vpVendorId = await getVpVendorIdForSession(session.user.id)
+            if (!vpVendorId || r.vendor.id !== vpVendorId) {
+                return { success: false, error: "You do not have access to this invoice" }
+            }
+        }
+
         const logs = await prisma.log.findMany({
             where: { model: "VpInvoice", recordId: id },
             select: {
@@ -491,6 +549,13 @@ export async function getVpInvoiceById(
             }
         })
 
+        const parentInvoice = r.parentInvoiceId
+            ? await prisma.vpInvoice.findUnique({
+                where: { id: r.parentInvoiceId },
+                select: { invoiceNumber: true },
+            })
+            : null
+
         return {
             success: true,
             data: {
@@ -507,6 +572,7 @@ export async function getVpInvoiceById(
                 documents: r.documents,
                 payments: r.payments,
                 timeline,
+                parentInvoiceNumber: parentInvoice?.invoiceNumber ?? null,
             },
         }
     } catch (e) {
@@ -531,6 +597,12 @@ export async function createVpInvoice(
     const vpvId = await getVpVendorIdForSession(session.user.id)
     if (!vpvId) return { success: false, error: "Your account is not linked to a vendor. Contact admin." }
 
+    const duplicateInvoiceError = await ensureVendorInvoiceNumberUnique({
+        vpVendorId: vpvId,
+        invoiceNumber: d.invoiceNumber,
+    })
+    if (duplicateInvoiceError) return { success: false, error: duplicateInvoiceError }
+
     const companyError = await validateInvoiceCompanySelection({
         vpVendorId: vpvId,
         companyId: d.companyId,
@@ -546,16 +618,19 @@ export async function createVpInvoice(
     if (!normalizedItemsResult.success) return normalizedItemsResult
 
     const normalizedItems = normalizedItemsResult.data
-    const subtotal = normalizedItems.reduce((s, i) => s + i.total, 0)
-    const taxAmount = (subtotal * d.taxRate) / 100
-    const totalAmount = subtotal + taxAmount
+    const { subtotal, discountAmount, taxAmount, totalAmount } = computeInvoiceTotals({
+        items: normalizedItems,
+        taxRate: d.taxRate,
+        discountAmount: d.discountAmount,
+    })
+    const invoiceNumber = d.invoiceNumber.trim()
 
     try {
 
 
         const inv = await prisma.vpInvoice.create({
             data: {
-                invoiceNumber: d.invoiceNumber,
+                invoiceNumber,
                 status: "DRAFT",
                 type: d.type,
                 billType: d.billType,
@@ -568,7 +643,9 @@ export async function createVpInvoice(
                 billToGstin: d.billToGstin || null,
                 notes: d.notes || null,
                 recurringScheduleId: d.recurringScheduleId || null,
+                parentInvoiceId: d.parentInvoiceId || null,
                 subtotal,
+                discountAmount,
                 taxRate: d.taxRate,
                 taxAmount,
                 totalAmount,
@@ -585,7 +662,7 @@ export async function createVpInvoice(
                 },
             },
         })
-        if (d.recurringScheduleId) {
+        if (d.billType === "RECURRING" && d.recurringScheduleId) {
             await bumpRecurringSchedule(d.recurringScheduleId, inv.id)
         }
 
@@ -595,7 +672,7 @@ export async function createVpInvoice(
             entityType: "VpInvoice",
             entityId: inv.id,
             newData: { status: "DRAFT" },
-            description: `Vendor created invoice ${d.invoiceNumber}`,
+            description: `Vendor created invoice ${invoiceNumber}`,
         })
 
         return { success: true, data: { id: inv.id } }
@@ -631,6 +708,13 @@ export async function updateVpInvoice(
     const vpvId = await getVpVendorIdForSession(session.user.id)
     if (!vpvId) return { success: false, error: "Your account is not linked to a vendor. Contact admin." }
 
+    const duplicateInvoiceError = await ensureVendorInvoiceNumberUnique({
+        vpVendorId: vpvId,
+        invoiceNumber: d.invoiceNumber,
+        excludeInvoiceId: id,
+    })
+    if (duplicateInvoiceError) return { success: false, error: duplicateInvoiceError }
+
     const companyError = await validateInvoiceCompanySelection({
         vpVendorId: vpvId,
         companyId: d.companyId,
@@ -647,16 +731,19 @@ export async function updateVpInvoice(
     if (!normalizedItemsResult.success) return normalizedItemsResult
 
     const normalizedItems = normalizedItemsResult.data
-    const subtotal = normalizedItems.reduce((s, i) => s + i.total, 0)
-    const taxAmount = (subtotal * d.taxRate) / 100
-    const totalAmount = subtotal + taxAmount
+    const { subtotal, discountAmount, taxAmount, totalAmount } = computeInvoiceTotals({
+        items: normalizedItems,
+        taxRate: d.taxRate,
+        discountAmount: d.discountAmount,
+    })
+    const invoiceNumber = d.invoiceNumber.trim()
 
     try {
         await prisma.vpInvoiceLineItem.deleteMany({ where: { invoiceId: id } })
         await prisma.vpInvoice.update({
             where: { id },
             data: {
-                invoiceNumber: d.invoiceNumber,
+                invoiceNumber,
                 type: d.type,
                 billType: d.billType,
                 companyId: d.companyId,
@@ -666,7 +753,9 @@ export async function updateVpInvoice(
                 billTo: d.billTo || null,
                 billToGstin: d.billToGstin || null,
                 recurringScheduleId: d.recurringScheduleId || null,
+                parentInvoiceId: d.parentInvoiceId || null,
                 subtotal,
+                discountAmount,
                 taxRate: d.taxRate,
                 taxAmount,
                 totalAmount,
@@ -688,7 +777,7 @@ export async function updateVpInvoice(
             action: "UPDATE",
             entityType: "VpInvoice",
             entityId: id,
-            description: "Updated invoice (DRAFT)",
+            description: `Updated invoice ${invoiceNumber} (DRAFT)`,
         })
 
         return { success: true, data: null }
@@ -707,13 +796,20 @@ export async function submitVpInvoice(id: string): Promise<VpActionResult<null>>
 
     const inv = await prisma.vpInvoice.findUnique({
         where: { id },
-        select: { status: true, invoiceNumber: true, createdById: true },
+        select: { status: true, invoiceNumber: true, createdById: true, vendorId: true },
     })
     if (!inv) return { success: false, error: "Invoice not found" }
     if (inv.status !== "DRAFT")
         return { success: false, error: `Cannot submit invoice in ${inv.status} status` }
     if (inv.createdById !== session.user.id)
         return { success: false, error: "You can only submit your own invoices" }
+
+    const duplicateInvoiceError = await ensureVendorInvoiceNumberUnique({
+        vpVendorId: inv.vendorId,
+        invoiceNumber: inv.invoiceNumber ?? "",
+        excludeInvoiceId: id,
+    })
+    if (duplicateInvoiceError) return { success: false, error: duplicateInvoiceError }
 
     await prisma.vpInvoice.update({
         where: { id },

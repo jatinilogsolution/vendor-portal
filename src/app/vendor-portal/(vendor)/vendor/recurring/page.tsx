@@ -1,309 +1,252 @@
-// src/app/vendor-portal/(vendor)/vendor/recurring/page.tsx
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { format } from "date-fns"
-import {
-  IconRepeat, IconRefresh, IconPlus,
-  IconReceipt, IconCalendar, IconClock,
-} from "@tabler/icons-react"
-import { Button }   from "@/components/ui/button"
-import { Badge }    from "@/components/ui/badge"
+import { IconRefresh, IconRepeat } from "@tabler/icons-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { VpPageHeader }  from "@/components/ui/vp-page-header"
-import { VpEmptyState }  from "@/components/ui/vp-empty-state"
- import {
-  getMyRecurringSchedules,
-  VpRecurringRow,
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  getMyRecurringInvoices,
+  VpRecurringInvoiceRow,
 } from "@/actions/vp/recurring.action"
+import { VpEmptyState } from "@/components/ui/vp-empty-state"
+import { VpPageHeader } from "@/components/ui/vp-page-header"
+import { VpStatusBadge } from "@/components/ui/vp-status-badge"
+import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 
-const CYCLE_LABELS: Record<string, string> = {
-  MONTHLY:   "Monthly",
-  QUARTERLY: "Quarterly",
-  YEARLY:    "Yearly",
+type PaymentFilter = "ALL" | VpRecurringInvoiceRow["paymentState"]
+
+function PaymentBadge({
+  paymentState,
+  isOverdue,
+}: Pick<VpRecurringInvoiceRow, "paymentState" | "isOverdue">) {
+  if (isOverdue) {
+    return <Badge className="border-red-200 bg-red-100 text-red-700">Overdue</Badge>
+  }
+
+  if (paymentState === "PAID") {
+    return <Badge className="border-emerald-200 bg-emerald-100 text-emerald-700">Paid</Badge>
+  }
+
+  if (paymentState === "IN_PROGRESS") {
+    return <Badge className="border-blue-200 bg-blue-100 text-blue-700">In Process</Badge>
+  }
+
+  return <Badge variant="outline">Unpaid</Badge>
 }
 
-const CYCLE_COLOR: Record<string, string> = {
-  MONTHLY:   "bg-blue-100 text-blue-700 border-blue-200",
-  QUARTERLY: "bg-violet-100 text-violet-700 border-violet-200",
-  YEARLY:    "bg-amber-100 text-amber-700 border-amber-200",
-}
+function buildRecurringCopyUrl(invoice: VpRecurringInvoiceRow) {
+  const params = new URLSearchParams()
+  params.set("billType", "RECURRING")
+  params.set("copyFrom", invoice.id)
 
-function isDuesSoon(date: Date): boolean {
-  const diff = new Date(date).getTime() - Date.now()
-  return diff >= 0 && diff <= 7 * 86_400_000
-}
+  if (invoice.recurringScheduleId) {
+    params.set("scheduleId", invoice.recurringScheduleId)
+  }
 
-function isOverdue(date: Date): boolean {
-  return new Date(date).getTime() < Date.now()
+  if (invoice.recurringCycle) {
+    params.set("recurringCycle", invoice.recurringCycle)
+  }
+
+  return `/vendor-portal/vendor/my-invoices/new?${params.toString()}`
 }
 
 export default function VendorRecurringPage() {
-  const router   = useRouter()
-  const [schedules, setSchedules] = useState<VpRecurringRow[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+  const [invoices, setInvoices] = useState<VpRecurringInvoiceRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [cycleFilter, setCycleFilter] = useState("ALL")
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("ALL")
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getMyRecurringSchedules()
-    if (!res.success) { toast.error(res.error); setLoading(false); return }
-    setSchedules(res.data)
+    const res = await getMyRecurringInvoices()
+    if (!res.success) {
+      toast.error(res.error)
+      setLoading(false)
+      return
+    }
+
+    setInvoices(res.data)
     setLoading(false)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const overdue  = schedules.filter((s) => isOverdue(new Date(s.nextDueDate)))
-  const dueSoon  = schedules.filter((s) => isDuesSoon(new Date(s.nextDueDate)))
-  const upcoming = schedules.filter(
-    (s) => !isOverdue(new Date(s.nextDueDate)) && !isDuesSoon(new Date(s.nextDueDate)),
-  )
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesCycle = cycleFilter === "ALL" || invoice.recurringCycle === cycleFilter
+    const matchesPayment = paymentFilter === "ALL" || invoice.paymentState === paymentFilter
+    return matchesCycle && matchesPayment
+  })
+
+  const paidCount = filteredInvoices.filter((invoice) => invoice.paymentState === "PAID").length
+  const unpaidCount = filteredInvoices.filter((invoice) => invoice.paymentState === "UNPAID").length
+  const overdueCount = filteredInvoices.filter((invoice) => invoice.isOverdue).length
 
   return (
     <div className="space-y-6">
       <VpPageHeader
         title="Recurring Bills"
-        description="Track and raise invoices for your recurring billing schedules."
+        description="Recurring invoices only. Copy any previous bill to raise the next one."
         actions={
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={cycleFilter} onValueChange={setCycleFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Frequencies" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Frequencies</SelectItem>
+                <SelectItem value="MONTHLY">Monthly</SelectItem>
+                <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                <SelectItem value="YEARLY">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Payments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Payments</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Process</SelectItem>
+                <SelectItem value="UNPAID">Unpaid</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
+            </Button>
+
+            <Button size="sm" asChild>
+              <Link href="/vendor-portal/vendor/my-invoices/new?billType=RECURRING">
+                Raise Invoice
+              </Link>
+            </Button>
+          </div>
         }
       />
 
-      {/* Overdue alert */}
-      {!loading && overdue.length > 0 && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
-          <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-            ⚠️ {overdue.length} schedule{overdue.length > 1 ? "s are" : " is"} overdue
-          </p>
-          <p className="mt-0.5 text-xs text-red-600 dark:text-red-300">
-            Please raise and submit these invoices as soon as possible.
-          </p>
-        </div>
-      )}
-
-      {/* Due soon alert */}
-      {!loading && dueSoon.length > 0 && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20">
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-            🔔 {dueSoon.length} schedule{dueSoon.length > 1 ? "s are" : " is"} due within 7 days
-          </p>
+      {!loading && (
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline">{paidCount} paid</Badge>
+          <Badge variant="outline">{unpaidCount} unpaid</Badge>
+          <Badge variant="outline">{overdueCount} overdue</Badge>
         </div>
       )}
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-52 w-full rounded-lg" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full" />
           ))}
         </div>
-      ) : schedules.length === 0 ? (
+      ) : filteredInvoices.length === 0 ? (
         <VpEmptyState
           icon={IconRepeat}
-          title="No recurring schedules"
-          description="Your admin will set up recurring billing schedules for you. They will appear here."
+          title="No recurring invoices"
+          description="Raise your first recurring invoice, then future cycles can be copied from here."
+          action={{
+            label: "Raise Invoice",
+            onClick: () => router.push("/vendor-portal/vendor/my-invoices/new?billType=RECURRING"),
+          }}
         />
       ) : (
-        <div className="space-y-6">
-          {/* Overdue */}
-          {overdue.length > 0 && (
-            <Section title="Overdue" count={overdue.length} variant="danger">
-              {overdue.map((s) => (
-                <ScheduleCard
-                  key={s.id}
-                  schedule={s}
-                  variant="danger"
-                  onRaise={() => router.push(
-                    `/vendor-portal/vendor/my-invoices/new?scheduleId=${s.id}`,
-                  )}
-                />
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice</TableHead>
+                <TableHead>Recurring</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Invoice Status</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead className="w-40">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredInvoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>
+                    <Link
+                      href={`/vendor-portal/vendor/my-invoices/${invoice.id}`}
+                      className="font-mono text-sm font-medium hover:underline"
+                    >
+                      {invoice.invoiceNumber ?? "Draft Invoice"}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      {invoice.recurringCycle && (
+                        <Badge variant="secondary" className="text-xs">
+                          {VP_RECURRING_CYCLE_LABELS[invoice.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] ?? invoice.recurringCycle}
+                        </Badge>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {invoice.recurringTitle ?? "Recurring invoice"}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {format(new Date(invoice.createdAt), "d MMM yyyy")}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-sm">
+                    ₹{invoice.totalAmount.toLocaleString("en-IN")}
+                  </TableCell>
+                  <TableCell>
+                    <VpStatusBadge status={invoice.status} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <PaymentBadge
+                        paymentState={invoice.paymentState}
+                        isOverdue={invoice.isOverdue}
+                      />
+                      {invoice.latestPaymentStatus && invoice.paymentState !== "PAID" && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Payment: {invoice.latestPaymentStatus.replaceAll("_", " ")}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/vendor-portal/vendor/my-invoices/${invoice.id}`}>View</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={buildRecurringCopyUrl(invoice)}>Copy</Link>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </Section>
-          )}
-
-          {/* Due soon */}
-          {dueSoon.length > 0 && (
-            <Section title="Due Soon" count={dueSoon.length} variant="warning">
-              {dueSoon.map((s) => (
-                <ScheduleCard
-                  key={s.id}
-                  schedule={s}
-                  variant="warning"
-                  onRaise={() => router.push(
-                    `/vendor-portal/vendor/my-invoices/new?scheduleId=${s.id}`,
-                  )}
-                />
-              ))}
-            </Section>
-          )}
-
-          {/* Upcoming */}
-          {upcoming.length > 0 && (
-            <Section title="Upcoming" count={upcoming.length} variant="default">
-              {upcoming.map((s) => (
-                <ScheduleCard
-                  key={s.id}
-                  schedule={s}
-                  variant="default"
-                  onRaise={() => router.push(
-                    `/vendor-portal/vendor/my-invoices/new?scheduleId=${s.id}`,
-                  )}
-                />
-              ))}
-            </Section>
-          )}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
-  )
-}
-
-// ── Section wrapper ────────────────────────────────────────────
-
-function Section({
-  title, count, variant, children,
-}: {
-  title:    string
-  count:    number
-  variant:  "danger" | "warning" | "default"
-  children: React.ReactNode
-}) {
-  const color = {
-    danger:  "text-red-600",
-    warning: "text-amber-600",
-    default: "text-muted-foreground",
-  }[variant]
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <h3 className={`text-sm font-semibold ${color}`}>{title}</h3>
-        <Badge variant="outline" className="text-xs">{count}</Badge>
-        <div className="flex-1 border-t" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// ── Schedule card ──────────────────────────────────────────────
-
-function ScheduleCard({
-  schedule, variant, onRaise,
-}: {
-  schedule: VpRecurringRow
-  variant:  "danger" | "warning" | "default"
-  onRaise:  () => void
-}) {
-  const dueDate   = new Date(schedule.nextDueDate)
-  const overdue   = isOverdue(dueDate)
-  const items     = schedule.itemsSnapshot as {
-    description: string
-    qty:         number
-    unitPrice:   number
-  }[]
-  const subtotal  = items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
-
-  const borderColor = {
-    danger:  "border-red-200 dark:border-red-800",
-    warning: "border-amber-200 dark:border-amber-800",
-    default: "border",
-  }[variant]
-
-  const badgeClass = CYCLE_COLOR[schedule.cycle] ?? ""
-
-  return (
-    <Card className={`flex flex-col ${borderColor}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm leading-snug">{schedule.title}</CardTitle>
-          <Badge
-            variant="outline"
-            className={`shrink-0 text-[10px] ${badgeClass}`}
-          >
-            {CYCLE_LABELS[schedule.cycle] ?? schedule.cycle}
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex-1 space-y-3 text-sm">
-        {/* Due date */}
-        <div className={`flex items-center gap-1.5 text-xs font-medium ${
-          overdue
-            ? "text-red-600"
-            : isDuesSoon(dueDate)
-              ? "text-amber-600"
-              : "text-muted-foreground"
-        }`}>
-          {overdue ? <IconClock size={13} /> : <IconCalendar size={13} />}
-          {overdue
-            ? `Overdue since ${format(dueDate, "d MMM yyyy")}`
-            : `Due ${format(dueDate, "d MMM yyyy")}`
-          }
-        </div>
-
-        <Separator />
-
-        {/* Items snapshot */}
-        <div className="space-y-1.5">
-          {items.slice(0, 3).map((item, i) => (
-            <div key={i} className="flex items-start justify-between gap-2">
-              <span className="text-xs text-muted-foreground line-clamp-1 flex-1">
-                {item.description}
-              </span>
-              <span className="shrink-0 text-xs font-medium">
-                ×{item.qty}
-              </span>
-            </div>
-          ))}
-          {items.length > 3 && (
-            <p className="text-xs text-muted-foreground">+{items.length - 3} more items</p>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Subtotal */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Est. Amount</span>
-          <span className="text-sm font-bold">
-            ₹{subtotal.toLocaleString("en-IN")}
-          </span>
-        </div>
-
-        {/* Last invoice */}
-        {schedule.lastInvoiceId && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Last Invoice</span>
-            
-            <a  href={`/vendor-portal/vendor/my-invoices/${schedule.lastInvoiceId}`}
-              className="text-xs text-primary hover:underline"
-            >
-              View
-            </a>
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="border-t pt-3">
-        <Button
-          size="sm"
-          className="w-full"
-          variant={overdue ? "default" : "outline"}
-          onClick={onRaise}
-        >
-          <IconReceipt size={14} className="mr-1.5" />
-          Raise Invoice
-        </Button>
-      </CardFooter>
-    </Card>
   )
 }

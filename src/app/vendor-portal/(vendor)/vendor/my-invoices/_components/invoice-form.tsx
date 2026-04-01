@@ -11,8 +11,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 import {
   IconPlus, IconTrash, IconUpload,
-  IconFile, IconX, IconArrowLeft,
-  IconRefresh,
+  IconFile, IconX,
 } from "@tabler/icons-react"
 import {
   Form, FormControl, FormField,
@@ -33,7 +32,7 @@ import { vpInvoiceSchema, VpInvoiceFormValues } from "@/validations/vp/invoice"
 import {
   createVpInvoice, updateVpInvoice,
   getVendorPosForInvoice, addVpInvoiceDocument,
-  VpInvoiceDetail,
+  getVpInvoiceById, VpInvoiceDetail,
 } from "@/actions/vp/invoice.action"
 import { getMyVpInvoiceCompanyConfig } from "@/actions/vp/company.action"
 import {
@@ -47,7 +46,7 @@ import {
 import {
   getPoLineItemsForInvoice,
 } from "@/actions/vp/delivery.action"
-import Link from "next/link"
+import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import { uploadAttachmentToAzure } from "@/services/azure-blob"
 
 interface InvoiceFormProps {
@@ -73,6 +72,9 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const prefillScheduleId = searchParams.get("scheduleId") ?? ""
+  const prefillBillType = searchParams.get("billType") ?? ""
+  const prefillRecurringCycle = searchParams.get("recurringCycle") ?? ""
+  const copyFromInvoiceId = searchParams.get("copyFrom") ?? ""
 
   const [isPending, startTransition] = useTransition()
   const [pos, setPos] = useState<PoOption[]>([])
@@ -81,12 +83,17 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   const [restrictInvoiceToDefaultCompany, setRestrictInvoiceToDefaultCompany] = useState(false)
   const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
   const [schedules, setSchedules] = useState<VpRecurringRow[]>([])
+  const [selectedRecurringSourceId, setSelectedRecurringSourceId] = useState(
+    editing?.recurringScheduleId ?? prefillScheduleId ?? "",
+  )
   const [poItemsLoading, setPoLoading] = useState(false)
   const [uploadingFile, setUploading] = useState(false)
+  const [copyingInvoice, setCopyingInvoice] = useState(false)
   const [uploadedFileUrl, setFileUrl] = useState<string | null>(
     editing?.documents?.[0]?.filePath ?? null,
   )
   const fileRef = useRef<HTMLInputElement>(null)
+  const didPrefillCopyRef = useRef(false)
   const isEditing = !!editing
 
   type VpInvoiceFormInput = z.input<typeof vpInvoiceSchema>
@@ -103,8 +110,10 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       billToGstin: editing?.billToGstin ?? "",
       poId: editing?.poId ?? "",
       notes: editing?.notes ?? "",
+      discountAmount: editing?.discountAmount ?? 0,
       taxRate: editing?.taxRate ?? 18,
-      recurringScheduleId: "",
+      recurringScheduleId: editing?.recurringScheduleId ?? "",
+      parentInvoiceId: editing?.parentInvoiceId ?? "",
       items: editing?.items.map((i) => ({
         poLineItemId: i.poLineItemId ?? "",
         description: i.description,
@@ -124,9 +133,42 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   const billType = form.watch("billType")
   const invoiceType = form.watch("type")
   const invoiceTaxRate = useWatch({ control: form.control, name: "taxRate" }) ?? 0
+  const invoiceDiscountAmount = useWatch({ control: form.control, name: "discountAmount" }) ?? 0
+  const selectedScheduleId = form.watch("recurringScheduleId")
   const selectedPoId = form.watch("poId")
   const selectedCompanyId = form.watch("companyId")
   const selectedBillToId = form.watch("billToId")
+  const selectedRecurringOption = schedules.find((schedule) => schedule.id === selectedRecurringSourceId)
+    ?? schedules.find((schedule) => schedule.sourceType === "SCHEDULE" && schedule.id === selectedScheduleId)
+  const inferredRecurringCycle = billType === "RECURRING" && !selectedRecurringOption && schedules.length === 1
+    ? schedules[0]?.cycle
+    : ""
+  const activeRecurringCycle = selectedRecurringOption?.cycle || inferredRecurringCycle || prefillRecurringCycle
+
+  const applyRecurringOption = useCallback((option: VpRecurringRow | null) => {
+    setSelectedRecurringSourceId(option?.id ?? "")
+    form.setValue("recurringScheduleId", option?.sourceType === "SCHEDULE" ? option.id : "")
+
+    if (!option) return
+
+    if (option.itemsSnapshot.length > 0) {
+      replace(
+        (option.itemsSnapshot as any[]).map((item) => ({
+          poLineItemId: "",
+          description: item.description,
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          tax: Number(form.getValues("taxRate") ?? 0),
+          total: item.qty * item.unitPrice,
+        })),
+      )
+    }
+
+    form.setValue(
+      "notes",
+      `Recurring — ${option.title} (${option.cycle}) | Due: ${new Date(option.nextDueDate).toLocaleDateString("en-IN")}`,
+    )
+  }, [form, replace])
 
   // ── Load reference data ──────────────────────────────────────
 
@@ -161,28 +203,102 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
   // Pre-fill if schedule in URL
   useEffect(() => {
+    if (copyFromInvoiceId) return
     if (prefillScheduleId && schedules.length > 0) {
       const s = schedules.find((x) => x.id === prefillScheduleId)
       if (s) {
         form.setValue("billType", "RECURRING")
-        form.setValue("recurringScheduleId", s.id)
-        replace(
-          (s.itemsSnapshot as any[]).map((item) => ({
-            poLineItemId: "",
+        form.setValue("parentInvoiceId", "")
+        applyRecurringOption(s)
+      }
+    }
+  }, [applyRecurringOption, copyFromInvoiceId, form, prefillScheduleId, schedules])
+
+  useEffect(() => {
+    if (isEditing || copyFromInvoiceId || prefillScheduleId || prefillBillType !== "RECURRING") return
+    form.setValue("billType", "RECURRING")
+  }, [copyFromInvoiceId, form, isEditing, prefillBillType, prefillScheduleId])
+
+  useEffect(() => {
+    if (isEditing || !copyFromInvoiceId || didPrefillCopyRef.current) return
+
+    let active = true
+    setCopyingInvoice(true)
+
+    getVpInvoiceById(copyFromInvoiceId)
+      .then((res) => {
+        if (!active || !res.success) {
+          if (active && !res.success) toast.error(res.error)
+          return
+        }
+
+        didPrefillCopyRef.current = true
+        const copiedPoId = res.data.billType === "RECURRING" ? "" : (res.data.poId ?? "")
+        form.reset({
+          invoiceNumber: "",
+          billType: res.data.billType === "RECURRING" ? "RECURRING" : "STANDARD",
+          type: res.data.type as "PDF" | "DIGITAL",
+          companyId: res.data.companyId ?? "",
+          billToId: res.data.billToId ?? "",
+          billTo: res.data.billTo ?? "",
+          billToGstin: res.data.billToGstin ?? "",
+          poId: copiedPoId,
+          notes: res.data.notes ?? "",
+          discountAmount: res.data.discountAmount ?? 0,
+          taxRate: res.data.taxRate ?? 18,
+          recurringScheduleId: prefillScheduleId || res.data.recurringScheduleId || "",
+          parentInvoiceId: res.data.id,
+          items: res.data.items.map((item) => ({
+            poLineItemId: copiedPoId ? (item.poLineItemId ?? "") : "",
             description: item.description,
             qty: item.qty,
             unitPrice: item.unitPrice,
-            tax: Number(form.getValues("taxRate") ?? 0),
+            tax: res.data.taxRate,
             total: item.qty * item.unitPrice,
           })),
-        )
-        form.setValue(
-          "notes",
-          `Recurring bill — ${s.title} (${s.cycle}) | Due: ${new Date(s.nextDueDate).toLocaleDateString("en-IN")}`,
-        )
+        })
+        setSelectedRecurringSourceId(prefillScheduleId || res.data.recurringScheduleId || "")
+
+        setFileUrl(null)
+        toast.success("Previous invoice copied. Update invoice number and details before saving.")
+      })
+      .finally(() => {
+        if (active) setCopyingInvoice(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [copyFromInvoiceId, editing, form, isEditing, prefillScheduleId])
+
+  useEffect(() => {
+    if (schedules.length === 0) return
+    if (selectedRecurringSourceId && schedules.some((schedule) => schedule.id === selectedRecurringSourceId)) return
+
+    if (selectedScheduleId) {
+      setSelectedRecurringSourceId(selectedScheduleId)
+      return
+    }
+
+    if (editing?.billType === "RECURRING" && editing.recurringCycle) {
+      const matchingOption = schedules.find((schedule) => schedule.cycle === editing.recurringCycle)
+      if (matchingOption) {
+        setSelectedRecurringSourceId(matchingOption.id)
+        return
       }
     }
-  }, [prefillScheduleId, schedules])
+
+    if (billType === "RECURRING" && schedules.length === 1) {
+      setSelectedRecurringSourceId(schedules[0].id)
+    }
+  }, [
+    billType,
+    editing?.billType,
+    editing?.recurringCycle,
+    schedules,
+    selectedRecurringSourceId,
+    selectedScheduleId,
+  ])
 
   // When PO selected — auto-fill line items (locked) + bill-to
   // Replace handlePoSelect with this version:
@@ -349,6 +465,30 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
             <CardTitle className="text-base">Invoice Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {copyFromInvoiceId && !isEditing && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                {copyingInvoice
+                  ? "Loading previous recurring invoice..."
+                  : "This draft is prefilled from the previous recurring invoice. You can edit items, discount, invoice number, and notes before saving."}
+              </div>
+            )}
+
+            {billType === "RECURRING" && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                <Badge variant="outline">Recurring Bill</Badge>
+                {activeRecurringCycle && (
+                  <Badge variant="secondary">
+                    {VP_RECURRING_CYCLE_LABELS[activeRecurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] ?? activeRecurringCycle}
+                  </Badge>
+                )}
+                {!activeRecurringCycle && (
+                  <span className="text-xs text-muted-foreground">
+                    Select the recurring frequency for this bill.
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
               {/* Invoice number */}
@@ -461,33 +601,36 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                 </FormItem>
               )} />
 
+              <FormField control={form.control} name="discountAmount" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0.00"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Applied once at invoice level before GST. Line items below stay undiscounted.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
               {/* Recurring schedule picker — only when RECURRING */}
               {billType === "RECURRING" && (
                 <FormField control={form.control} name="recurringScheduleId" render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel>Recurring Schedule</FormLabel>
+                    <FormLabel>Recurring Setup</FormLabel>
                     <Select
-                      value={field.value || "none"}
+                      value={selectedRecurringSourceId || "none"}
                       onValueChange={(v) => {
-                        const val = v === "none" ? "" : v
-                        field.onChange(val)
-                        const s = schedules.find((x) => x.id === val)
-                        if (s) {
-                          replace(
-                            (s.itemsSnapshot as any[]).map((item) => ({
-                              poLineItemId: "",
-                              description: item.description,
-                              qty: item.qty,
-                              unitPrice: item.unitPrice,
-                              tax: Number(form.getValues("taxRate") ?? 0),
-                              total: item.qty * item.unitPrice,
-                            })),
-                          )
-                          form.setValue(
-                            "notes",
-                            `Recurring — ${s.title} (${s.cycle}) | Due: ${new Date(s.nextDueDate).toLocaleDateString("en-IN")}`,
-                          )
-                        }
+                        const nextOption = v === "none" ? null : schedules.find((x) => x.id === v) ?? null
+                        field.onChange(nextOption?.sourceType === "SCHEDULE" ? nextOption.id : "")
+                        applyRecurringOption(nextOption)
                       }}
                     >
                       <FormControl>
@@ -497,10 +640,10 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                       </FormControl>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value="none">— None —</SelectItem>
+                          {/* <SelectItem value="none">—None/SelectItem> */}
                           {schedules.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
-                              {s.title} ({s.cycle}) · Due{" "}
+                              {s.cycle} -
                               {new Date(s.nextDueDate).toLocaleDateString("en-IN")}
                             </SelectItem>
                           ))}
@@ -508,7 +651,9 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                       </SelectContent>
                     </Select>
                     <FormDescription className="text-xs">
-                      Selecting a schedule auto-fills the line items.
+                      {selectedRecurringOption?.sourceType === "BILLING_CONFIG"
+                        ? "Using the vendor's assigned recurring frequency. This keeps the invoice recurring without requiring an admin-created schedule."
+                        : "Select an admin schedule or vendor frequency to prefill recurring details."}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -758,10 +903,10 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
               return (
                 <div key={field.id} className="rounded-md border bg-muted/20 p-3">
-                  <div className="grid grid-cols-12 items-end gap-2">
+                  <div className="grid grid-cols-14 items-end gap-2">
 
                     {/* Description */}
-                    <div className="col-span-12 sm:col-span-5">
+                    <div className="col-span-14 sm:col-span-5">
                       <p className="mb-1 text-xs text-muted-foreground">Description *</p>
                       <FormField
                         control={form.control}
@@ -782,7 +927,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                     </div>
 
                     {/* Qty */}
-                    <div className="col-span-3 sm:col-span-1">
+                    <div className="col-span-4 sm:col-span-1">
                       <p className="mb-1 text-xs text-muted-foreground">Qty</p>
                       <FormField
                         control={form.control}
@@ -840,7 +985,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                     </div>
 
                     {/* GST basis */}
-                    <div className="col-span-3 sm:col-span-2">
+                    <div className="col-span-5 sm:col-span-2">
                       <p className="mb-1 text-xs text-muted-foreground">GST</p>
                       <div className="flex h-8 items-center justify-center rounded-md border bg-muted/40 text-xs font-medium">
                         {Number(invoiceTaxRate)}% invoice GST
@@ -848,8 +993,16 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                       <input type="hidden" {...form.register(`items.${index}.tax`)} />
                     </div>
 
+                    {/* Discount basis */}
+                    <div className="col-span-6 sm:col-span-2">
+                      <p className="mb-1 text-xs text-muted-foreground">Discount Basis</p>
+                      <div className="flex h-8 items-center justify-center rounded-md border bg-muted/40 px-2 text-center text-[11px] font-medium">
+                        {Number(invoiceDiscountAmount) > 0 ? "Overall invoice" : "No discount"}
+                      </div>
+                    </div>
+
                     {/* Total (read-only) */}
-                    <div className="col-span-2 sm:col-span-1">
+                    <div className="col-span-4 sm:col-span-1">
                       <p className="mb-1 text-xs text-muted-foreground">Total</p>
                       <div className="flex h-8 items-center rounded-md border bg-muted px-2 text-xs font-semibold">
                         ₹{total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
@@ -858,7 +1011,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
                     {/* Remove */}
                     {!itemsLocked && (
-                      <div className="col-span-1 flex items-end pb-0.5">
+                      <div className="col-span-3 sm:col-span-1 flex items-end pb-0.5">
                         <Button
                           type="button" variant="ghost" size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
@@ -877,7 +1030,11 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
             {fields.length > 0 && (
               <>
                 <Separator />
-                <VpTotalsBar itemsField="items" taxRateField="taxRate" />
+                <VpTotalsBar
+                  itemsField="items"
+                  taxRateField="taxRate"
+                  discountAmountField="discountAmount"
+                />
               </>
             )}
           </CardContent>
@@ -888,11 +1045,11 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
           <Button
             type="button" variant="outline"
             onClick={() => router.push("/vendor-portal/vendor/my-invoices")}
-            disabled={isPending}
+            disabled={isPending || copyingInvoice}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || uploadingFile}>
+          <Button type="submit" disabled={isPending || uploadingFile || copyingInvoice}>
             {isPending ? "Saving…" : isEditing ? "Save Changes" : "Create Invoice"}
           </Button>
         </div>

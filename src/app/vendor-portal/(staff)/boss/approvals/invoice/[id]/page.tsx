@@ -32,6 +32,7 @@ import { VpPdfButton } from "@/components/ui/vp-pdf-button"
 import { VpInvoiceStatusStepper } from "@/components/ui/vp-invoice-status-stepper"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { VpActivityTimeline } from "@/components/ui/vp-activity-timeline"
+import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 
 export default function BossInvoiceApprovalPage() {
     const params = useParams()
@@ -83,6 +84,9 @@ export default function BossInvoiceApprovalPage() {
 
     const canApprove = inv.status === "UNDER_REVIEW"
     const canReject = inv.status === "UNDER_REVIEW" || inv.status === "SUBMITTED"
+    const recurringLabel = inv.recurringCycle
+        ? VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle
+        : null
 
     return (
         <div className="space-y-6">
@@ -149,13 +153,15 @@ export default function BossInvoiceApprovalPage() {
                             <Row label="Type">
                                 <Badge variant="secondary" className="text-xs">{inv.type}</Badge>
                             </Row>
-                            {inv.vendor.billingType && (
-                                <Row label="Billing">
-                                    <Badge variant="outline" className="text-xs">
-                                        {inv.vendor.billingType}
-                                    </Badge>
-                                </Row>
-                            )}
+                            <Row label="Bill Type">
+                                <div className="flex flex-wrap justify-end gap-1">
+                                    <Badge variant="outline" className="text-xs">{inv.billType}</Badge>
+                                    {recurringLabel && (
+                                        <Badge variant="secondary" className="text-xs">{recurringLabel}</Badge>
+                                    )}
+                                </div>
+                            </Row>
+                            {inv.recurringTitle && <Row label="Recurring Schedule">{inv.recurringTitle}</Row>}
                             {inv.reviewedBy && (
                                 <Row label="Reviewed by">{inv.reviewedBy.name}</Row>
                             )}
@@ -203,6 +209,11 @@ export default function BossInvoiceApprovalPage() {
                             <Row label="Subtotal">
                                 ₹{inv.subtotal.toLocaleString("en-IN")}
                             </Row>
+                            {inv.discountAmount > 0 && (
+                                <Row label="Discount">
+                                    - ₹{inv.discountAmount.toLocaleString("en-IN")}
+                                </Row>
+                            )}
                             <Row label={`GST (${inv.taxRate}%)`}>
                                 ₹{inv.taxAmount.toLocaleString("en-IN")}
                             </Row>

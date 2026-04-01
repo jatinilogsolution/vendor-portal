@@ -6,6 +6,7 @@ type SendMailOptions = {
   to: string | string[];
   cc?: string | string[];
   bcc?: string | string[];
+  attachments?: nodemailer.SendMailOptions["attachments"];
   subject: string;
   html?: string;
   text?: string;
@@ -198,6 +199,7 @@ export const sendEmail = async (options: SendMailOptions) => {
     to,
     cc,
     bcc,
+    attachments,
     subject,
     html,
     text,
@@ -263,6 +265,7 @@ export const sendEmail = async (options: SendMailOptions) => {
         : `Vendor Portal - ${subject}`,
       text: finalTxt,
       html: finalHtml,
+      attachments,
     });
 
     // 2. Update status to SENT

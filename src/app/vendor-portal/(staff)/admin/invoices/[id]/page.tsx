@@ -15,6 +15,7 @@ import { VpPageHeader } from "@/components/ui/vp-page-header"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import { VpInvoiceStatusStepper } from "@/components/ui/vp-invoice-status-stepper"
 import { VpActivityTimeline } from "@/components/ui/vp-activity-timeline"
+import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import {
     getVpInvoiceById, startVpInvoiceReview, approveVpInvoice, rejectVpInvoice, VpInvoiceDetail,
 } from "@/actions/vp/invoice.action"
@@ -88,6 +89,10 @@ export default function AdminInvoiceDetailPage() {
     const canReview = (role === "ADMIN" || role === "BOSS") && inv.status === "SUBMITTED"
     const canApprove = (role === "ADMIN" || role === "BOSS") && inv.status === "UNDER_REVIEW"
     const canReject = (role === "ADMIN" || role === "BOSS") && ["SUBMITTED", "UNDER_REVIEW"].includes(inv.status)
+    const recurringLabel = inv.recurringCycle
+        ? VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle
+        : null
+    const taxableAmount = Math.max(0, inv.subtotal - inv.discountAmount)
 
     return (
         <div className="space-y-6">
@@ -174,6 +179,25 @@ export default function AdminInvoiceDetailPage() {
                             <Row label="Vendor">    {inv.vendor.vendorName}</Row>
                             <Row label="Company">   {inv.companyName ?? "—"}</Row>
                             <Row label="Type">      <Badge variant="secondary" className="text-xs">{inv.type}</Badge></Row>
+                            <Row label="Bill Type">
+                                <div className="flex flex-wrap justify-end gap-1">
+                                    <Badge variant="outline" className="text-xs">{inv.billType}</Badge>
+                                    {recurringLabel && (
+                                        <Badge variant="secondary" className="text-xs">{recurringLabel}</Badge>
+                                    )}
+                                </div>
+                            </Row>
+                            {inv.recurringTitle && <Row label="Recurring Schedule">{inv.recurringTitle}</Row>}
+                            {inv.parentInvoiceId && (
+                                <Row label="Copied From">
+                                    <Link
+                                        href={`/vendor-portal/admin/invoices/${inv.parentInvoiceId}`}
+                                        className="font-mono text-xs text-primary hover:underline"
+                                    >
+                                        {inv.parentInvoiceNumber ?? inv.parentInvoiceId}
+                                    </Link>
+                                </Row>
+                            )}
                             {inv.deliveryStatus && (
                                 <Row label="Delivery Status">
                                     <VpStatusBadge status={inv.deliveryStatus} />
@@ -214,6 +238,10 @@ export default function AdminInvoiceDetailPage() {
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Financials</CardTitle></CardHeader>
                         <CardContent className="space-y-2 text-sm">
                             <Row label="Subtotal">₹{inv.subtotal.toLocaleString("en-IN")}</Row>
+                            {inv.discountAmount > 0 && (
+                                <Row label="Discount">- ₹{inv.discountAmount.toLocaleString("en-IN")}</Row>
+                            )}
+                            <Row label="Taxable Amount">₹{taxableAmount.toLocaleString("en-IN")}</Row>
                             <Row label={`GST (${inv.taxRate}%)`}>₹{inv.taxAmount.toLocaleString("en-IN")}</Row>
                             <Separator />
                             <div className="flex justify-between text-base font-bold">
@@ -334,6 +362,7 @@ export default function AdminInvoiceDetailPage() {
                                         <th className="px-4 py-2 text-right font-medium">Qty</th>
                                         <th className="px-4 py-2 text-right font-medium">Unit Price</th>
                                         <th className="px-4 py-2 text-right font-medium">Tax %</th>
+                                        <th className="px-4 py-2 text-center font-medium">Discount Basis</th>
                                         <th className="px-4 py-2 text-right font-medium">Total</th>
                                     </tr>
                                 </thead>
@@ -344,6 +373,9 @@ export default function AdminInvoiceDetailPage() {
                                             <td className="px-4 py-2.5 text-right">{item.qty}</td>
                                             <td className="px-4 py-2.5 text-right">₹{item.unitPrice.toLocaleString("en-IN")}</td>
                                             <td className="px-4 py-2.5 text-right">{item.tax}%</td>
+                                            <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
+                                                {inv.discountAmount > 0 ? "Overall invoice" : "—"}
+                                            </td>
                                             <td className="px-4 py-2.5 text-right font-semibold">
                                                 ₹{item.total.toLocaleString("en-IN")}
                                             </td>

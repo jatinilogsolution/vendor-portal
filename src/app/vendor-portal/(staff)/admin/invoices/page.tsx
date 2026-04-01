@@ -26,7 +26,7 @@ import { VpExportButton } from "@/components/ui/vp-export-button"
 import {
     getVpInvoices, startVpInvoiceReview, VpInvoiceRow,
 } from "@/actions/vp/invoice.action"
-import { VP_INVOICE_STATUSES } from "@/types/vendor-portal"
+import { VP_INVOICE_STATUSES, VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import type { VpPaginationMeta } from "@/types/vendor-portal"
 
 export default function AdminInvoicesPage() {
@@ -89,6 +89,12 @@ export default function AdminInvoicesPage() {
                                 { header: "Invoice No.", accessor: (r) => r.invoiceNumber ?? "" },
                                 { header: "Vendor", accessor: (r) => r.vendor.vendorName },
                                 { header: "Amount", accessor: (r) => r.totalAmount },
+                                {
+                                    header: "Bill Type",
+                                    accessor: (r) => r.billType === "RECURRING" && r.recurringCycle
+                                        ? `${r.billType} (${VP_RECURRING_CYCLE_LABELS[r.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || r.recurringCycle})`
+                                        : r.billType,
+                                },
                                 { header: "Status", accessor: (r) => r.status },
                                 { header: "Delivery Status", accessor: (r) => r.deliveryStatus ?? "" },
                                 {
@@ -151,6 +157,7 @@ export default function AdminInvoicesPage() {
                                 <TableHead>Vendor</TableHead>
                                 <TableHead>Reference</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Bill Type</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Delivery</TableHead>
                                 <TableHead>Submitted</TableHead>
@@ -179,6 +186,23 @@ export default function AdminInvoicesPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-semibold text-sm">
                                         ₹{inv.totalAmount.toLocaleString("en-IN")}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap gap-1">
+                                                <Badge variant="outline" className="text-xs">{inv.billType}</Badge>
+                                                {inv.billType === "RECURRING" && inv.recurringCycle && (
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {inv.recurringTitle && (
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    {inv.recurringTitle}
+                                                </p>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell><VpStatusBadge status={inv.status} /></TableCell>
                                     <TableCell>

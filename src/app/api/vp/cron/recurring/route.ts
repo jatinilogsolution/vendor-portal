@@ -1,11 +1,12 @@
 // src/app/api/vp/cron/recurring/route.ts
-// Call this from a cron job (Vercel cron, GitHub Actions, etc.) daily
+// Reminder-only recurring cron. This does not create invoices automatically.
+// Call this from a cron job (Vercel cron, GitHub Actions, etc.) daily.
 // Add to vercel.json: { "crons": [{ "path": "/api/vp/cron/recurring", "schedule": "0 9 * * *" }] }
 
 import { NextResponse } from "next/server"
-import { prisma }       from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 import { sendEmail } from "@/services/mail"
- 
+
 const SECRET = process.env.CRON_SECRET ?? ""
 
 export async function GET(req: Request) {
@@ -46,6 +47,9 @@ export async function GET(req: Request) {
       (new Date(schedule.nextDueDate).getTime() - today.getTime()) / 86_400_000,
     )
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+    const invoiceUrl = `${baseUrl}/vendor-portal/vendor/my-invoices/new?billType=RECURRING&scheduleId=${schedule.id}`
+
     await sendEmail({
       to:           vendorEmails,
       subject:      `Reminder: Recurring invoice due ${daysUntil <= 0 ? "today" : `in ${daysUntil} day${daysUntil > 1 ? "s" : ""}`}`,
@@ -54,8 +58,8 @@ export async function GET(req: Request) {
           <h3>Recurring Invoice Due Soon</h3>
           <p>Your recurring billing schedule <strong>${schedule.title}</strong> is due on
           <strong>${new Date(schedule.nextDueDate).toLocaleDateString("en-IN")}</strong>.</p>
-          <p>Please submit your invoice on the vendor portal.</p>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/vendor-portal/vendor/my-invoices/new"
+          <p>Please raise the invoice on the vendor portal. Bills are not generated automatically.</p>
+          <a href="${invoiceUrl}"
              style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none">
             Submit Invoice
           </a>
@@ -68,5 +72,5 @@ export async function GET(req: Request) {
     reminded++
   }
 
-  return NextResponse.json({ reminded, total: due.length })
+  return NextResponse.json({ reminded, total: due.length, mode: "reminder_only" })
 }

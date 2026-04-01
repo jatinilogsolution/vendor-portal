@@ -64,6 +64,7 @@ function metaBlock(
 function totalsBlock(
     doc: jsPDF,
     subtotal: number,
+    discountAmount: number,
     taxRate: number,
     taxAmount: number,
     grandTotal: number,
@@ -71,9 +72,14 @@ function totalsBlock(
 ) {
     const x1 = 130, x2 = 196
     let y = afterY + 4
+    const taxableAmount = Math.max(0, subtotal - discountAmount)
 
     doc.setFontSize(9).setFont("helvetica", "normal")
     doc.text("Subtotal", x1, y); doc.text(INR(subtotal), x2, y, { align: "right" }); y += 6
+    if (discountAmount > 0) {
+        doc.text("Discount", x1, y); doc.text("- " + INR(discountAmount), x2, y, { align: "right" }); y += 6
+        doc.text("Taxable Amount", x1, y); doc.text(INR(taxableAmount), x2, y, { align: "right" }); y += 6
+    }
     doc.text(`GST (${taxRate}%)`, x1, y); doc.text(INR(taxAmount), x2, y, { align: "right" }); y += 2
 
     doc.setDrawColor(200).line(x1, y, x2, y); y += 5
@@ -114,6 +120,7 @@ export interface PoPdfData {
     approvedBy?: string | null
     notes?: string | null
     subtotal: number
+    discountAmount?: number
     taxRate: number
     taxAmount: number
     grandTotal: number
@@ -192,7 +199,7 @@ export function generatePoPdf(data: PoPdfData): jsPDF {
     })
 
     const finalY = (doc as any).lastAutoTable.finalY + 4
-    totalsBlock(doc, data.subtotal, data.taxRate, data.taxAmount, data.grandTotal, finalY)
+    totalsBlock(doc, data.subtotal, data.discountAmount ?? 0, data.taxRate, data.taxAmount, data.grandTotal, finalY)
     footer(doc, data.notes)
 
     return doc
@@ -212,6 +219,7 @@ export interface PiPdfData {
     approvedBy?: string | null
     notes?: string | null
     subtotal: number
+    discountAmount?: number
     taxRate: number
     taxAmount: number
     grandTotal: number
@@ -280,7 +288,7 @@ export function generatePiPdf(data: PiPdfData): jsPDF {
     })
 
     const finalY = (doc as any).lastAutoTable.finalY + 4
-    totalsBlock(doc, data.subtotal, data.taxRate, data.taxAmount, data.grandTotal, finalY)
+    totalsBlock(doc, data.subtotal, data.discountAmount ?? 0, data.taxRate, data.taxAmount, data.grandTotal, finalY)
     footer(doc, data.notes)
 
     return doc
@@ -303,6 +311,7 @@ export interface InvoicePdfData {
     submittedAt?: Date | null
     notes?: string | null
     subtotal: number
+    discountAmount: number
     taxRate: number
     taxAmount: number
     totalAmount: number
@@ -379,7 +388,7 @@ export function generateInvoicePdf(data: InvoicePdfData): jsPDF {
     })
 
     let y = (doc as any).lastAutoTable.finalY + 4
-    y = totalsBlock(doc, data.subtotal, data.taxRate, data.taxAmount, data.totalAmount, y)
+    y = totalsBlock(doc, data.subtotal, data.discountAmount, data.taxRate, data.taxAmount, data.totalAmount, y)
 
     // Payment history if any
     if (data.payments && data.payments.length > 0) {

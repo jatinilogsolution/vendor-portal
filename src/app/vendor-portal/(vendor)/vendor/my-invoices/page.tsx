@@ -22,7 +22,7 @@ import { VpEmptyState } from "@/components/ui/vp-empty-state"
 import { VpDateFilter } from "@/components/ui/vp-date-filter"
 import { VpPagination } from "@/components/ui/vp-pagination"
 import { getVpInvoices, VpInvoiceRow } from "@/actions/vp/invoice.action"
-import { VP_INVOICE_STATUSES } from "@/types/vendor-portal"
+import { VP_INVOICE_STATUSES, VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import type { VpPaginationMeta } from "@/types/vendor-portal"
 
 export default function VendorMyInvoicesPage() {
@@ -139,7 +139,22 @@ export default function VendorMyInvoicesPage() {
                                         }
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary" className="text-xs">{inv.type}</Badge>
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap gap-1">
+                                                <Badge variant="secondary" className="text-xs">{inv.type}</Badge>
+                                                <Badge variant="outline" className="text-xs">{inv.billType}</Badge>
+                                                {inv.billType === "RECURRING" && inv.recurringCycle && (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {inv.recurringTitle && (
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    {inv.recurringTitle}
+                                                </p>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell className="text-right font-semibold text-sm">
                                         ₹{inv.totalAmount.toLocaleString("en-IN")}

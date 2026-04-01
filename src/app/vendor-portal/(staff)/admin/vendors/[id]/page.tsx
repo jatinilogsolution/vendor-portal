@@ -4,7 +4,7 @@ import Link from "next/link"
 import { requireVendorPortalSession } from "@/lib/vendor-portal/guard"
 import { UserRoleEnum } from "@/utils/constant"
 import { getVpVendorById } from "@/actions/vp/vendor.action"
-import { getVpVendorBankDetails, verifyVpVendorBankDetails } from "@/actions/vp/bank-details.action"
+import { getVpVendorBankDetails } from "@/actions/vp/bank-details.action"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +18,7 @@ import { VP_BILLING_TYPE_LABELS, VP_RECURRING_CYCLE_LABELS } from "@/types/vendo
 import { VpPageHeader } from "@/components/ui/vp-page-header"
 import { VpStatusBadge } from "@/components/ui/vp-status-badge"
 import Row from "@/components/ui/row"
-import { toast } from "sonner"
+import { VendorBankVerifyButton } from "./vendor-bank-verify-button"
 
 export default async function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
     await requireVendorPortalSession([UserRoleEnum.ADMIN, UserRoleEnum.BOSS])
@@ -231,12 +231,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
                                 </Row>
                                 <Row label="IFSC"><code className="text-xs">{bank.ifscCode}</code></Row>
                                 {!bank.verifiedAt && (
-                                    <Button size="sm" variant="outline" className="w-full mt-2" onClick={async () => {
-                                        await verifyVpVendorBankDetails(v.id)
-                                        toast.success("Bank details verified")
-                                    }}>
-                                        Mark as Verified
-                                    </Button>
+                                    <VendorBankVerifyButton vpVendorId={v.id} />
                                 )}
                             </CardContent>
                         </Card>

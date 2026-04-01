@@ -64,9 +64,24 @@ export const vpInvoiceSchema = z.object({
   // PO link only — no PI for vendor invoice
   poId:          z.string().optional().or(z.literal("")),
   notes:         z.string().optional().or(z.literal("")),
+  discountAmount: z.coerce.number<number>().min(0).default(0),
   taxRate:       z.coerce.number<number>().min(0).max(100).default(18),
   recurringScheduleId: z.string().optional().or(z.literal("")),
+  parentInvoiceId: z.string().optional().or(z.literal("")),
   items:         z.array(vpInvoiceLineItemSchema).min(1, "Add at least one line item"),
+}).superRefine((data, ctx) => {
+  const subtotal = data.items.reduce(
+    (sum, item) => sum + (Number(item.qty) * Number(item.unitPrice)),
+    0,
+  )
+
+  if (Number(data.discountAmount) > subtotal) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Discount cannot be more than the subtotal",
+      path: ["discountAmount"],
+    })
+  }
 })
 
 export type VpInvoiceLineItemValues = z.infer<typeof vpInvoiceLineItemSchema>
