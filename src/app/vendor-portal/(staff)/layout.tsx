@@ -35,6 +35,8 @@ const BOSS_NAV = [
     { title: "Reports", href: "/vendor-portal/boss/reports", icon: "reports" },
     // ── Vendors ──
     { title: "Vendors", href: "/vendor-portal/admin/vendors", icon: "vendors" },
+    { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },
+
 ]
 
 export default async function CombinedStaffLayout({ children }: { children: React.ReactNode }) {
