@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
@@ -30,27 +31,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const loading = isPending || !session;
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" {...props} className=" bg-muted">
+      <SidebarHeader className="  bg-muted">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              tooltip="Transport Portal"
+              className="h-auto min-h-10  data-[slot=sidebar-menu-button]:p-1.5! border-b"
             >
-              <Link href="/dashboard">
-                <h2 className="text-xl text-center font-bold w-full ">
-                  <span className="text-primary">Transport</span>{" "}
-                  <span className=" text-foreground">Portal</span>
-                </h2>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 w-full"
+              >
+                <SidebarTrigger
+                  size="icon-sm"
+                  className="shrink-0 -pl-2! text-muted-foreground hover:text-foreground transition-colors"
+                />
+
+                <div className="flex items-center p-0! m-0! leading-tight group-data-[collapsible=icon]:hidden">
+                  <h2 className="text-base font-bold whitespace-nowrap">
+                    <span className="text-primary">Transport</span>{" "}
+                    <span className="text-foreground">Portal</span>
+                  </h2>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarSeparator />
-      <SidebarContent>
+      {/* <SidebarSeparator /> */}
+      <SidebarContent className=" bg-muted" >
         {loading ? (
           // Skeleton while session loads
           <div className="space-y-2 p-2">

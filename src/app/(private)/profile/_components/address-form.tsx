@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { updateAddress } from "../_action/profile"
+import type { ProfilePortalSource } from "../_action/profile"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Address } from "@/generated/prisma/client"
 
@@ -20,9 +21,10 @@ interface AddressFormProps {
   onUpdate: (address: Address) => void
   onCancel: () => void
   readOnly?: boolean
+  source?: ProfilePortalSource
 }
 
-export function AddressForm({ address, isEditing, onUpdate, onCancel, readOnly = false }: AddressFormProps) {
+export function AddressForm({ address, isEditing, onUpdate, onCancel, readOnly = false, source = "transport" }: AddressFormProps) {
   const [formData, setFormData] = useState<Address>(address)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -54,7 +56,7 @@ export function AddressForm({ address, isEditing, onUpdate, onCancel, readOnly =
     try {
       setIsSubmitting(true)
       setSubmitError(null)
-      const result = await updateAddress(address.vendorId, formData)
+      const result = await updateAddress(address.vendorId, formData, source)
       if (result.success && result.address) {
         onUpdate(result.address)
       } else {

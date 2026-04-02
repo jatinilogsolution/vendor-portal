@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendVerificationEmail } from "@/lib/auth-client";
@@ -10,9 +9,21 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export const SendVerificationEmailForm = ({ className,
+type SendVerificationEmailFormProps = React.ComponentProps<"form"> & {
+    error?: string;
+};
+
+const errorMessageByCode: Record<string, string> = {
+    email_not_verified: "Your email address is not verified yet.",
+    invalid_token: "This verification link is invalid.",
+    token_expired: "This verification link has expired.",
+    user_not_found: "We couldn't find an account for this verification link.",
+    unauthorized: "This verification request is not authorized.",
+};
+
+export const SendVerificationEmailForm = ({ className, error,
     ...props
-}: React.ComponentProps<"form">) => {
+}: SendVerificationEmailFormProps) => {
     const [isPending, setIsPending] = useState(false);
     const router = useRouter();
 
@@ -34,6 +45,7 @@ export const SendVerificationEmailForm = ({ className,
                     setIsPending(false);
                 },
                 onError: (ctx) => {
+                  
                     toast.error(ctx.error.message);
                 },
                 onSuccess: () => {
@@ -56,6 +68,11 @@ export const SendVerificationEmailForm = ({ className,
                 <p className="text-muted-foreground text-sm text-balance">
                     Enter your email and we’ll send you a link to verify your account.
                 </p>
+                {error ? (
+                    <p className="text-sm text-destructive">
+                        {errorMessageByCode[error] ?? "Verification could not be completed. Please request a new email."}
+                    </p>
+                ) : null}
             </div>
             <div className="grid gap-6">
                 <div className="grid gap-3">
@@ -65,7 +82,7 @@ export const SendVerificationEmailForm = ({ className,
                 </div>
 
                 <Button variant={"default"} type="submit" disabled={isPending}>
-                    {isPending ? "Sending..." : "Send Reset Link"}
+                    {isPending ? "Sending..." : "Send Verification Link"}
                 </Button>
 
 
@@ -79,5 +96,4 @@ export const SendVerificationEmailForm = ({ className,
 
     );
 };
-
 

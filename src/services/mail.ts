@@ -17,17 +17,52 @@ type SendMailOptions = {
   recipientId?: string;
 };
 
+type SendEmailResult =
+  | { success: true; messageId: string; emailLogId: string }
+  | { success: false; error: unknown; emailLogId?: string };
+
 let transporter: nodemailer.Transporter;
+
+const getSmtpCredentials = () => {
+  const user =
+    process.env.SMTP_USER?.trim() || process.env.NODEMAILER_USER?.trim() || "";
+  const pass =
+    process.env.SMTP_PASSWORD?.replace(/\s+/g, "") ||
+    process.env.NODEMAILER_APP_PASSWORD?.replace(/\s+/g, "") ||
+    "";
+
+  return { user, pass };
+};
+
+const shouldSkipEmailSending = () => {
+  const disableEmail =
+    process.env.DISABLE_EMAIL_SENDING === "true" ||
+    process.env.DISABLE_EMAIL_SENDING === "1";
+  const { user, pass } = getSmtpCredentials();
+  const hasSmtpCredentials = Boolean(user) && Boolean(pass);
+
+  if (disableEmail) return true;
+  if (!hasSmtpCredentials) return true;
+
+  return false;
+};
 
 export const getTransporter = () => {
   if (!transporter) {
+    const { user, pass } = getSmtpCredentials();
+    const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
+    const port = Number(process.env.SMTP_PORT || 465);
+    const secure = process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465;
+
     transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      host,
+      port,
+      secure,
       auth: {
-        user: process.env.NODEMAILER_USER,
-        pass: process.env.NODEMAILER_APP_PASSWORD,
+        user,
+        pass,
       },
     });
   }
@@ -194,7 +229,9 @@ const getEmailTemplate = (content: string, themeColor = "#2563eb") => {
 /**
  * Core Email Sender with Database Logging
  */
-export const sendEmail = async (options: SendMailOptions) => {
+export const sendEmail = async (
+  options: SendMailOptions,
+): Promise<SendEmailResult> => {
   const {
     to,
     cc,
@@ -210,9 +247,18 @@ export const sendEmail = async (options: SendMailOptions) => {
     recipientId,
   } = options;
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("🛠️ Dev Mode: Email would have been sent:", subject);
-    return { success: true, messageId: "dev-mode-msg-id", emailLogId: "dev-mode-log-id" };
+  if (shouldSkipEmailSending()) {
+    const reason =
+      process.env.DISABLE_EMAIL_SENDING === "true" ||
+      process.env.DISABLE_EMAIL_SENDING === "1"
+        ? "Email sending is disabled by configuration."
+        : "SMTP credentials are missing or invalid.";
+
+    console.warn("⚠️ Email sending skipped:", subject, reason);
+    return {
+      success: false,
+      error: new Error(reason),
+    };
   }
 
   const transporter = getTransporter();
@@ -247,7 +293,7 @@ export const sendEmail = async (options: SendMailOptions) => {
       recipientId: recipientId,
       subject: subject,
       body: finalTxt,
-      templateType: templateType === "AUTH" ? "STATUS_CHANGE" : templateType,
+      templateType,
       relatedModel: relatedModel || "Email",
       relatedId: relatedId || "Manual",
       status: "PENDING",
@@ -557,12 +603,23 @@ export async function sendAuthEmail({
     </div>
   `;
 
-  return sendEmail({
+  const result = await sendEmail({
     to,
-    subject: subject,
+    subject,
     html: getEmailTemplate(content, "#2563eb"),
     templateType: "AUTH",
     relatedModel: "User",
     relatedId: meta.user,
   });
+
+  if (!result.success) {
+    throw new Error(
+      result.error instanceof Error
+        ? result.error.message
+        : "Failed to send authentication email.",
+    );
+  }
+
+  return result;
 }
+

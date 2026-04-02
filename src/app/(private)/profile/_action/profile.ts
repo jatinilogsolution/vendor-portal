@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma"
 import { deleteAttachmentFromAzure, uploadAttachmentToAzure } from "@/services/azure-blob"
 import { revalidateTag } from "next/cache"
 import { auditUpdate } from "@/lib/audit-logger"
+
+export type ProfilePortalSource = "transport" | "vendor"
+
+function getPortalPrefix(source: ProfilePortalSource = "transport") {
+  return source === "vendor" ? "[Vendor Portal]" : "[Transport Portal]"
+}
  
 export async function getUserProfile(userId: string) {
   try {
@@ -55,6 +61,7 @@ export async function getUserProfile(userId: string) {
 export async function updateUserProfile(
   userId: string,
   data: Partial<User>,
+  source: ProfilePortalSource = "transport",
 ) {
   try {
     // Validate input
@@ -90,7 +97,7 @@ export async function updateUserProfile(
       userId,
       oldUser,
       { name: data.name, email: data.email, phone: data.phone },
-      `Updated user profile for ${data.name || oldUser?.name}`
+      `${getPortalPrefix(source)} Updated user profile for ${data.name || oldUser?.name}`
     );
 
     revalidateTag(`user-${userId}`, 'max');
@@ -105,6 +112,7 @@ export async function updateUserProfile(
 export async function updateVendorProfile(
   vendorId: string,
   data: Partial<Vendor>,
+  source: ProfilePortalSource = "transport",
 ) {
   try {
     // Validate input
@@ -155,7 +163,7 @@ export async function updateVendorProfile(
       vendorId,
       oldVendor,
       data,
-      `Updated vendor profile for ${data.name || oldVendor?.name}`
+      `${getPortalPrefix(source)} Updated vendor profile for ${data.name || oldVendor?.name}`
     );
 
     // TODO: Replace with actual database update
@@ -186,6 +194,7 @@ export async function updateVendorProfile(
 export async function updateAddress(
   vendorId: string,
   data: Partial<Address>,
+  source: ProfilePortalSource = "transport",
 ) {
   try {
     // Validate input
@@ -237,7 +246,9 @@ export async function updateAddress(
       vendorId,
       oldAddress,
       data,
-      oldAddress ? `Updated address for vendor ${vendorId}` : `Created address for vendor ${vendorId}`
+      oldAddress
+        ? `${getPortalPrefix(source)} Updated address for vendor ${vendorId}`
+        : `${getPortalPrefix(source)} Created address for vendor ${vendorId}`
     );
 
     // TODO: Replace with actual database upsert

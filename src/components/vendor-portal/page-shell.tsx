@@ -208,7 +208,7 @@ import {
   IconPackage, IconShoppingCart, IconFileInvoice,
   IconReceipt, IconTruckDelivery, IconSettings,
   IconCheckbox, IconCash, IconChartBar, IconBell, IconUsers,
-  IconClipboardList, IconRepeat, IconUser, IconBuilding,
+  IconClipboardList, IconRepeat, IconUser, IconBuilding, IconHistory, IconMenu2,
 } from "@tabler/icons-react"
 import { VpNotificationBell } from "./vp-notification-bell"
 import { VpGlobalSearch } from "./vp-global-search"
@@ -253,6 +253,7 @@ const ICON_MAP: Record<string, any> = {
   approvals: IconCheckbox,
   payments: IconCash,
   reports: IconChartBar,
+  logs: IconHistory,
   bell: IconBell,
   users: IconUsers,
   user: IconUser,
@@ -264,6 +265,7 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [isPending, setIsPending] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true)
@@ -312,7 +314,16 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
       {/* ── Top bar ─────────────────────────────────────────── */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
-          <Link href={"/"}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <IconMenu2 size={18} />
+          </Button>
+          <Link href={"/"} className=" hidden md:block">
             <h2 className="text-xl text-center font-bold w-full ">
               <span className="text-primary">Vendor</span>{" "}
               <span className=" text-foreground">Portal</span>
@@ -477,9 +488,14 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
       {/* ── Body ─────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="flex w-64 shrink-0 flex-col border-r">
+        <aside
+          className={cn(
+            "flex shrink-0 flex-col border-r transition-all duration-200",
+            isSidebarCollapsed ? "w-16" : "w-64",
+          )}
+        >
           <nav className="flex-1 overflow-y-auto py-3">
-            <ul className="space-y-0.5 px-2">
+            <ul className={cn("space-y-0.5", isSidebarCollapsed ? "px-1" : "px-2")}>
               {nav.map((item) => {
                 const Icon = ICON_MAP[item.icon] || IconBell
                 const rootPages = [
@@ -496,14 +512,15 @@ export function VpShell({ children, nav, role, sidebarTitle }: VpShellProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center rounded-md text-sm font-medium transition-colors",
+                        isSidebarCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2",
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
                       <Icon size={16} stroke={1.5} />
-                      {item.title}
+                      <span className={cn(isSidebarCollapsed && "hidden")}>{item.title}</span>
                     </Link>
                   </li>
                 )

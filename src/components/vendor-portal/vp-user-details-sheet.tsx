@@ -90,10 +90,12 @@ interface VpUserDetailsSheetProps {
     user: VpUserDetails | null
     currentUserId?: string
     canManageBan: boolean
+    canDeleteUser?: boolean
     actionPending: boolean
     onOpenChange: (open: boolean) => void
     onBan: (user: VpUserDetails) => void
     onUnban: (user: VpUserDetails) => void
+    onDelete?: (user: VpUserDetails) => void
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -148,10 +150,12 @@ export function VpUserDetailsSheet({
     user,
     currentUserId,
     canManageBan,
+    canDeleteUser = false,
     actionPending,
     onOpenChange,
     onBan,
     onUnban,
+    onDelete,
 }: VpUserDetailsSheetProps) {
     if (!user) return null
 
@@ -448,6 +452,15 @@ export function VpUserDetailsSheet({
                                 disabled={actionPending}
                             >
                                 {actionPending ? "Please wait..." : user.banned ? "Unban User" : "Ban User"}
+                            </Button>
+                        )}
+                        {canDeleteUser && !isCurrentUser && onDelete && (
+                            <Button
+                                variant="destructive"
+                                onClick={() => onDelete(user)}
+                                disabled={actionPending}
+                            >
+                                {actionPending ? "Please wait..." : "Delete User"}
                             </Button>
                         )}
                     </div>

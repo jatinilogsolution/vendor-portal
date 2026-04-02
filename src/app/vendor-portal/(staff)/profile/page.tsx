@@ -5,5 +5,5 @@ import { UserRoleEnum } from "@/utils/constant"
 export default async function StaffProfilePage() {
     await requireVendorPortalSession([UserRoleEnum.ADMIN, UserRoleEnum.BOSS])
 
-    return <ProfileContent />
+    return <ProfileContent portalSource="vendor" />
 }

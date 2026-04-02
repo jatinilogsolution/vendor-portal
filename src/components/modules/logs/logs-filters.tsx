@@ -25,6 +25,10 @@ export default function LogFilters({ onChange, onSearch }: LogFiltersProps) {
     onChange((prev: Filters) => ({ ...prev, [key]: value }));
   };
 
+  const handleActionChange = (value: string) => {
+    handleChange("action", value === "__all__" ? "" : value);
+  };
+
   return (
     <div className="flex flex-wrap gap-4 items-end bg-card p-4 rounded-lg border">
       <div className="flex-1 min-w-[200px]">
@@ -32,7 +36,7 @@ export default function LogFilters({ onChange, onSearch }: LogFiltersProps) {
         <Input
           id="search"
           className=" mt-1"
-          placeholder="Search logs..."
+          placeholder="Search description, model, action, record, user, JSON..."
           onChange={(e) => handleChange("q", e.target.value)}
         />
       </div>
@@ -49,16 +53,21 @@ export default function LogFilters({ onChange, onSearch }: LogFiltersProps) {
 
       <div className="w-40">
         <Label htmlFor="action">Action</Label>
-        <Select onValueChange={(v) => handleChange("action", v)}>
+        <Select defaultValue="__all__" onValueChange={handleActionChange}>
           <SelectTrigger id="action" className=" mt-1">
             <SelectValue placeholder="Select Action" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Select Action</SelectLabel>
+              <SelectItem value="__all__">All Actions</SelectItem>
               <SelectItem value="CREATE">CREATE</SelectItem>
               <SelectItem value="UPDATE">UPDATE</SelectItem>
               <SelectItem value="DELETE">DELETE</SelectItem>
+              <SelectItem value="LOGIN">LOGIN</SelectItem>
+              <SelectItem value="LOGOUT">LOGOUT</SelectItem>
+              <SelectItem value="APPROVE">APPROVE</SelectItem>
+              <SelectItem value="REJECT">REJECT</SelectItem>
             </SelectGroup>
           </SelectContent>
 

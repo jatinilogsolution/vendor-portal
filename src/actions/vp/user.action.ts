@@ -10,8 +10,12 @@ import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { headers } from "next/headers"
 import { APIError } from "better-auth/api"
+import { UserRoleEnum } from "@/utils/constant"
+import { auditDelete } from "@/lib/audit-logger"
 import {
     canManageUserBan,
+    canDeleteVpPortalUser,
+    getDeleteVpPortalUserPermissionError,
     getUserBanPermissionError,
 } from "@/lib/vendor-portal/user-ban-permissions"
 
@@ -35,6 +39,32 @@ const banVpUserSchema = z.object({
 const unbanVpUserSchema = z.object({
     userId: z.string().min(1, "User is required"),
 })
+
+const deleteVpUserSchema = z.object({
+    userId: z.string().min(1, "User is required"),
+    reason: z.string().trim().min(1, "Delete reason is required"),
+})
+
+const bossVisibleRoles = [
+    UserRoleEnum.BOSS,
+    UserRoleEnum.ADMIN,
+    UserRoleEnum.VENDOR,
+    // UserRoleEnum.TADMIN,
+    // UserRoleEnum.TVENDOR,
+] as const
+
+const adminVisibleRoles = [
+    UserRoleEnum.ADMIN,
+    UserRoleEnum.VENDOR,
+] as const
+
+function summarizeBlockingReferences(
+    items: Array<{ count: number; label: string }>,
+) {
+    return items
+        .map((item) => `${item.count} ${item.label}`)
+        .join(", ")
+}
 
 // ── Who can create whom ────────────────────────────────────────
 // BOSS  → can create ADMIN, BOSS, VENDOR
@@ -111,7 +141,7 @@ export async function createVpUser(
             action: "CREATE",
             entityType: "VpVendor",
             entityId: result.user.id,
-            description: `Created VP user ${email} with role ${role}`,
+            description: `[Vendor Portal] Created VP user ${email} with role ${role}`,
         })
 
         return { success: true, data: { userId: result.user.id } }
@@ -224,8 +254,11 @@ export async function getVpPortalUsers(): Promise<VpActionResult<{
         return { success: false, error: "Insufficient permissions" }
 
     try {
+        const visibleRoles =
+            session.user.role === UserRoleEnum.BOSS ? bossVisibleRoles : adminVisibleRoles
+
         const users = await prisma.user.findMany({
-            where: { role: { in: ["ADMIN", "BOSS", "VENDOR"] } },
+            where: { role: { in: [...visibleRoles] } },
             select: {
                 id: true,
                 name: true,
@@ -503,5 +536,208 @@ export async function unbanVpPortalUser(raw: z.infer<typeof unbanVpUserSchema>):
 
         console.error("[unbanVpPortalUser]", error)
         return { success: false, error: "Failed to unban user" }
+    }
+}
+
+export async function deleteVpPortalUser(
+    raw: z.infer<typeof deleteVpUserSchema>,
+): Promise<VpActionResult> {
+    const session = await getCustomSession()
+    if (session.user.role !== UserRoleEnum.BOSS) {
+        return { success: false, error: "Only a boss can delete users" }
+    }
+
+    const parsed = deleteVpUserSchema.safeParse(raw)
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message }
+    }
+
+    const { userId, reason } = parsed.data
+
+    try {
+        const targetUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                vendorId: true,
+                banned: true,
+                banReason: true,
+                emailVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        })
+
+        if (!targetUser) {
+            return { success: false, error: "User not found" }
+        }
+
+        if (
+            !canDeleteVpPortalUser(
+                session.user.role,
+                session.user.id,
+                targetUser.role,
+                targetUser.id,
+            )
+        ) {
+            return {
+                success: false,
+                error: getDeleteVpPortalUserPermissionError(session.user.role, targetUser.role),
+            }
+        }
+
+        const blockingChecks = await Promise.all([
+            prisma.purchaseOrder.count({ where: { userId } }),
+            prisma.invoiceStatusHistory.count({ where: { changedBy: userId } }),
+            prisma.annexureStatusHistory.count({ where: { changedBy: userId } }),
+            prisma.workflowComment.count({ where: { authorId: userId } }),
+            prisma.vpPurchaseOrder.count({ where: { createdById: userId } }),
+            prisma.vpProformaInvoice.count({ where: { createdById: userId } }),
+            prisma.vpInvoice.count({ where: { createdById: userId } }),
+            prisma.vpProcurement.count({ where: { createdById: userId } }),
+        ])
+
+        const blockingRefs = [
+            { count: blockingChecks[0], label: "purchase orders" },
+            { count: blockingChecks[1], label: "invoice status history entries" },
+            { count: blockingChecks[2], label: "annexure status history entries" },
+            { count: blockingChecks[3], label: "workflow comments" },
+            { count: blockingChecks[4], label: "vendor portal purchase orders" },
+            { count: blockingChecks[5], label: "vendor portal proforma invoices" },
+            { count: blockingChecks[6], label: "vendor portal invoices" },
+            { count: blockingChecks[7], label: "vendor portal procurements" },
+        ].filter((item) => item.count > 0)
+
+        if (blockingRefs.length > 0) {
+            const referenceSummary = summarizeBlockingReferences(blockingRefs)
+            const softDeleteReason = [
+                `Marked as deleted by boss on ${new Date().toISOString()}.`,
+                `Delete reason: ${reason}`,
+                `Blocking references: ${referenceSummary}.`,
+            ].join(" ")
+
+            await prisma.$transaction(async (tx) => {
+                await Promise.all([
+                    tx.user.update({
+                        where: { id: userId },
+                        data: {
+                            banned: true,
+                            banExpires: null,
+                            banReason: softDeleteReason,
+                        },
+                    }),
+                    tx.session.deleteMany({
+                        where: { userId },
+                    }),
+                    tx.vpNotification.deleteMany({
+                        where: { userId },
+                    }),
+                ])
+            })
+
+            await auditDelete(
+                "User",
+                targetUser.id,
+                {
+                    ...targetUser,
+                    deleteMode: "SOFT_REFERENCED",
+                    deleteReason: reason,
+                    deletedBy: session.user.id,
+                    blockingReferences: blockingRefs,
+                },
+                `[Vendor Portal] Marked user ${targetUser.email} (${targetUser.role}) as deleted without hard delete because they are still referenced by ${referenceSummary}. Reason: ${reason}`,
+            )
+
+            return {
+                success: true,
+                data: null,
+                message: `User marked as deleted and access revoked. Hard delete skipped because they are still referenced by ${referenceSummary}.`,
+            }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await Promise.all([
+                tx.log.updateMany({
+                    where: { userId },
+                    data: { userId: null },
+                }),
+                tx.vpVendor.updateMany({
+                    where: { createdById: userId },
+                    data: { createdById: null },
+                }),
+                tx.vpCompany.updateMany({
+                    where: { createdById: userId },
+                    data: { createdById: null },
+                }),
+                tx.vpPurchaseOrder.updateMany({
+                    where: { approvedById: userId },
+                    data: { approvedById: null },
+                }),
+                tx.vpProformaInvoice.updateMany({
+                    where: { approvedById: userId },
+                    data: { approvedById: null },
+                }),
+                tx.vpProformaInvoiceDocument.updateMany({
+                    where: { uploadedById: userId },
+                    data: { uploadedById: null },
+                }),
+                tx.vpInvoice.updateMany({
+                    where: { reviewedById: userId },
+                    data: { reviewedById: null },
+                }),
+                tx.vpInvoiceDocument.updateMany({
+                    where: { uploadedById: userId },
+                    data: { uploadedById: null },
+                }),
+                tx.vpPayment.updateMany({
+                    where: { initiatedById: userId },
+                    data: { initiatedById: null },
+                }),
+                tx.vpProcurement.updateMany({
+                    where: { approvedById: userId },
+                    data: { approvedById: null, userId: null },
+                }),
+                tx.vpRecurringSchedule.updateMany({
+                    where: { userId },
+                    data: { userId: null },
+                }),
+                tx.account.deleteMany({
+                    where: { userId },
+                }),
+                tx.session.deleteMany({
+                    where: { userId },
+                }),
+                tx.vpNotification.deleteMany({
+                    where: { userId },
+                }),
+            ])
+
+            await tx.user.delete({
+                where: { id: userId },
+            })
+        })
+
+        await auditDelete(
+            "User",
+            targetUser.id,
+            {
+                ...targetUser,
+                deleteReason: reason,
+                deletedBy: session.user.id,
+            },
+            `[Vendor Portal] Deleted user ${targetUser.email} (${targetUser.role}). Reason: ${reason}`,
+        )
+
+        return { success: true, data: null, message: "User deleted successfully" }
+    } catch (error) {
+        if (error instanceof APIError) {
+            return { success: false, error: error.message }
+        }
+
+        console.error("[deleteVpPortalUser]", error)
+        return { success: false, error: "Failed to delete user" }
     }
 }

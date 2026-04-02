@@ -34,6 +34,7 @@ const BOSS_NAV = [
     // ── Finance ──
     { title: "Payments", href: "/vendor-portal/boss/payments", icon: "payments" },
     { title: "Reports", href: "/vendor-portal/boss/reports", icon: "reports" },
+    { title: "Audit Logs", href: "/vendor-portal/boss/logs", icon: "logs" },
     // ── Vendors ──
     { title: "Vendors", href: "/vendor-portal/admin/vendors", icon: "vendors" },
     { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },

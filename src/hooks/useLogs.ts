@@ -6,6 +6,7 @@ export interface LogFilters {
     model?: string;
     action?: string;
     userId?: string;
+    scope?: "transport" | "vendor";
     from?: string;
     to?: string;
     page?: number;

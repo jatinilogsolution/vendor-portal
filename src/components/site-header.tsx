@@ -78,9 +78,8 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md transition-all ease-in-out shadow-sm">
+    <header className="sticky top-0 z-40 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md transition-all ease-in-out ">
       <div className="flex w-full items-center gap-4 px-4 lg:px-8">
-        <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
 
         <Separator
           orientation="vertical"

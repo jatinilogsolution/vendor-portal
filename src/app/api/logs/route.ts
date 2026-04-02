@@ -1,88 +1,118 @@
 import { prisma } from "@/lib/prisma";
-import { getCustomSession } from "@/actions/auth.action";
+import { auth } from "@/lib/auth";
 import { UserRoleEnum } from "@/utils/constant";
 import { NextRequest, NextResponse } from "next/server";
 
-// Define a type for the log data for better type safety
-interface LogData {
-  id: string;
-  // ... other log properties
-  oldData: string | null;
-  newData: string | null;
-  user: {
-    id: string;
-    name: string | null;
-    email: string | null;
-  };
+function parseJsonSafely(value: string | null) {
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
 }
 
 /**
  * Next.js App Router API Route Handler for GET /api/logs
  */
 export async function GET(req: NextRequest) {
-  const session = await getCustomSession();
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
   if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const user = session.user as any;
+  if (user.role !== UserRoleEnum.BOSS) {
+    return NextResponse.json({ error: "Only bosses can access audit logs" }, { status: 403 });
+  }
+
   const searchParams = req.nextUrl.searchParams;
 
-  // Access query parameters from searchParams
   const q = searchParams.get("q");
   const model = searchParams.get("model");
   const action = searchParams.get("action");
   const userId = searchParams.get("userId");
+  const recordId = searchParams.get("recordId");
+  const scope = searchParams.get("scope");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
-  
-  // Parse numeric parameters with safety
   const page = searchParams.get("page");
   const pageSize = searchParams.get("pageSize");
 
   const pageNum = Math.max(1, parseInt(page as string) || 1);
-  const take = Math.min(200, parseInt(pageSize as string) || 25);
+  const take = Math.min(200, parseInt(pageSize as string) || 100);
   const skip = (pageNum - 1) * take;
 
   const where: any = {};
+  const andClauses: any[] = [];
+  if (model) where.model = model;
+  if (action) where.action = action;
+  if (userId) where.userId = userId;
+  if (recordId) where.recordId = recordId;
 
-  // --- Role-based scoping ---
-  const isAdmin = user.role === UserRoleEnum.BOSS || user.role === UserRoleEnum.ADMIN || user.role === UserRoleEnum.TADMIN;
-  
-  if (!isAdmin) {
-    // vendor users only see their vendor logs
-    if (user.vendorId) {
-      where.vendorId = user.vendorId;
-    } else {
-      // fallback: restrict by userId only
-      where.userId = user.id;
+  if (from || to) {
+    where.createdAt = {};
+
+    if (from) {
+      const fromDate = new Date(from);
+      fromDate.setHours(0, 0, 0, 0);
+      where.createdAt.gte = fromDate;
+    }
+
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      where.createdAt.lte = toDate;
     }
   }
 
-  // --- Filtering ---
-  if (model) where.model = model;
-  if (action) where.action = action;
-  // Note: userId filter is only applied if isAdmin or if a vendor user is trying to filter their own logs
-  // The role-based scoping above might override/conflict if not careful, but following original logic:
-  if (userId) where.userId = userId; 
-
-  // --- Date Range Filtering ---
-  if (from || to) {
-    where.createdAt = {};
-    if (from) where.createdAt.gte = new Date(from as string);
-    if (to) where.createdAt.lte = new Date(to as string);
+  if (scope === "vendor") {
+    andClauses.push({
+      OR: [
+        { model: { startsWith: "Vp" } },
+        { description: { contains: "[Vendor Portal]" } },
+      ],
+    });
   }
 
-  // --- Search Query Filtering ---
+  if (scope === "transport") {
+    andClauses.push({
+      AND: [
+        { model: { not: { startsWith: "Vp" } } },
+        {
+          OR: [
+            { description: null },
+            { description: { not: { contains: "[Vendor Portal]" } } },
+          ],
+        },
+      ],
+    });
+  }
+
   if (q) {
-    const qString = q as string;
-    // basic free-text search over string fields
-    where.OR = [
+    const qString = q.trim();
+    andClauses.push({
+      OR: [
+      { action: { contains: qString } },
+      { model: { contains: qString } },
+      { vendorId: { contains: qString } },
       { oldData: { contains: qString } },
       { newData: { contains: qString } },
       { recordId: { contains: qString } },
       { description: { contains: qString } },
-    ];
+      { user: { is: { id: { contains: qString } } } },
+      { user: { is: { name: { contains: qString } } } },
+      { user: { is: { email: { contains: qString } } } },
+      ],
+    });
+  }
+
+  if (andClauses.length > 0) {
+    where.AND = andClauses;
   }
 
   try {
@@ -101,11 +131,10 @@ export async function GET(req: NextRequest) {
       total,
       page: pageNum,
       pageSize: take,
-      data: (logs as LogData[]).map((l) => ({
+      data: logs.map((l) => ({
         ...l,
-        // Safely parse JSON string data fields
-        oldData: l.oldData ? JSON.parse(l.oldData as string) : null,
-        newData: l.newData ? JSON.parse(l.newData as string) : null,
+        oldData: parseJsonSafely(l.oldData),
+        newData: parseJsonSafely(l.newData),
       })),
     });
   } catch (err) {

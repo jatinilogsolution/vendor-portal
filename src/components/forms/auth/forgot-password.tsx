@@ -39,10 +39,9 @@ export function ForgotPassword({
             fetchOptions: {
                 onRequest: () => setIsPending(true),
                 onResponse: () => setIsPending(false),
-                // onError: (ctx)=>{ 
-                //     console.log(JSON.stringify(ctx.error, null, 2))
-                // },
-                onError: (ctx :any) => { toast.error(ctx.error.statusText) },
+                onError: (ctx) => {
+                    toast.error(ctx.error.message || "Unable to send reset link.")
+                },
                 onSuccess: () => {
                     toast.success("Reset link sent to your email.")
                     router.push("/auth/login")
@@ -91,6 +90,5 @@ export function ForgotPassword({
 
     )
 }
-
 
 

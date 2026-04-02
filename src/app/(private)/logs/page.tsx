@@ -2,8 +2,17 @@
 import LogsClient from "@/components/modules/logs/logs-client";
 import LogsStats from "@/components/modules/logs/logs-stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getCustomSession } from "@/actions/auth.action";
+import { UserRoleEnum } from "@/utils/constant";
+import { redirect } from "next/navigation";
 
-export default function LosgPage() {
+export default async function LosgPage() {
+  const { user } = await getCustomSession();
+
+  if (user.role !== UserRoleEnum.BOSS) {
+    redirect("/forbidden");
+  }
+
   return (
     <div className="container mx-auto space-y-6">
       <div>
@@ -13,7 +22,7 @@ export default function LosgPage() {
         </p>
       </div>
 
-      <LogsStats />
+      <LogsStats scope="transport" />
 
       <Tabs defaultValue="table" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -22,11 +31,11 @@ export default function LosgPage() {
         </TabsList>
 
         <TabsContent value="table" className="mt-6">
-          <LogsClient />
+          <LogsClient scope="transport" />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
-          <LogsClient viewMode="timeline" />
+          <LogsClient viewMode="timeline" scope="transport" />
         </TabsContent>
       </Tabs>
     </div>

@@ -39,6 +39,7 @@ import { VendorProfileForm } from "@/app/(private)/profile/_components/vendor-pr
 import { AddressForm } from "@/app/(private)/profile/_components/address-form"
 import { getUserProfile } from "@/app/(private)/profile/_action/profile"
 import { VP_BILLING_TYPE_LABELS, VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
+import { PasswordManagementCard } from "@/app/(private)/profile/_components/password-management-card"
 
 export default function VendorProfilePage() {
   const { data: session }            = useSession()
@@ -170,6 +171,7 @@ export default function VendorProfilePage() {
                 isEditing={editingSection === 'personal'}
                 onUpdate={(u) => { setProfileData((p:any) => ({...p, user: u})); setEditingSection(null) }}
                 onCancel={() => setEditingSection(null)}
+                source="vendor"
               />
             </CardContent>
           </Card>
@@ -199,6 +201,7 @@ export default function VendorProfilePage() {
                   isEditing={editingSection === 'vendor'}
                   onUpdate={(v) => { setProfileData((p:any) => ({...p, vendor: v})); setEditingSection(null) }}
                   onCancel={() => setEditingSection(null)}
+                  source="vendor"
                 />
               )}
             </CardContent>
@@ -228,6 +231,7 @@ export default function VendorProfilePage() {
                   isEditing={editingSection === 'address'}
                   onUpdate={(a) => { setProfileData((p:any) => ({...p, address: a})); setEditingSection(null) }}
                   onCancel={() => setEditingSection(null)}
+                  source="vendor"
                 />
               )}
             </CardContent>
@@ -270,6 +274,10 @@ export default function VendorProfilePage() {
               )}
             </CardContent>
           </Card>
+
+          {user?.email && (
+            <PasswordManagementCard email={user.email} />
+          )}
 
           {/* Bank Details */}
           <Card>

@@ -10,6 +10,7 @@ import { CheckCircle2, AlertCircle } from "lucide-react"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { Vendor, Document } from "@/generated/prisma/client"
 import { updateVendorProfile } from "../_action/profile"
+import type { ProfilePortalSource } from "../_action/profile"
 
 import DocumentUpload from "@/components/modules/upload-docs"
 import { Separator } from "@/components/ui/separator"
@@ -21,9 +22,10 @@ interface VendorProfileFormProps {
   onUpdate: (vendor: Vendor) => void
   onCancel: () => void
   readOnly?: boolean
+  source?: ProfilePortalSource
 }
 
-export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate, onCancel, readOnly = false }: VendorProfileFormProps) {
+export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate, onCancel, readOnly = false, source = "transport" }: VendorProfileFormProps) {
   const [formData, setFormData] = useState<Vendor>(vendor)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -73,7 +75,7 @@ export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate,
     try {
       setIsSubmitting(true)
       setSubmitError(null)
-      const result = await updateVendorProfile(vendor.id, formData)
+      const result = await updateVendorProfile(vendor.id, formData, source)
       if (result.success && result.vendor) onUpdate(result.vendor)
       else setSubmitError(result.error || "Failed to update vendor profile")
     } catch (err) {
@@ -140,6 +142,7 @@ export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate,
               existingDoc={getDocument("PAN_CARD")}
               entryBy="VENDOR"
               readOnly={true}
+              source={source}
             />
 
             <DocumentUpload
@@ -150,6 +153,7 @@ export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate,
               existingDoc={getDocument("GST_CERTIFICATE")}
               entryBy="VENDOR"
               readOnly={true}
+              source={source}
             />
           </div>
         </div>
@@ -245,6 +249,7 @@ export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate,
             description="Upload your PAN Card copy"
             existingDoc={getDocument("PAN_CARD")}
             entryBy="VENDOR"
+            source={source}
           />
           <DocumentUpload
             linkedId={vendor.id}
@@ -253,6 +258,7 @@ export function VendorProfileForm({ vendor, documents = [], isEditing, onUpdate,
             description="Upload your GST Certificate"
             existingDoc={getDocument("GST_CERTIFICATE")}
             entryBy="VENDOR"
+            source={source}
           />
         </div>
       </div>

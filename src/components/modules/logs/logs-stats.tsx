@@ -5,8 +5,12 @@ import { useLogs } from "@/hooks/useLogs";
 import { Activity, FileText, Database, Trash2, Edit, PlusCircle } from "lucide-react";
 import { useMemo } from "react";
 
-export default function LogsStats() {
-    const { logs, isLoading } = useLogs({ pageSize: 1000 }); // Get more logs for stats
+interface LogsStatsProps {
+    scope?: "transport" | "vendor";
+}
+
+export default function LogsStats({ scope }: LogsStatsProps) {
+    const { logs, isLoading } = useLogs({ pageSize: 1000, scope }); // Get more logs for stats
 
     const stats = useMemo(() => {
         const byAction: Record<string, number> = {};

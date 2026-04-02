@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSession } from "@/lib/auth-client"
 import {
     banVpPortalUser,
+    deleteVpPortalUser,
     getVpPortalUsers,
     unbanVpPortalUser,
 } from "@/actions/vp/user.action"
@@ -28,17 +29,25 @@ import {
     VpUserBanDialog,
 } from "@/components/vendor-portal/vp-user-ban-dialog"
 import {
+    VpUserDeleteDialog,
+} from "@/components/vendor-portal/vp-user-delete-dialog"
+import {
     VpUserDetails,
     VpUserDetailsSheet,
 } from "@/components/vendor-portal/vp-user-details-sheet"
-import { canManageUserBan } from "@/lib/vendor-portal/user-ban-permissions"
+import {
+    canDeleteVpPortalUser,
+    canManageUserBan,
+} from "@/lib/vendor-portal/user-ban-permissions"
 
 type VpPortalUserRow = VpUserDetails
 
 const roleStyles: Record<string, string> = {
     BOSS: "border-purple-200 text-purple-700",
     ADMIN: "border-blue-200 text-blue-700",
+    TADMIN: "border-cyan-200 text-cyan-700",
     VENDOR: "border-slate-200 text-slate-600",
+    TVENDOR: "border-amber-200 text-amber-700",
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -62,6 +71,7 @@ export default function AdminUsersPage() {
     const [search, setSearch] = useState(initialQuery)
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
     const [banTargetId, setBanTargetId] = useState<string | null>(null)
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
     const [actionUserId, setActionUserId] = useState<string | null>(null)
 
     const load = useCallback(async () => {
@@ -77,8 +87,12 @@ export default function AdminUsersPage() {
 
     const selectedUser = users.find((user) => user.id === selectedUserId) ?? null
     const banTargetUser = users.find((user) => user.id === banTargetId) ?? null
+    const deleteTargetUser = users.find((user) => user.id === deleteTargetId) ?? null
     const canManageSelectedUser = selectedUser
         ? canManageUserBan(session?.user?.role, session?.user?.id, selectedUser.role, selectedUser.id)
+        : false
+    const canDeleteSelectedUser = selectedUser
+        ? canDeleteVpPortalUser(session?.user?.role, session?.user?.id, selectedUser.role, selectedUser.id)
         : false
 
     const normalizedQuery = search.trim().toLowerCase()
@@ -140,6 +154,30 @@ export default function AdminUsersPage() {
         setActionUserId(null)
     }
 
+    const handleDelete = async (reason: string) => {
+        if (!deleteTargetUser) return
+
+        setActionUserId(deleteTargetUser.id)
+        const res = await deleteVpPortalUser({
+            userId: deleteTargetUser.id,
+            reason,
+        })
+
+        if (!res.success) {
+            toast.error(res.error)
+            setActionUserId(null)
+            return
+        }
+
+        toast.success(res.message ?? "User deleted successfully")
+        setDeleteTargetId(null)
+        if (selectedUserId === deleteTargetUser.id) {
+            setSelectedUserId(null)
+        }
+        await load()
+        setActionUserId(null)
+    }
+
     return (
         <div className="space-y-6">
             <VpPageHeader
@@ -194,6 +232,12 @@ export default function AdminUsersPage() {
                         <TableBody>
                             {filteredUsers.map((u) => {
                                 const canManageUser = canManageUserBan(
+                                    session?.user?.role,
+                                    session?.user?.id,
+                                    u.role,
+                                    u.id,
+                                )
+                                const canDeleteUser = canDeleteVpPortalUser(
                                     session?.user?.role,
                                     session?.user?.id,
                                     u.role,
@@ -267,6 +311,16 @@ export default function AdminUsersPage() {
                                                             : "Ban"}
                                                 </Button>
                                             )}
+                                            {canDeleteUser && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    disabled={actionUserId === u.id}
+                                                    onClick={() => setDeleteTargetId(u.id)}
+                                                >
+                                                    {actionUserId === u.id ? "Please wait..." : "Delete"}
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                     </TableRow>
@@ -282,10 +336,12 @@ export default function AdminUsersPage() {
                 user={selectedUser}
                 currentUserId={session?.user?.id}
                 canManageBan={canManageSelectedUser}
+                canDeleteUser={canDeleteSelectedUser}
                 actionPending={selectedUser ? actionUserId === selectedUser.id : false}
                 onOpenChange={(open) => !open && setSelectedUserId(null)}
                 onBan={(user) => setBanTargetId(user.id)}
                 onUnban={handleUnban}
+                onDelete={(user) => setDeleteTargetId(user.id)}
             />
 
             <VpUserBanDialog
@@ -294,6 +350,15 @@ export default function AdminUsersPage() {
                 isPending={banTargetUser ? actionUserId === banTargetUser.id : false}
                 onClose={() => setBanTargetId(null)}
                 onConfirm={handleBan}
+            />
+
+            <VpUserDeleteDialog
+                isOpen={Boolean(deleteTargetUser)}
+                userName={deleteTargetUser?.name ?? ""}
+                userRole={deleteTargetUser?.role ?? "user"}
+                isPending={deleteTargetUser ? actionUserId === deleteTargetUser.id : false}
+                onClose={() => setDeleteTargetId(null)}
+                onConfirm={handleDelete}
             />
         </div>
     )

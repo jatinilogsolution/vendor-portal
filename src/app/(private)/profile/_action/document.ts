@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { auditCreate, auditUpdate } from "@/lib/audit-logger"
+import type { ProfilePortalSource } from "./profile"
 
 export type UpsertDocumentParams = {
     linkedId: string
@@ -10,11 +12,25 @@ export type UpsertDocumentParams = {
     label: string
     description?: string
     entryBy: string
+    source?: ProfilePortalSource
+}
+
+function getPortalPrefix(source: ProfilePortalSource = "transport") {
+    return source === "vendor" ? "[Vendor Portal]" : "[Transport Portal]"
 }
 
 export async function upsertDocument(data: UpsertDocumentParams) {
     try {
-        const { linkedId, linkedCode, url, label, description, entryBy } = data
+        const { linkedId, linkedCode, url, label, description, entryBy, source = "transport" } = data
+
+        const existingDocument = await prisma.document.findUnique({
+            where: {
+                linkedId_linkedCode: {
+                    linkedId,
+                    linkedCode,
+                },
+            },
+        })
 
         const document = await prisma.document.upsert({
             where: {
@@ -38,6 +54,23 @@ export async function upsertDocument(data: UpsertDocumentParams) {
                 entryBy,
             },
         })
+
+        if (existingDocument) {
+            await auditUpdate(
+                "Document",
+                document.id,
+                existingDocument,
+                document,
+                `${getPortalPrefix(source)} Replaced document ${label} for ${linkedId}`,
+            )
+        } else {
+            await auditCreate(
+                "Document",
+                document,
+                `${getPortalPrefix(source)} Uploaded document ${label} for ${linkedId}`,
+                document.id,
+            )
+        }
 
         revalidatePath("/profile")
         return { success: true, document }

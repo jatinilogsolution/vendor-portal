@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
- import { Input } from "@/components/ui/input";
-  import { resetPassword } from "@/lib/auth-client";
+import { Input } from "@/components/ui/input";
+import { resetPassword } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,8 +12,6 @@ interface ResetPasswordFormProps {
     token: string;
 }
 
-
- 
 export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
     const [isPending, setIsPending] = useState(false);
     const router = useRouter();
@@ -23,7 +21,7 @@ export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
         const formData = new FormData(evt.currentTarget);
 
         const password = String(formData.get("password"));
-        if (!password) return toast.error("Please enter your email.");
+        if (!password) return toast.error("Please enter your new password.");
 
         const confirmPassword = String(formData.get("confirmPassword"));
 
@@ -55,34 +53,31 @@ export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
 
     return (
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-     
-             <div className="flex flex-col items-center gap-2 text-center">
+
+            <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create New Password</h1>
-         
+                <p className="text-muted-foreground text-sm text-balance">
+                    Enter your new password below to finish resetting your account.
+                </p>
             </div>
 
- <div className="grid gap-6">
-                <div className="grid gap-3">
-                    <Label htmlFor="email">Email</Label>
-                    <Input type="email" name="email" placeholder="Enter your email" required />
-
-                </div>
+            <div className="grid gap-6">
             <div className="flex flex-col gap-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input type="password" id="password" name="password" />
+                <Input type="password" id="password" name="password" required />
             </div>
 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input type="password" id="confirmPassword" name="confirmPassword" />
+                <Input type="password" id="confirmPassword" name="confirmPassword" required />
             </div>
 
 
-  <Button variant={"default"} type="submit" disabled={isPending}>
-                    {isPending ? "Sending..." : "Send Reset Link"}
+                <Button variant={"default"} type="submit" disabled={isPending}>
+                    {isPending ? "Resetting..." : "Reset Password"}
                 </Button>
 
-             </div>
+            </div>
         </form>
     );
 };

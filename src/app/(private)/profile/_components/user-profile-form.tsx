@@ -204,6 +204,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Spinner } from "@/components/ui/shadcn-io/spinner"
 import { updateUserProfile } from "../_action/profile"
+import type { ProfilePortalSource } from "../_action/profile"
 import { User } from "@/generated/prisma/client"
 
 interface UserProfileFormProps {
@@ -212,9 +213,10 @@ interface UserProfileFormProps {
   onUpdate: (user: User) => void
   onCancel: () => void
   readOnly?: boolean
+  source?: ProfilePortalSource
 }
 
-export function UserProfileForm({ user, isEditing, onUpdate, onCancel, readOnly = false }: UserProfileFormProps) {
+export function UserProfileForm({ user, isEditing, onUpdate, onCancel, readOnly = false, source = "transport" }: UserProfileFormProps) {
   const [formData, setFormData] = useState<User>(user)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -248,7 +250,7 @@ export function UserProfileForm({ user, isEditing, onUpdate, onCancel, readOnly 
     try {
       setIsSubmitting(true)
       setSubmitError(null)
-      const result = await updateUserProfile(user.id, formData)
+      const result = await updateUserProfile(user.id, formData, source)
       if (result.success && result.user) onUpdate(result.user)
       else setSubmitError(result.error || "Failed to update profile")
     } catch (err) {

@@ -14,13 +14,16 @@ import { Address, User, Vendor, Document } from "@/generated/prisma/client"
 import { useSession } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { IconEdit } from "@tabler/icons-react"
+import { PasswordManagementCard } from "./password-management-card"
+import type { ProfilePortalSource } from "../_action/profile"
 
 interface ProfileContentProps {
   userId?: string
   readOnly?: boolean
+  portalSource?: ProfilePortalSource
 }
 
-export function ProfileContent({ userId, readOnly = false }: ProfileContentProps) {
+export function ProfileContent({ userId, readOnly = false, portalSource = "transport" }: ProfileContentProps) {
   const { data, isPending } = useSession()
 
   const [user, setUser] = useState<User | null>(null)
@@ -130,6 +133,7 @@ export function ProfileContent({ userId, readOnly = false }: ProfileContentProps
               onUpdate={handleUserUpdate}
               onCancel={() => setEditingSection(null)}
               readOnly={readOnly}
+              source={portalSource}
             />
           </CardContent>
         </Card>
@@ -160,6 +164,7 @@ export function ProfileContent({ userId, readOnly = false }: ProfileContentProps
                 onUpdate={handleVendorUpdate}
                 onCancel={() => setEditingSection(null)}
                 readOnly={readOnly}
+                source={portalSource}
               />
             </CardContent>
           </Card>
@@ -189,9 +194,14 @@ export function ProfileContent({ userId, readOnly = false }: ProfileContentProps
                 onUpdate={handleAddressUpdate}
                 onCancel={() => setEditingSection(null)}
                 readOnly={readOnly}
+                source={portalSource}
               />
             </CardContent>
           </Card>
+        )}
+
+        {!readOnly && !userId && (
+          <PasswordManagementCard email={user.email} />
         )}
       </div>
     </div>

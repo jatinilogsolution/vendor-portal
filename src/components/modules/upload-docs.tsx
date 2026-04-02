@@ -9,6 +9,7 @@ import * as z from "zod";
 
 import { uploadAttachmentToAzure, deleteAttachmentFromAzure } from "@/services/azure-blob";
 import { upsertDocument } from "@/app/(private)/profile/_action/document";
+import type { ProfilePortalSource } from "@/app/(private)/profile/_action/profile";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ interface DocumentUploadProps {
     onUploadComplete?: (url: string) => void;
     entryBy: string;
     readOnly?: boolean;
+    source?: ProfilePortalSource;
 }
 
 export default function DocumentUpload({
@@ -67,7 +69,8 @@ export default function DocumentUpload({
     existingDoc,
     onUploadComplete,
     entryBy,
-    readOnly = false
+    readOnly = false,
+    source = "transport",
 }: DocumentUploadProps) {
     const [isReplacing, setIsReplacing] = React.useState(false);
     const [currentDoc, setCurrentDoc] = React.useState(existingDoc);
@@ -106,7 +109,8 @@ export default function DocumentUpload({
                 url,
                 label,
                 description,
-                entryBy
+                entryBy,
+                source,
             });
 
             if (!result.success) {

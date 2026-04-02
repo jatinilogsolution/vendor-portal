@@ -14,6 +14,8 @@ import JsonDiff from "./json-diff";
 import ActivityTimeline from "./activity-timeline";
 import { IconArrowRightDashed } from "@tabler/icons-react";
 
+const PAGE_SIZE = 100;
+
 export interface User {
   id: string;
   name: string;
@@ -32,24 +34,28 @@ export interface InvoiceData {
 export interface AuditLogEntry {
   id: string;
   createdAt: string;
-  userId: string;
-  action: "DELETED" | "CREATED" | "UPDATED"; // add more if needed
+  userId: string | null;
+  action: string;
   model: string;
-  recordId: string;
-  vendorId: string;
-  oldData: InvoiceData | null;
-  newData: InvoiceData | null;
-  description: string;
-  user: User;
+  recordId: string | null;
+  vendorId: string | null;
+  oldData: InvoiceData | Record<string, unknown> | string | null;
+  newData: InvoiceData | Record<string, unknown> | string | null;
+  description: string | null;
+  user: User | null;
 }
 
 interface LogsClientProps {
   viewMode?: "table" | "timeline";
+  scope?: "transport" | "vendor";
 }
 
-export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
+export default function LogsClient({ viewMode = "table", scope }: LogsClientProps) {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Filters>({
     q: "",
     model: "",
@@ -59,28 +65,80 @@ export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
   });
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
 
-  async function fetchLogs() {
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+
+  async function fetchLogs(targetPage = page) {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => v && params.set(k, v));
+    if (scope) params.set("scope", scope);
+    params.set("page", String(targetPage));
+    params.set("pageSize", String(PAGE_SIZE));
 
     try {
       const res = await fetch(`/api/logs?${params}`);
       const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to fetch logs");
+      }
       setLogs(json.data || []);
+      setTotal(json.total || 0);
     } catch (err) {
       console.error("Failed to fetch logs", err);
+      setLogs([]);
+      setTotal(0);
+      setError(err instanceof Error ? err.message : "Failed to fetch logs");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchLogs();
-
-    console.log(":L:LL:LL", logs)
+    fetchLogs(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page]);
+
+  const handleSearch = () => {
+    if (page !== 1) {
+      setPage(1);
+      return;
+    }
+
+    fetchLogs(1);
+  };
+
+  const renderPagination = () => (
+    <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">
+        Showing {rangeStart}-{rangeEnd} of {total} logs
+      </p>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={loading || page <= 1}
+          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+        >
+          Previous
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {page} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={loading || page >= totalPages}
+          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+        >
+          Next 100
+        </Button>
+      </div>
+    </div>
+  );
 
   const getActionBadge = (action: string) => {
     switch (action) {
@@ -102,10 +160,12 @@ export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
         <Card>
           <CardHeader>
             <CardTitle>Activity Timeline</CardTitle>
-            <CardDescription>Chronological view of all system events</CardDescription>
+            <CardDescription>
+              {error ? error : `Chronological view of ${total} audit events in 100-row pages`}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <LogFilters onChange={setFilters} onSearch={fetchLogs} />
+            <LogFilters onChange={setFilters} onSearch={handleSearch} />
             <div className="mt-6">
               {loading ? (
                 <div className="space-y-4">
@@ -117,9 +177,10 @@ export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
                   ))}
                 </div>
               ) : (
-                <ActivityTimeline logs={logs} maxItems={50} />
+                <ActivityTimeline logs={logs} maxItems={PAGE_SIZE} />
               )}
             </div>
+            {renderPagination()}
           </CardContent>
         </Card>
 
@@ -149,10 +210,12 @@ export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
       <Card>
         <CardHeader>
           <CardTitle>Log Entries</CardTitle>
-          <CardDescription>Filter and explore all system audit logs</CardDescription>
+          <CardDescription>
+            {error ? error : `Filter and explore ${total} boss-visible audit logs in 100-row pages`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <LogFilters onChange={setFilters} onSearch={fetchLogs} />
+          <LogFilters onChange={setFilters} onSearch={handleSearch} />
 
           <div className="mt-6 rounded-md border">
             <Table>
@@ -219,6 +282,7 @@ export default function LogsClient({ viewMode = "table" }: LogsClientProps) {
               </TableBody>
             </Table>
           </div>
+          {renderPagination()}
         </CardContent>
       </Card>
 
