@@ -19,11 +19,31 @@ import { VpEmptyState } from "@/components/ui/vp-empty-state"
 import { CreateVpUserButton } from "@/components/vendor-portal/create-vp-user-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSession } from "@/lib/auth-client"
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+    MoreHorizontal,
+    Eye,
+    ShieldCheck,
+    ShieldOff,
+    Ban,
+    Trash2
+} from "lucide-react"
+
 import {
     banVpPortalUser,
     deleteVpPortalUser,
     getVpPortalUsers,
     unbanVpPortalUser,
+    verifyVpPortalUser,
 } from "@/actions/vp/user.action"
 import {
     VpUserBanDialog,
@@ -39,6 +59,7 @@ import {
     canDeleteVpPortalUser,
     canManageUserBan,
 } from "@/lib/vendor-portal/user-ban-permissions"
+import { UserVerifyDialog } from "@/components/vendor-portal/user-verify-alert"
 
 type VpPortalUserRow = VpUserDetails
 
@@ -72,6 +93,8 @@ export default function AdminUsersPage() {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
     const [banTargetId, setBanTargetId] = useState<string | null>(null)
     const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+    const [verifyTargetId, setVerifyTargetId] = useState<string | null>(null)
+
     const [actionUserId, setActionUserId] = useState<string | null>(null)
 
     const load = useCallback(async () => {
@@ -88,6 +111,8 @@ export default function AdminUsersPage() {
     const selectedUser = users.find((user) => user.id === selectedUserId) ?? null
     const banTargetUser = users.find((user) => user.id === banTargetId) ?? null
     const deleteTargetUser = users.find((user) => user.id === deleteTargetId) ?? null
+    const verifyTargetUser = users.find((user) => user.id === verifyTargetId) ?? null
+
     const canManageSelectedUser = selectedUser
         ? canManageUserBan(session?.user?.role, session?.user?.id, selectedUser.role, selectedUser.id)
         : false
@@ -178,6 +203,34 @@ export default function AdminUsersPage() {
         setActionUserId(null)
     }
 
+    const handleVerify = async () => {
+        if (!verifyTargetUser) return
+
+        setActionUserId(verifyTargetUser.id)
+        const res = await verifyVpPortalUser({
+            userId: verifyTargetUser.id,
+
+        })
+
+        if (!res.success) {
+            toast.error(res.error)
+            setActionUserId(null)
+            return
+        }
+
+        toast.success(res.message ?? "User verified successfully")
+        setVerifyTargetId(null)
+        if (selectedUserId === verifyTargetUser.id) {
+            setSelectedUserId(null)
+        }
+        await load()
+        setActionUserId(null)
+    }
+
+
+
+
+
     return (
         <div className="space-y-6">
             <VpPageHeader
@@ -246,83 +299,125 @@ export default function AdminUsersPage() {
 
                                 return (
                                     <TableRow key={u.id}>
-                                    <TableCell className="font-medium text-sm">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="size-9">
-                                                <AvatarImage src={u.image ?? undefined} alt={u.name} />
-                                                <AvatarFallback>{u.name.charAt(0).toUpperCase()}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p>{u.name}</p>
-                                                <p className="font-mono text-[11px] text-muted-foreground">{u.id}</p>
+                                        <TableCell className="font-medium text-sm">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="size-9">
+                                                    <AvatarImage src={u.image ?? undefined} alt={u.name} />
+                                                    <AvatarFallback>{u.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p>{u.name}</p>
+                                                    <p className="font-mono text-[11px] text-muted-foreground">{u.id}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        <div className="space-y-1">
-                                            <p>{u.email}</p>
-                                            <p className="text-xs">
-                                                {u.emailVerified ? "Verified" : "Not verified"}
-                                            </p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={roleStyles[u.role] ?? "border-slate-200 text-slate-600"}
-                                        >
-                                            {u.role}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-sm">
-                                        <div className="space-y-1">
-                                            <p>{u.vendorName ?? <span className="text-muted-foreground">—</span>}</p>
-                                            <p className="font-mono text-[11px] text-muted-foreground">
-                                                {u.vendorId ?? "No vendor linked"}
-                                            </p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                        {formatDate(u.createdAt)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <VpStatusBadge status={u.banned ? "INACTIVE" : "ACTIVE"} />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                size="sm"
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            <div className="space-y-1">
+                                                <p>{u.email}</p>
+                                                <p className="text-xs">
+                                                    {u.emailVerified ? "Verified" : "Not verified"}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
                                                 variant="outline"
-                                                onClick={() => setSelectedUserId(u.id)}
+                                                className={roleStyles[u.role] ?? "border-slate-200 text-slate-600"}
                                             >
-                                                Details
-                                            </Button>
-                                            {canManageUser && (
-                                                <Button
-                                                    size="sm"
-                                                    variant={u.banned ? "outline" : "destructive"}
-                                                    disabled={actionUserId === u.id}
-                                                    onClick={() => (u.banned ? handleUnban(u) : setBanTargetId(u.id))}
-                                                >
-                                                    {actionUserId === u.id
-                                                        ? "Please wait..."
-                                                        : u.banned
-                                                            ? "Unban"
-                                                            : "Ban"}
-                                                </Button>
-                                            )}
-                                            {canDeleteUser && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    disabled={actionUserId === u.id}
-                                                    onClick={() => setDeleteTargetId(u.id)}
-                                                >
-                                                    {actionUserId === u.id ? "Please wait..." : "Delete"}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </TableCell>
+                                                {u.role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                            <div className="space-y-1">
+                                                <p>{u.vendorName ?? <span className="text-muted-foreground">—</span>}</p>
+                                                <p className="font-mono text-[11px] text-muted-foreground">
+                                                    {u.vendorId ?? "No vendor linked"}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">
+                                            {formatDate(u.createdAt)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <VpStatusBadge status={u.banned ? "INACTIVE" : "ACTIVE"} />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+
+
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="gap-2">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                             
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+
+                                                <DropdownMenuContent align="end" className="w-44">
+                                                    <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+
+                                                    {/* Details */}
+                                                    <DropdownMenuItem
+                                                        className="gap-2 cursor-pointer"
+                                                        onClick={() => setSelectedUserId(u.id)}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                        Details
+                                                    </DropdownMenuItem>
+
+                                                    {/* Verify */}
+                                                    {canDeleteUser && (
+                                                        <DropdownMenuItem
+                                                            className="gap-2 cursor-pointer"
+                                                            disabled={actionUserId === u.id}
+                                                            onClick={() => setVerifyTargetId(u.id)}
+                                                        >
+                                                            <ShieldCheck className="h-4 w-4 text-green-600" />
+                                                            {actionUserId === u.id ? "Please wait..." : "Verify"}
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    <DropdownMenuSeparator />
+
+                                                    {/* Ban / Unban */}
+                                                    {canManageUser && (
+                                                        <DropdownMenuItem
+                                                            className="gap-2 cursor-pointer"
+                                                            disabled={actionUserId === u.id}
+                                                            onClick={() =>
+                                                                u.banned ? handleUnban(u) : setBanTargetId(u.id)
+                                                            }
+                                                        >
+                                                            {u.banned ? (
+                                                                <ShieldOff className="h-4 w-4 text-green-600" />
+                                                            ) : (
+                                                                <Ban className="h-4 w-4 text-orange-600" />
+                                                            )}
+
+                                                            {actionUserId === u.id
+                                                                ? "Please wait..."
+                                                                : u.banned
+                                                                    ? "Unban User"
+                                                                    : "Ban User"}
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    {/* Delete */}
+                                                    {canDeleteUser && (
+                                                        <DropdownMenuItem
+                                                            className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                                                            disabled={actionUserId === u.id}
+                                                            onClick={() => setDeleteTargetId(u.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            {actionUserId === u.id ? "Please wait..." : "Delete User"}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+
+                                        </TableCell>
                                     </TableRow>
                                 )
                             })}
@@ -359,6 +454,15 @@ export default function AdminUsersPage() {
                 isPending={deleteTargetUser ? actionUserId === deleteTargetUser.id : false}
                 onClose={() => setDeleteTargetId(null)}
                 onConfirm={handleDelete}
+            />
+
+            <UserVerifyDialog
+                isOpen={Boolean(verifyTargetUser)}
+                userName={verifyTargetUser?.name ?? ""}
+                // userRole={verifyTargetUser?.role ?? "user"}
+                isPending={verifyTargetUser ? actionUserId === verifyTargetUser.id : false}
+                onClose={() => setVerifyTargetId(null)}
+                onConfirm={handleVerify}
             />
         </div>
     )

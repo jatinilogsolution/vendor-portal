@@ -44,6 +44,10 @@ const deleteVpUserSchema = z.object({
     userId: z.string().min(1, "User is required"),
     reason: z.string().trim().min(1, "Delete reason is required"),
 })
+const verifyVpUserSchema = z.object({
+    userId: z.string().min(1, "User is required"),
+
+})
 
 const bossVisibleRoles = [
     UserRoleEnum.BOSS,
@@ -121,7 +125,7 @@ export async function createVpUser(
         // Use better-auth to create the user (handles password hashing)
 
 
-        console.log(">>>>", name, email,password, role,vpVendorId)
+        console.log(">>>>", name, email, password, role, vpVendorId)
         const result = await auth.api.signUpEmail({
             body: {
                 name,
@@ -732,6 +736,63 @@ export async function deleteVpPortalUser(
         )
 
         return { success: true, data: null, message: "User deleted successfully" }
+    } catch (error) {
+        if (error instanceof APIError) {
+            return { success: false, error: error.message }
+        }
+
+        console.error("[deleteVpPortalUser]", error)
+        return { success: false, error: "Failed to delete user" }
+    }
+}
+
+
+export async function verifyVpPortalUser(
+    raw: z.infer<typeof verifyVpUserSchema>,
+): Promise<VpActionResult> {
+    const session = await getCustomSession()
+    if (session.user.role !== UserRoleEnum.BOSS) {
+        return { success: false, error: "Only a boss can verify users" }
+    }
+
+    const parsed = verifyVpUserSchema.safeParse(raw)
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message }
+    }
+
+    const { userId } = parsed.data
+
+    try {
+        const targetUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                emailVerified: true,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                vendorId: true,
+                banned: true,
+                banReason: true,
+                emailVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        })
+        await auditDelete(
+            "User",
+            targetUser?.id!,
+            {
+                ...targetUser,
+                verifyReasone: "Boss verifying User",
+                verifiedBy: session.user.id,
+            },
+            `[Vendor Portal] Deleted user ${targetUser.email!} (${targetUser.role}). Reason: "Boss verifying User"`,
+        )
+
+        return { success: true, data: null, message: "User verfied successfully" }
     } catch (error) {
         if (error instanceof APIError) {
             return { success: false, error: error.message }

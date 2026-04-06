@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 /**
  * Supported audit actions
  */
-export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "IMPORT" | "EXPORT" | "APPROVE" | "REJECT";
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "IMPORT" | "EXPORT" | "APPROVE" | "REJECT" | "VERIFY";
 
 /**
  * Model names in the system
@@ -265,6 +265,24 @@ export async function auditDelete(
 ): Promise<void> {
     return auditLog({
         action: "DELETE",
+        model,
+        recordId,
+        oldData,
+        description,
+    });
+}
+
+/**
+ * Convenience function for logging VERIFY operations
+ */
+export async function auditVerify(
+    model: AuditModel,
+    recordId: string,
+    oldData: any,
+    description?: string
+): Promise<void> {
+    return auditLog({
+        action: "VERIFY",
         model,
         recordId,
         oldData,
