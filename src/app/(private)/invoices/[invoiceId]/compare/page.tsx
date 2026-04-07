@@ -1,9 +1,48 @@
 import { getCustomSession } from '@/actions/auth.action';
 import { UserRoleEnum } from '@/utils/constant';
+import { headers } from 'next/headers';
 import { forbidden } from 'next/navigation';
 import { FileSpreadsheet } from 'lucide-react';
 import { InvoiceHeader } from '../../_component/compare/invoice-header';
 import { LRRequestsTable } from '../../_component/invoice/LRRequestsTable';
+
+const getApiBaseUrl = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+    if (!baseUrl) {
+        throw new Error("Missing API base URL configuration");
+    }
+
+    return baseUrl;
+};
+
+const fetchInvoiceComparison = async (invoiceId: string) => {
+    const requestHeaders = await headers();
+    const cookie = requestHeaders.get("cookie");
+
+    const res = await fetch(
+        new URL(`/api/invoices/compare/${invoiceId}`, getApiBaseUrl()),
+        {
+            cache: "no-store",
+            headers: cookie ? { cookie } : undefined,
+        }
+    );
+
+    const contentType = res.headers.get("content-type") ?? "";
+    const text = await res.text();
+
+    if (contentType.includes("text/html")) {
+        throw new Error("Invoice compare API returned HTML instead of JSON. The request was likely redirected before reaching the API.");
+    }
+
+    const data = text ? JSON.parse(text) : null;
+
+    if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch invoice details");
+    }
+
+    return data;
+};
 
 const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
     const session = await getCustomSession();
@@ -14,19 +53,7 @@ const page = async ({ params }: { params: Promise<{ invoiceId: string }> }) => {
 
     const { invoiceId } = await params;
 
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/compare/${invoiceId}`,
-        {
-            cache: "no-store",
-        }
-    );
-
-    if (!res.ok) {
-        throw new Error("Failed to fetch invoice details");
-    }
-
-    const data = await res.json();
+    const data = await fetchInvoiceComparison(invoiceId);
 
 
     return (
