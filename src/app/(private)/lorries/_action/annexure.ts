@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getExtraCostDocumentByFileNumber } from "./pod";
 import { UserRoleEnum } from "@/utils/constant";
+import { headers } from "next/headers";
 
 export interface Annexure {
   id: string;
@@ -20,19 +21,70 @@ export interface Annexure {
   } | null;
 }
 
+const getApiBaseUrl = () => {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+  if (!baseUrl) {
+    throw new Error("Missing API base URL configuration");
+  }
+
+  return baseUrl;
+};
+
+async function fetchInternalJson<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const forwardedHeaders = await headers();
+  const requestHeaders = new Headers(init.headers);
+  const cookie = forwardedHeaders.get("cookie");
+
+  if (cookie && !requestHeaders.has("cookie")) {
+    requestHeaders.set("cookie", cookie);
+  }
+
+  const res = await fetch(new URL(path, getApiBaseUrl()), {
+    ...init,
+    headers: requestHeaders,
+    cache: init.cache ?? "no-store",
+  });
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const text = await res.text();
+  let data: any = null;
+
+  if (text && contentType.includes("application/json")) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Invalid JSON response received from ${path}`);
+    }
+  } else if (text && contentType.includes("text/html")) {
+    throw new Error(
+      `Request to ${path} returned HTML instead of JSON. This usually means the request was redirected before reaching the API.`,
+    );
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || text || `Request failed with status ${res.status}`);
+  }
+
+  if (data === null) {
+    throw new Error(`Expected JSON response from ${path}`);
+  }
+
+  return data as T;
+}
+
 export async function getAnnexures(vendorId?: string): Promise<Annexure[]> {
-  const url = new URL(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures`,
-  );
+  const url = new URL("/api/lorries/annexures", getApiBaseUrl());
 
   if (vendorId) {
     url.searchParams.set("vendorId", vendorId);
   }
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch annexures");
-
-  const data = await res.json();
+  const data = await fetchInternalJson<any>(`${url.pathname}${url.search}`);
   return Array.isArray(data)
     ? data
     : Array.isArray(data.annexures)
@@ -43,13 +95,10 @@ export async function getAnnexures(vendorId?: string): Promise<Annexure[]> {
 export async function deleteAnnexure(
   id: string,
 ): Promise<{ unlinkedCount?: number }> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/${id}/delete`,
+  return fetchInternalJson<{ unlinkedCount?: number }>(
+    `/api/lorries/annexures/${id}/delete`,
     { method: "DELETE" },
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Delete failed");
-  return data;
 }
 
 export async function validateAnnexure(
@@ -57,31 +106,25 @@ export async function validateAnnexure(
   currentVendorId?: string,
   userRole?: string,
 ): Promise<any> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/validate`,
+  return fetchInternalJson<any>(
+    "/api/lorries/annexures/validate",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ annexureData: rows, currentVendorId, userRole }),
     },
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Validation failed");
-  return data;
 }
 
 export async function saveAnnexure(payload: any): Promise<any> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/lorries/annexures/saveAnnexure`,
+  return fetchInternalJson<any>(
+    "/api/lorries/annexures/saveAnnexure",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Save failed");
-  return data;
 }
 
 export const generateInvoiceFromAnnexure = async (annexureId: string) => {
