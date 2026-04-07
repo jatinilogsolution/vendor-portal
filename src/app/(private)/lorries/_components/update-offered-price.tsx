@@ -39,10 +39,10 @@ const UpdateOfferedPrice = ({
     try {
       const { message, success, price } = await getCostByFileNumber(fileNumber)
 
-      if (success) {
+      if (success && price !== undefined) {
         showToastOnce("success", message || "Price updated successfully")
-        setCurrentValue(price)
-        await updateOfferedPriceForFileNo(fileNumber, price)
+        setCurrentValue(String(price))
+        await updateOfferedPriceForFileNo(fileNumber, String(price))
         router.refresh()
       } else {
         showToastOnce("error", message || "Failed to update price")

@@ -1,90 +1,154 @@
 "use server"
 
-import { getAWLWMSDBPOOL } from "@/services/db"
 import { prisma } from "@/lib/prisma"
+import { ConnectionPool } from "mssql"
 
+const WMS_COST_MIN_DATE = "2025-05-31"
+const WMS_REQUEST_TIMEOUT_MS = 60000
+const WMS_CONNECTION_TIMEOUT_MS = 30000
+const WMS_REFRESH_CONCURRENCY = 1
 
+interface FileInput {
+  fileNumber: string
+}
 
+interface FileUpdateResult {
+  fileNumber: string
+  price?: number
+  status: "UPDATED" | "NOT_FOUND" | "NO_COST" | "ERROR"
+  message: string
+}
 
-// export const getCostByFileNumber = async (fileNumber: string) => {
+const createWmsPool = () =>
+  new ConnectionPool({
+    user: process.env.DB_USER_NAME || "app_dbadmin",
+    password: process.env.DB_PASSWORD || "#@)#n%^$4?#?$",
+    server: process.env.DB_HOST || "182.76.62.178",
+    database: process.env.DB_1 || "NEWAWLDB",
+    port: 1433,
+    requestTimeout: WMS_REQUEST_TIMEOUT_MS,
+    connectionTimeout: WMS_CONNECTION_TIMEOUT_MS,
+    options: {
+      encrypt: false,
+      trustServerCertificate: true,
+      requestTimeout: WMS_REQUEST_TIMEOUT_MS,
+      connectTimeout: WMS_CONNECTION_TIMEOUT_MS,
+    },
+    pool: {
+      max: 3,
+      min: 0,
+      idleTimeoutMillis: 30000,
+    },
+  })
 
+async function getCostRecordByFileNumber(
+  pool: ConnectionPool,
+  fileNumber: string,
+) {
+  const request = pool.request()
+  request.input("fileNumber", fileNumber)
+  request.input("minDate", WMS_COST_MIN_DATE)
 
-//     try {
-
-
-//         const pool = await getAWLWMSDBPOOL()
-
-//         const request = pool.request();
-//         request.input("fileNumber", fileNumber);
- 
-//          const query = "SELECT distinct M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK) LEFT JOIN ( SELECT Ref_No, WH, CustID, MAX(veh_cost) AS veh_cost  FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK) GROUP BY Ref_No, WH, CustID ) AS D ON D.Ref_No = M.Ref_no AND D.WH = M.WH AND D.CustID = M.CustID WHERE M.CustID <> 'sberlc01' AND M.OutLRDate >= '2025-07-01' and m.OutTransportBy='AWL' AND M.FileNo = @fileNumber"
-//         const response = await request.query(query)
-//         console.log("Cost Data", JSON.stringify(response.recordset[0]))
-//         if (response.recordset[0].veh_cost === null || response.recordset[0].veh_cost === "") {
-//             return {
-//                 success: false,
-//                 message: `Cost not found for FileNumber: ${fileNumber} in WMS`,
-//             }
-//         }
-//         return {
-//             success: true,
-//             message: "Cost retrived sucessfully",
-//             price: response.recordset[0].veh_cost
-//         }
-//     } catch (e) {
-//         console.error("Error in getCostByFileNumber", e)
-//         throw new Error("Something went wrong")
-//         // return {
-//         //     success: false,
-//         //     message: "Something went wrong"
-//         // }
-//     }
-// }
-
- 
-
-export const getCostByFileNumber = async (fileNumber: string) => {
-  try {
-    const pool = await getAWLWMSDBPOOL()
-    const request = pool.request()
-    request.input("fileNumber", fileNumber)
-
-    const query = `
-      SELECT DISTINCT 
-        M.FileNo, M.OutLRNo, M.City, M.OutTPT, M.WH, M.OutLRDate, 
-        M.OutVehType, M.OutVehNo, M.PartyName, D.veh_cost
+  const query = `
+    ;WITH FileContext AS (
+      SELECT TOP (1)
+        M.Ref_no,
+        M.WH,
+        M.CustID
       FROM NEWAWLDB.dbo.tbl_MDN AS M WITH (NOLOCK)
-      LEFT JOIN (
-        SELECT Ref_No, WH, CustID, MAX(veh_cost) AS veh_cost
-        FROM NEWAWLDB.dbo.tbl_DN WITH (NOLOCK)
-        GROUP BY Ref_No, WH, CustID
-      ) AS D 
-      ON D.Ref_No = M.Ref_no 
-      AND D.WH = M.WH 
-      AND D.CustID = M.CustID
-      WHERE 
-        M.CustID <> 'sberlc01' 
-        AND M.OutLRDate >= '2025-05-31'
-        AND M.OutTransportBy = 'AWL' 
-        AND M.FileNo = @fileNumber
-    `
+      WHERE
+        M.FileNo = @fileNumber
+        AND M.CustID <> 'sberlc01'
+        AND M.OutLRDate >= @minDate
+        AND M.OutTransportBy = 'AWL'
+      ORDER BY M.OutLRDate DESC
+    )
+    SELECT
+      @fileNumber AS FileNo,
+      (
+        SELECT MAX(D.veh_cost)
+        FROM NEWAWLDB.dbo.tbl_DN AS D WITH (NOLOCK)
+        INNER JOIN FileContext AS FC
+          ON FC.Ref_no = D.Ref_No
+          AND FC.WH = D.WH
+          AND FC.CustID = D.CustID
+      ) AS veh_cost
+  `
 
-    const response = await request.query(query)
-    const record = response.recordset?.[0]
+  const response = await request.query(query)
+  const record = response.recordset?.[0]
 
-    // console.log("WMS Cost Query Result:", JSON.stringify(record))
+  if (!record) {
+    return undefined
+  }
 
-    if (!record) {
-      return {
-        success: false,
-        message: `No record found for FileNumber: ${fileNumber} in WMS.`,
+  return {
+    veh_cost: record.veh_cost == null ? null : Number(record.veh_cost),
+  }
+}
+
+async function getCostsByFileNumbers(fileNumbers: string[]) {
+  const normalizedFileNumbers = Array.from(
+    new Set(fileNumbers.map((fileNumber) => fileNumber?.trim()).filter(Boolean)),
+  )
+
+  const results = new Map<string, { veh_cost: number | null } | undefined>()
+
+  if (!normalizedFileNumbers.length) {
+    return results
+  }
+
+  const pool = createWmsPool()
+
+  try {
+    await pool.connect()
+
+    for (let index = 0; index < normalizedFileNumbers.length; index += WMS_REFRESH_CONCURRENCY) {
+      const chunk = normalizedFileNumbers.slice(index, index + WMS_REFRESH_CONCURRENCY)
+
+      const chunkResults = await Promise.all(
+        chunk.map(async (fileNumber) => [
+          fileNumber,
+          await getCostRecordByFileNumber(pool, fileNumber),
+        ] as const),
+      )
+
+      for (const [fileNumber, record] of chunkResults) {
+        results.set(fileNumber, record)
       }
     }
 
-    if (!record.veh_cost) {
+    return results
+  } finally {
+    await pool.close().catch(() => undefined)
+  }
+}
+
+export const getCostByFileNumber = async (fileNumber: string) => {
+  try {
+    const normalizedFileNumber = fileNumber?.trim()
+
+    if (!normalizedFileNumber) {
       return {
         success: false,
-        message: `Cost not found for FileNumber: ${fileNumber} in WMS.`,
+        message: "No file number provided.",
+      }
+    }
+
+    const costsByFile = await getCostsByFileNumbers([normalizedFileNumber])
+    const record = costsByFile.get(normalizedFileNumber)
+
+    if (record === undefined) {
+      return {
+        success: false,
+        message: `No record found for FileNumber: ${normalizedFileNumber} in WMS.`,
+      }
+    }
+
+    if (!record?.veh_cost) {
+      return {
+        success: false,
+        message: `Cost not found for FileNumber: ${normalizedFileNumber} in WMS.`,
       }
     }
 
@@ -102,24 +166,6 @@ export const getCostByFileNumber = async (fileNumber: string) => {
   }
 }
 
-
- 
-
- 
-interface FileInput {
-  fileNumber: string
-}
-
-interface FileUpdateResult {
-  fileNumber: string
-  price?: number
-  status: "UPDATED" | "NOT_FOUND" | "NO_COST" | "ERROR"
-  message: string
-}
-
-/**
- * Updates priceOffered in LRRequest for all provided file numbers
- */
 export const updateOfferedPricesForFiles = async (files: FileInput[]) => {
   if (!Array.isArray(files) || files.length === 0) {
     return {
@@ -130,94 +176,115 @@ export const updateOfferedPricesForFiles = async (files: FileInput[]) => {
   }
 
   const results: FileUpdateResult[] = []
+  const normalizedFiles = Array.from(
+    new Set(
+      files
+        .map(({ fileNumber }) => fileNumber?.trim())
+        .filter((fileNumber): fileNumber is string => Boolean(fileNumber)),
+    ),
+  )
 
-  // Limit concurrency (max 5 at once)
-  const CONCURRENCY_LIMIT = 5
-  const chunks = chunkArray(files, CONCURRENCY_LIMIT)
+  const invalidFiles = files.filter(
+    ({ fileNumber }) => !fileNumber || typeof fileNumber !== "string" || !fileNumber.trim(),
+  )
 
-  for (const chunk of chunks) {
-    const chunkResults = await Promise.all(
-      chunk.map(async ({ fileNumber }) => {
-        if (!fileNumber || typeof fileNumber !== "string") {
-          return {
-            fileNumber: String(fileNumber),
-            status: "ERROR" as const,
-            message: "Invalid or missing file number.",
-          }
-        }
+  results.push(
+    ...invalidFiles.map(({ fileNumber }) => ({
+      fileNumber: String(fileNumber),
+      status: "ERROR" as const,
+      message: "Invalid or missing file number.",
+    })),
+  )
 
-        try {
-          // Step 1: Get cost from WMS
-          const costResponse = await getCostByFileNumber(fileNumber)
+  if (!normalizedFiles.length) {
+    return {
+      success: false,
+      message: "No valid file numbers available for refresh.",
+      results,
+    }
+  }
 
-          if (!costResponse.success || !costResponse.price) {
-            return {
-              fileNumber,
-              status: "NO_COST" as const,
-              message: costResponse.message ?? "No cost data found in WMS.",
-            }
-          }
+  let costsByFile: Map<string, { veh_cost: number | null } | null | undefined>
 
-          const vehCost = Number(costResponse.price)
-          if (isNaN(vehCost) || vehCost <= 0) {
-            return {
-              fileNumber,
-              status: "NO_COST" as const,
-              message: `Invalid cost value (${costResponse.price}) from WMS.`,
-            }
-          }
+  try {
+    costsByFile = await getCostsByFileNumbers(normalizedFiles)
+  } catch (err: any) {
+    console.error("❌ Error fetching WMS costs in batch:", err)
+    return {
+      success: false,
+      message: err?.message || "Failed to fetch offered prices from WMS.",
+      results,
+    }
+  }
 
-          // Step 2: Update LRRequest
-          const updated = await prisma.lRRequest.updateMany({
-            where: { fileNumber },
-            data: { priceOffered: vehCost },
-          })
+  for (const fileNumber of normalizedFiles) {
+    try {
+      const record = costsByFile.get(fileNumber)
 
-          if (updated.count === 0) {
-            return {
-              fileNumber,
-              status: "NOT_FOUND" as const,
-              message: "No LRRequest found for this file number.",
-            }
-          }
+      if (record === undefined) {
+        results.push({
+          fileNumber,
+          status: "NO_COST",
+          message: "No record found for this file number in WMS.",
+        })
+        continue
+      }
 
-          return {
-            fileNumber,
-            price: vehCost,
-            status: "UPDATED" as const,
-            message: "Updated successfully.",
-          }
-        } catch (err: any) {
-          console.error(`❌ Error updating fileNumber: ${fileNumber}`, err)
-          return {
-            fileNumber,
-            status: "ERROR" as const,
-            message: err?.message || "Unexpected error occurred.",
-          }
-        }
+      if (!record?.veh_cost) {
+        results.push({
+          fileNumber,
+          status: "NO_COST",
+          message: "No cost data found in WMS.",
+        })
+        continue
+      }
+
+      const vehCost = Number(record.veh_cost)
+      if (isNaN(vehCost) || vehCost <= 0) {
+        results.push({
+          fileNumber,
+          status: "NO_COST",
+          message: `Invalid cost value (${record.veh_cost}) from WMS.`,
+        })
+        continue
+      }
+
+      const updated = await prisma.lRRequest.updateMany({
+        where: { fileNumber },
+        data: { priceOffered: vehCost },
       })
-    )
 
-    results.push(...chunkResults)
+      if (updated.count === 0) {
+        results.push({
+          fileNumber,
+          status: "NOT_FOUND",
+          message: "No LRRequest found for this file number.",
+        })
+        continue
+      }
+
+      results.push({
+        fileNumber,
+        price: vehCost,
+        status: "UPDATED",
+        message: "Updated successfully.",
+      })
+    } catch (err: any) {
+      console.error(`❌ Error updating fileNumber: ${fileNumber}`, err)
+      results.push({
+        fileNumber,
+        status: "ERROR",
+        message: err?.message || "Unexpected error occurred.",
+      })
+    }
   }
 
   const updatedCount = results.filter((r) => r.status === "UPDATED").length
   const failedCount = results.filter((r) => r.status !== "UPDATED").length
 
   return {
-    success: true,
+    success: updatedCount > 0,
     message: `Processed ${results.length} file(s): ${updatedCount} updated, ${failedCount} failed.`,
     results,
   }
-}
-
-/**
- * Utility: Split an array into chunks of N elements
- */
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const result: T[][] = []
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size))
-  }
-  return result
 }

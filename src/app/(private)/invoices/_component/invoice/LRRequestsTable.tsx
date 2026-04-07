@@ -15,6 +15,8 @@ interface LRRequestsTableProps {
   requests: Invoice;
 }
 
+const MISSING_FILE_NUMBER_LABEL = "No file number";
+
 export const LRRequestsTable = ({ requests }: LRRequestsTableProps) => {
   const [expandedFiles, setExpandedFiles] = React.useState<Set<string>>(new Set());
   const [expandedLRs, setExpandedLRs] = React.useState<Set<string>>(new Set());
@@ -23,8 +25,9 @@ export const LRRequestsTable = ({ requests }: LRRequestsTableProps) => {
     const grouped = new Map<string, LRRequest[]>();
 
     requests?.LRRequest.forEach((lr) => {
-      if (!grouped.has(lr.fileNumber)) grouped.set(lr.fileNumber, []);
-      grouped.get(lr.fileNumber)!.push(lr);
+      const fileNumber = lr.fileNumber?.trim() || MISSING_FILE_NUMBER_LABEL;
+      if (!grouped.has(fileNumber)) grouped.set(fileNumber, []);
+      grouped.get(fileNumber)!.push(lr);
     });
 
     return Array.from(grouped.entries()).map(([fileNumber, lrs]): FileGroup => {

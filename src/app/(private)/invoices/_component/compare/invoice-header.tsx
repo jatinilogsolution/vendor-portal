@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { updateOfferedPricesForFiles } from '@/actions/wms/cost';
 import { Prisma } from '@/generated/prisma/client';
 
+const MISSING_FILE_NUMBER_LABEL = "No file number";
+
 type DataType = Prisma.InvoiceGetPayload<{
   include: {
     LRRequest: true
@@ -39,8 +41,17 @@ export const InvoiceHeader = ({ invoice }: { invoice: DataType }) => {
     
     try {
       const distinctFileNumbers = Array.from(
-        new Set(invoice.LRRequest.map(lr => lr.fileNumber))
+        new Set(
+          invoice.LRRequest
+            .map((lr) => lr.fileNumber?.trim())
+            .filter((fileNumber): fileNumber is string => Boolean(fileNumber))
+        )
       );
+
+      if (!distinctFileNumbers.length) {
+        toast.info("No file numbers available to refresh.");
+        return;
+      }
 
       const fileNumbersData = distinctFileNumbers.map(fileNumber => ({ fileNumber }));
 
@@ -72,10 +83,12 @@ export const InvoiceHeader = ({ invoice }: { invoice: DataType }) => {
     const grouped = new Map<string, typeof invoice.LRRequest>();
     
     invoice.LRRequest.forEach(lr => {
-      if (!grouped.has(lr.fileNumber)) {
-        grouped.set(lr.fileNumber, []);
+      const fileNumber = lr.fileNumber?.trim() || MISSING_FILE_NUMBER_LABEL;
+
+      if (!grouped.has(fileNumber)) {
+        grouped.set(fileNumber, []);
       }
-      grouped.get(lr.fileNumber)!.push(lr);
+      grouped.get(fileNumber)!.push(lr);
     });
 
     return Array.from(grouped.entries()).map(([fileNumber, lrs]) => {

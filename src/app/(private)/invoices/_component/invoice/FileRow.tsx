@@ -55,7 +55,7 @@ export const FileRow = ({
           </Badge>
         </TableCell>
         <TableCell className="text-sm py-3 text-right font-semibold">
-          {formatCurrency(group.awlOffered)}
+          {formatCurrency(group.awlOffered || 0)}
         </TableCell>
           <TableCell className="text-sm py-3 text-right font-semibold">
           {formatCurrency(group.jobCost)}

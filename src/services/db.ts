@@ -6,6 +6,8 @@ const config = {
   server: process.env.DB_HOST || "182.76.62.178",
   database: process.env.DB_1 || "NEWAWLDB",
   port: 1433,
+  requestTimeout: 60000,
+  connectionTimeout: 30000,
   options: {
     encrypt: false,
     trustServerCertificate: true,
