@@ -362,7 +362,7 @@ export default function AdminInvoiceDetailPage() {
                                         <th className="px-4 py-2 text-right font-medium">Qty</th>
                                         <th className="px-4 py-2 text-right font-medium">Unit Price</th>
                                         <th className="px-4 py-2 text-right font-medium">Tax %</th>
-                                        <th className="px-4 py-2 text-center font-medium">Discount Basis</th>
+                                        {/* <th className="px-4 py-2 text-center font-medium">Discount Basis</th> */}
                                         <th className="px-4 py-2 text-right font-medium">Total</th>
                                     </tr>
                                 </thead>
@@ -373,9 +373,9 @@ export default function AdminInvoiceDetailPage() {
                                             <td className="px-4 py-2.5 text-right">{item.qty}</td>
                                             <td className="px-4 py-2.5 text-right">₹{item.unitPrice.toLocaleString("en-IN")}</td>
                                             <td className="px-4 py-2.5 text-right">{item.tax}%</td>
-                                            <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
+                                            {/* <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
                                                 {inv.discountAmount > 0 ? "Overall invoice" : "—"}
-                                            </td>
+                                            </td> */}
                                             <td className="px-4 py-2.5 text-right font-semibold">
                                                 ₹{item.total.toLocaleString("en-IN")}
                                             </td>

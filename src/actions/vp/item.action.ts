@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { getCustomSession } from "@/actions/auth.action"
 import { isAdminOrBoss } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
+import { getVpVendorCategoryOptions } from "@/lib/vendor-portal/category"
 import { VpActionResult, VpListParams, VpListResult } from "@/types/vendor-portal"
 import { itemSchema, ItemFormValues } from "@/validations/vp/item"
 
@@ -19,6 +20,17 @@ export type VpItemRow = {
     categoryId: string | null
     categoryName: string | null
     _count: { poLineItems: number; piLineItems: number }
+}
+
+export type VpInvoiceSelectableItem = {
+    id: string
+    code: string
+    name: string
+    uom: string
+    defaultPrice: number
+    description: string | null
+    categoryId: string | null
+    categoryName: string | null
 }
 
 // ── READ ───────────────────────────────────────────────────────
@@ -107,6 +119,76 @@ export async function getVpItemsForSelect(
         return { success: true, data: items }
     } catch (e) {
         return { success: false, error: "Failed to fetch items" }
+    }
+}
+
+export async function getMyVpInvoiceItemOptions(): Promise<VpActionResult<VpInvoiceSelectableItem[]>> {
+    try {
+        const session = await getCustomSession()
+        if (session.user.role !== "VENDOR") {
+            return { success: false, error: "Only vendors can access invoice item options" }
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { vendorId: true },
+        })
+        if (!user?.vendorId) {
+            return { success: false, error: "Your account is not linked to a vendor. Contact admin." }
+        }
+
+        const vpVendor = await prisma.vpVendor.findFirst({
+            where: { existingVendorId: user.vendorId },
+            select: { id: true },
+        })
+        if (!vpVendor) {
+            return { success: false, error: "Vendor configuration not found" }
+        }
+
+        const assignedCategories = await getVpVendorCategoryOptions(vpVendor.id)
+        if (!assignedCategories) {
+            return { success: false, error: "Vendor configuration not found" }
+        }
+
+        const categoryIds = [...new Set(assignedCategories.map((category) => category.id).filter(Boolean))]
+        if (categoryIds.length === 0) {
+            return { success: true, data: [] }
+        }
+
+        const items = await prisma.vpItem.findMany({
+            where: { categoryId: { in: categoryIds } },
+            select: {
+                id: true,
+                code: true,
+                name: true,
+                uom: true,
+                defaultPrice: true,
+                description: true,
+                categoryId: true,
+                category: { select: { name: true } },
+            },
+            orderBy: [
+                { category: { name: "asc" } },
+                { name: "asc" },
+            ],
+        })
+
+        return {
+            success: true,
+            data: items.map((item) => ({
+                id: item.id,
+                code: item.code,
+                name: item.name,
+                uom: item.uom,
+                defaultPrice: item.defaultPrice,
+                description: item.description,
+                categoryId: item.categoryId,
+                categoryName: item.category?.name ?? null,
+            })),
+        }
+    } catch (e) {
+        console.error("[getMyVpInvoiceItemOptions]", e)
+        return { success: false, error: "Failed to fetch invoice items" }
     }
 }
 

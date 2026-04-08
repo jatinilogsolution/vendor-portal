@@ -128,7 +128,7 @@ export async function LRIMPORT(): Promise<ImportResult> {
         OutVehType, OutVehNo, PartyName, FileNo
       FROM NEWAWLDB.dbo.tbl_MDN WITH (NOLOCK)
       WHERE CustID NOT IN ('sberlc01')
-        AND OutLRDate >= '${formattedDate}'
+        AND OutGPDate >= '${formattedDate}'
         AND OutTransportBy = 'AWL'
         AND ISNULL(OutGPNo, '') <> ''
     `;
@@ -212,8 +212,8 @@ export async function PODIMPORT(): Promise<ImportResult> {
         tranId AS OUTLRNO,
         file_url,
         custid
-      FROM NEWAWLDB.dbo.gDrive_Data WITH (NOLOCK)
-      WHERE tranId <> ''
+        FROM NEWAWLDB.dbo.gDrive_Data WITH (NOLOCK)
+        WHERE tranId <> ''
         AND CONVERT(DATE, createTime) > '${formattedDate}'
         AND subFolder = 'POD'
         AND docType = 'POD'

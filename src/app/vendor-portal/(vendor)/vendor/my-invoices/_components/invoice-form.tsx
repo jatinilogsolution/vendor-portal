@@ -46,8 +46,17 @@ import {
 import {
   getPoLineItemsForInvoice,
 } from "@/actions/vp/delivery.action"
+import {
+  getMyVpInvoiceItemOptions,
+  VpInvoiceSelectableItem,
+} from "@/actions/vp/item.action"
 import { VP_RECURRING_CYCLE_LABELS } from "@/types/vendor-portal"
 import { uploadAttachmentToAzure } from "@/services/azure-blob"
+import {
+  getVpInvoiceCatalogItemDescription,
+  normalizeVpInvoiceItemText,
+  VP_INVOICE_CUSTOM_ITEM_VALUE,
+} from "@/lib/vendor-portal/invoice"
 
 interface InvoiceFormProps {
   editing?: VpInvoiceDetail | null
@@ -68,6 +77,24 @@ function vpInvoiceDocPath(scope: string, invoiceId: string, fileName: string) {
   return `vp/invoices/${scope}/${invoiceId}/${Date.now()}_${safeFile}`
 }
 
+function findMatchingInvoiceCatalogItem(
+  options: VpInvoiceSelectableItem[],
+  description: string,
+) {
+  const normalizedDescription = normalizeVpInvoiceItemText(description)
+  if (!normalizedDescription) return null
+
+  return options.find((option) => {
+    const normalizedOptionDescription = normalizeVpInvoiceItemText(
+      getVpInvoiceCatalogItemDescription(option),
+    )
+    const normalizedOptionName = normalizeVpInvoiceItemText(option.name)
+
+    return normalizedOptionDescription === normalizedDescription
+      || normalizedOptionName === normalizedDescription
+  }) ?? null
+}
+
 export function InvoiceForm({ editing }: InvoiceFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -83,6 +110,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   const [restrictInvoiceToDefaultCompany, setRestrictInvoiceToDefaultCompany] = useState(false)
   const [billToOpts, setBillToOpts] = useState<BillToOption[]>([])
   const [schedules, setSchedules] = useState<VpRecurringRow[]>([])
+  const [invoiceItemOptions, setInvoiceItemOptions] = useState<VpInvoiceSelectableItem[]>([])
   const [selectedRecurringSourceId, setSelectedRecurringSourceId] = useState(
     editing?.recurringScheduleId ?? prefillScheduleId ?? "",
   )
@@ -111,17 +139,26 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       poId: editing?.poId ?? "",
       notes: editing?.notes ?? "",
       discountAmount: editing?.discountAmount ?? 0,
-      taxRate: editing?.taxRate ?? 18,
+      taxRate: editing?.taxRate ?? 0,
       recurringScheduleId: editing?.recurringScheduleId ?? "",
       parentInvoiceId: editing?.parentInvoiceId ?? "",
       items: editing?.items.map((i) => ({
         poLineItemId: i.poLineItemId ?? "",
+        catalogItemId: "",
         description: i.description,
-        qty: i.qty,
-        unitPrice: i.unitPrice,
-        tax: i.tax,
-        total: i.total,
-      })) ?? [{ poLineItemId: "", description: "", qty: 1, unitPrice: 0, tax: 0, total: 0 }],
+        qty: 1,
+        unitPrice: 0,
+        tax: 0,
+        total: 0,
+      })) ?? [{
+        poLineItemId: "",
+        catalogItemId: "",
+        description: "",
+        qty: 1,
+        unitPrice: 0,
+        tax: 0,
+        total: 0,
+      }],
     },
   })
 
@@ -133,7 +170,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
   const billType = form.watch("billType")
   const invoiceType = form.watch("type")
   const invoiceTaxRate = useWatch({ control: form.control, name: "taxRate" }) ?? 0
-  const invoiceDiscountAmount = useWatch({ control: form.control, name: "discountAmount" }) ?? 0
+  // const invoiceDiscountAmount = useWatch({ control: form.control, name: "discountAmount" }) ?? 0
   const selectedScheduleId = form.watch("recurringScheduleId")
   const selectedPoId = form.watch("poId")
   const selectedCompanyId = form.watch("companyId")
@@ -155,6 +192,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       replace(
         (option.itemsSnapshot as any[]).map((item) => ({
           poLineItemId: "",
+          catalogItemId: "",
           description: item.description,
           qty: item.qty,
           unitPrice: item.unitPrice,
@@ -178,7 +216,8 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       getMyVpInvoiceCompanyConfig(),
       getAllBillToAddresses(),
       getMyRecurringSchedules(),
-    ]).then(([poRes, companyRes, billRes, schRes]) => {
+      getMyVpInvoiceItemOptions(),
+    ]).then(([poRes, companyRes, billRes, schRes, itemRes]) => {
       if (poRes.success) setPos(poRes.data)
       if (companyRes.success) {
         setCompanies(companyRes.data.companies.map((company) => ({
@@ -198,6 +237,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       }
       setBillToOpts(billRes)
       if (schRes.success) setSchedules(schRes.data)
+      if (itemRes.success) setInvoiceItemOptions(itemRes.data)
     })
   }, [editing, form])
 
@@ -250,6 +290,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
           parentInvoiceId: res.data.id,
           items: res.data.items.map((item) => ({
             poLineItemId: copiedPoId ? (item.poLineItemId ?? "") : "",
+            catalogItemId: "",
             description: item.description,
             qty: item.qty,
             unitPrice: item.unitPrice,
@@ -307,7 +348,15 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
     if (!poId) {
       // Clear lock, reset items to one empty row
-      replace([{ poLineItemId: "", description: "", qty: 1, unitPrice: 0, tax: Number(form.getValues("taxRate") ?? 0), total: 0 }])
+      replace([{
+        poLineItemId: "",
+        catalogItemId: "",
+        description: "",
+        qty: 1,
+        unitPrice: 0,
+        tax: Number(form.getValues("taxRate") ?? 0),
+        total: 0,
+      }])
       return
     }
 
@@ -325,6 +374,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
         replace(
           invoiceableItems.map((li) => ({
             poLineItemId: li.id,
+            catalogItemId: "",
             description: li.description,
             qty: li.invoiceableQty,
             unitPrice: li.unitPrice,
@@ -402,6 +452,25 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
       }
     })
   }, [fields, form, invoiceTaxRate])
+
+  useEffect(() => {
+    fields.forEach((_, index) => {
+      const poLineItemId = form.getValues(`items.${index}.poLineItemId`)
+      if (poLineItemId) return
+
+      const currentCatalogItemId = form.getValues(`items.${index}.catalogItemId`)
+      if (currentCatalogItemId) return
+
+      const description = form.getValues(`items.${index}.description`)
+      if (!description) return
+
+      const matchedItem = findMatchingInvoiceCatalogItem(invoiceItemOptions, description)
+      form.setValue(
+        `items.${index}.catalogItemId`,
+        matchedItem?.id ?? VP_INVOICE_CUSTOM_ITEM_VALUE,
+      )
+    })
+  }, [fields, form, invoiceItemOptions])
 
   // ── File upload ──────────────────────────────────────────────
 
@@ -595,7 +664,7 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                     </SelectContent>
                   </Select>
                   <FormDescription className="text-xs">
-                    This is the single GST applied across the invoice. Item rows now follow this same GST rate.
+                    This is the single GST applied across the invoice.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -878,7 +947,12 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                   type="button" variant="outline" size="sm"
                   onClick={() => append({
                     poLineItemId: "",
-                    description: "", qty: 1, unitPrice: 0, tax: Number(form.getValues("taxRate") ?? 0), total: 0,
+                    catalogItemId: "",
+                    description: "",
+                    qty: 1,
+                    unitPrice: 0,
+                    tax: Number(form.getValues("taxRate") ?? 0),
+                    total: 0,
                   })}
                 >
                   <IconPlus size={13} className="mr-1" />
@@ -888,6 +962,12 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            {!itemsLocked && (
+              <p className="text-xs text-muted-foreground">
+                Select from your assigned item catalog for cleaner billing data, or choose Other for a custom description.
+              </p>
+            )}
+
             {fields.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 {selectedPoId
@@ -899,6 +979,11 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
             {fields.map((field, index) => {
               const qty = form.watch(`items.${index}.qty`) ?? 0
               const unitPrice = form.watch(`items.${index}.unitPrice`) ?? 0
+              const selectedCatalogItemId = form.watch(`items.${index}.catalogItemId`) ?? ""
+              // const selectedCatalogItem = invoiceItemOptions.find(
+              //   (item) => item.id === selectedCatalogItemId,
+              // ) ?? null
+              const isCustomItem = selectedCatalogItemId === VP_INVOICE_CUSTOM_ITEM_VALUE
               const total = Number(qty) * Number(unitPrice)
 
               return (
@@ -906,24 +991,118 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                   <div className="grid grid-cols-14 items-end gap-2">
 
                     {/* Description */}
-                    <div className="col-span-14 sm:col-span-5">
-                      <p className="mb-1 text-xs text-muted-foreground">Description *</p>
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.description`}
-                        render={({ field: f }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                className="h-8 text-xs"
-                                disabled={itemsLocked}
-                                {...f}
+                    <div className="col-span-14 sm:col-span-6">
+                      <p className="mb-1  text-xs text-muted-foreground">
+                        {itemsLocked ? "Description *" : "Assigned Item *"}
+                      </p>
+                      <div className=" flex flex-row">
+
+
+
+                        {itemsLocked ? (
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.description`}
+                            render={({ field: f }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    className="h-8 text-xs"
+                                    disabled
+                                    {...f}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <div className="flex items-center space-x-2  w-full">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.catalogItemId`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <Select
+                                    value={f.value || ""}
+                                    onValueChange={(value) => {
+                                      f.onChange(value)
+
+                                      if (value === VP_INVOICE_CUSTOM_ITEM_VALUE) {
+                                        form.setValue(`items.${index}.description`, "")
+                                        return
+                                      }
+
+                                      const nextSelectedItem = invoiceItemOptions.find((item) => item.id === value)
+                                      if (!nextSelectedItem) return
+
+                                      // const nextUnitPrice = Number(nextSelectedItem.defaultPrice ?? 0)
+                                      // form.setValue(
+                                      //   `items.${index}.description`,
+                                      //   getVpInvoiceCatalogItemDescription(nextSelectedItem),
+                                      // )
+                                      // form.setValue(`items.${index}.unitPrice`, nextUnitPrice)
+                                      // form.setValue(`items.${index}.total`, Number(qty) * nextUnitPrice)
+                                    }}
+                                  >
+                                    <FormControl className="">
+                                      <SelectTrigger className=" text-xs w-full">
+                                        <SelectValue className=" w-full" placeholder="Select an assigned item" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {invoiceItemOptions.map((item) => (
+                                        <SelectItem key={item.id} value={item.id}>
+                                          {item.categoryName ? `${item.categoryName} • ` : ""}
+                                          {item.name}
+                                        </SelectItem>
+                                      ))}
+                                      <SelectItem value={VP_INVOICE_CUSTOM_ITEM_VALUE}>
+                                        Other
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {!isCustomItem && (
+                              <Input className=" w-full " type="hidden" {...form.register(`items.${index}.description`)} />
+                            )}
+
+                            {/* {selectedCatalogItem && (
+                            <div className="rounded-md border bg-muted/40 px-2 py-1.5  text-[11px] text-muted-foreground">
+                              {selectedCatalogItem.categoryName ? `${selectedCatalogItem.categoryName} • ` : ""}
+                              {selectedCatalogItem.uom} • Default ₹
+                              {selectedCatalogItem.defaultPrice.toLocaleString("en-IN")}
+                            </div>
+                          )} */}
+
+                            {isCustomItem && (
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.description`}
+
+                                render={({ field: f }) => (
+
+                                  <FormItem className=" w-full">
+                                    <FormControl>
+                                      <Input
+                                        className="h-8 w-full text-xs"
+                                        placeholder="Enter custom item description"
+                                        {...f}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                            )}
+                          </div>
                         )}
-                      />
+                      </div>
+
                     </div>
 
                     {/* Qty */}
@@ -994,12 +1173,12 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
                     </div>
 
                     {/* Discount basis */}
-                    <div className="col-span-6 sm:col-span-2">
+                    {/* <div className="col-span-6 sm:col-span-2">
                       <p className="mb-1 text-xs text-muted-foreground">Discount Basis</p>
                       <div className="flex h-8 items-center justify-center rounded-md border bg-muted/40 px-2 text-center text-[11px] font-medium">
                         {Number(invoiceDiscountAmount) > 0 ? "Overall invoice" : "No discount"}
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Total (read-only) */}
                     <div className="col-span-4 sm:col-span-1">

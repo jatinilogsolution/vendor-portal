@@ -41,9 +41,11 @@
 
 // src/validations/vp/invoice.ts
 import { z } from "zod"
+import { VP_INVOICE_CUSTOM_ITEM_VALUE } from "@/lib/vendor-portal/invoice"
 
 export const vpInvoiceLineItemSchema = z.object({
   poLineItemId: z.string().optional().or(z.literal("")),
+  catalogItemId: z.string().optional().or(z.literal("")),
   description: z.string().min(1, "Description is required"),
   qty:         z.coerce.number<number>().min(0.01, "Qty must be > 0"),
   unitPrice:   z.coerce.number<number>().min(0, "Price must be ≥ 0"),
@@ -70,6 +72,28 @@ export const vpInvoiceSchema = z.object({
   parentInvoiceId: z.string().optional().or(z.literal("")),
   items:         z.array(vpInvoiceLineItemSchema).min(1, "Add at least one line item"),
 }).superRefine((data, ctx) => {
+  data.items.forEach((item, index) => {
+    if (!item.poLineItemId && !item.catalogItemId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select an assigned item or choose Other",
+        path: ["items", index, "catalogItemId"],
+      })
+    }
+
+    if (
+      !item.poLineItemId
+      && item.catalogItemId === VP_INVOICE_CUSTOM_ITEM_VALUE
+      && !item.description.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Custom description is required",
+        path: ["items", index, "description"],
+      })
+    }
+  })
+
   const subtotal = data.items.reduce(
     (sum, item) => sum + (Number(item.qty) * Number(item.unitPrice)),
     0,

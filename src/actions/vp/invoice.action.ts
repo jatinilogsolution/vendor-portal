@@ -6,6 +6,11 @@ import { getCustomSession } from "@/actions/auth.action"
 import { isAdmin, isAdminOrBoss } from "@/lib/vendor-portal/roles"
 import { logVpAudit } from "@/lib/vendor-portal/audit"
 import { validateVpVendorCompanyAccess } from "@/lib/vendor-portal/company"
+import { getVpVendorCategoryOptions } from "@/lib/vendor-portal/category"
+import {
+    getVpInvoiceCatalogItemDescription,
+    VP_INVOICE_CUSTOM_ITEM_VALUE,
+} from "@/lib/vendor-portal/invoice"
 import { createVpNotification } from "@/lib/vendor-portal/notify"
 import {
     emailInvoiceApproved,
@@ -292,18 +297,92 @@ async function normalizeInvoiceLineItems(params: {
     items: VpInvoiceFormValues["items"]
     taxRate: number
     currentInvoiceId?: string
+    vpVendorId?: string
 }): Promise<VpActionResult<NormalizedInvoiceLineItem[]>> {
     if (!params.poId) {
-        return {
-            success: true,
-            data: params.items.map((item) => ({
+        const selectedCatalogItemIds = [...new Set(
+            params.items
+                .map((item) => item.catalogItemId?.trim())
+                .filter((itemId): itemId is string => Boolean(itemId && itemId !== VP_INVOICE_CUSTOM_ITEM_VALUE)),
+        )]
+
+        let allowedCatalogItemMap = new Map<string, { id: string; name: string; description: string | null }>()
+
+        if (selectedCatalogItemIds.length > 0) {
+            if (!params.vpVendorId) {
+                return { success: false, error: "Vendor context is required to validate invoice items" }
+            }
+
+            const assignedCategories = await getVpVendorCategoryOptions(params.vpVendorId)
+            if (!assignedCategories) {
+                return { success: false, error: "Vendor configuration not found" }
+            }
+
+            const assignedCategoryIds = assignedCategories.map((category) => category.id)
+            if (assignedCategoryIds.length === 0) {
+                return { success: false, error: "No item categories are assigned to this vendor" }
+            }
+
+            const allowedCatalogItems = await prisma.vpItem.findMany({
+                where: {
+                    id: { in: selectedCatalogItemIds },
+                    categoryId: { in: assignedCategoryIds },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                },
+            })
+
+            if (allowedCatalogItems.length !== selectedCatalogItemIds.length) {
+                return {
+                    success: false,
+                    error: "One or more selected items are not assigned to your vendor categories",
+                }
+            }
+
+            allowedCatalogItemMap = new Map(
+                allowedCatalogItems.map((item) => [item.id, item]),
+            )
+        }
+
+        const normalizedItems: NormalizedInvoiceLineItem[] = []
+        for (const item of params.items) {
+            const selectedCatalogItemId = item.catalogItemId?.trim() ?? ""
+            if (selectedCatalogItemId && selectedCatalogItemId !== VP_INVOICE_CUSTOM_ITEM_VALUE) {
+                const catalogItem = allowedCatalogItemMap.get(selectedCatalogItemId)
+                if (!catalogItem) {
+                    return {
+                        success: false,
+                        error: "One or more selected items are not assigned to your vendor categories",
+                    }
+                }
+
+                normalizedItems.push({
+                    poLineItemId: null,
+                    description: getVpInvoiceCatalogItemDescription(catalogItem),
+                    qty: item.qty,
+                    unitPrice: item.unitPrice,
+                    tax: params.taxRate,
+                    total: item.qty * item.unitPrice,
+                })
+                continue
+            }
+
+            normalizedItems.push({
                 poLineItemId: null,
-                description: item.description,
+                description: item.description.trim(),
                 qty: item.qty,
                 unitPrice: item.unitPrice,
                 tax: params.taxRate,
                 total: item.qty * item.unitPrice,
-            })),
+            })
+        }
+
+        return {
+            success: true,
+            data: normalizedItems,
         }
     }
 
@@ -614,6 +693,7 @@ export async function createVpInvoice(
         poId: d.poId || null,
         items: d.items,
         taxRate: d.taxRate,
+        vpVendorId: vpvId,
     })
     if (!normalizedItemsResult.success) return normalizedItemsResult
 
@@ -727,6 +807,7 @@ export async function updateVpInvoice(
         items: d.items,
         taxRate: d.taxRate,
         currentInvoiceId: id,
+        vpVendorId: vpvId,
     })
     if (!normalizedItemsResult.success) return normalizedItemsResult
 

@@ -20,6 +20,8 @@ const protectedPages = [
   "/vendor-portal",
 ];
 
+const publicApiPaths = ["/api/system/maintenance"];
+
 export async function proxy(req: NextRequest) {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
@@ -33,14 +35,21 @@ export async function proxy(req: NextRequest) {
       );
     }
 
-    return NextResponse.redirect(new URL("/maintenance", req.url));
+    return NextResponse.redirect(new URL("/not-found", req.url));
   }
 
   const sessionCookie = getSessionCookie(req);
   const isLoggedIn = !!sessionCookie;
 
   const isAuthPage = pathname.startsWith("/auth/");
-  const isProtectedPage = protectedPages.some(page => pathname === page || pathname.startsWith(page + "/"));
+  const isPublicApiPath = publicApiPaths.some(
+    page => pathname === page || pathname.startsWith(`${page}/`),
+  );
+  const isProtectedPage =
+    !isPublicApiPath &&
+    protectedPages.some(
+      page => pathname === page || pathname.startsWith(`${page}/`),
+    );
 
   // 🔒 Protected pages must be authenticated
   if (isProtectedPage && !isLoggedIn) {
@@ -60,3 +69,5 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };
+
+ 

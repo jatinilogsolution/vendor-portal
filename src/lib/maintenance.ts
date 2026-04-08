@@ -9,7 +9,7 @@ export const MAINTENANCE_FLAG_PATH = path.join(
 );
 
 export const MAINTENANCE_ALLOWED_PATHS = [
-  "/maintenance",
+  "/not-found",
   "/auth",
   "/api/auth",
   "/api/system/maintenance",
