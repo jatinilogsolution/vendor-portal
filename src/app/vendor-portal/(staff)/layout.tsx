@@ -15,6 +15,7 @@ const ADMIN_NAV = [
     // ── Operations section ──
     { title: "Vendor Bills", href: "/vendor-portal/admin/invoices", icon: "invoices" },
     { title: "Deliveries", href: "/vendor-portal/admin/deliveries", icon: "deliveries" },
+    { title: "Returns", href: "/vendor-portal/admin/returns", icon: "returns" },
     { title: "Recurring", href: "/vendor-portal/admin/recurring", icon: "recurring" },
     // ── System ──
     { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },

@@ -89,7 +89,7 @@ export function PasswordManagementCard({ email }: PasswordManagementCardProps) {
       </CardHeader>
       <CardContent className="space-y-8">
         <form onSubmit={handleChangePassword} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-row-3 ">
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current Password</Label>
               <Input
@@ -129,7 +129,7 @@ export function PasswordManagementCard({ email }: PasswordManagementCardProps) {
           </Button>
         </form>
 
-        <div className="rounded-lg border bg-muted/30 p-4">
+        {/* <div className="rounded-lg border bg-muted/30 p-4">
           <div className="space-y-2">
             <p className="text-sm font-medium">Reset by Email</p>
             <p className="text-sm text-muted-foreground">
@@ -144,7 +144,7 @@ export function PasswordManagementCard({ email }: PasswordManagementCardProps) {
           >
             {isSendingResetEmail ? "Sending..." : "Send Reset Email"}
           </Button>
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   )

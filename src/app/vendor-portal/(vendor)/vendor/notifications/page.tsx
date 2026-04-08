@@ -28,6 +28,7 @@ function buildHref(docType: string | null, docId: string | null): string | null 
         VpInvoice: `/vendor-portal/vendor/my-invoices/${docId}`,
         VpPayment: `/vendor-portal/vendor/my-invoices`,
         VpDeliveryRecord: `/vendor-portal/vendor/my-deliveries`,
+        VpReturnRecord: `/vendor-portal/vendor/my-returns/${docId}`,
     }
     return map[docType] ?? null
 }

@@ -28,6 +28,11 @@ export const VP_DELIVERY_STATUSES = [
 ] as const
 export type VpDeliveryStatus = (typeof VP_DELIVERY_STATUSES)[number]
 
+export const VP_RETURN_STATUSES = [
+    "EXPECTED", "COMPLETED", "CANCELLED",
+] as const
+export type VpReturnStatus = (typeof VP_RETURN_STATUSES)[number]
+
 export const VP_VENDOR_TYPES = ["STANDARD", "IT"] as const
 export const VP_BILLING_TYPES = ["ONE_TIME", "RECURRING", "RENTAL"] as const
 export const VP_RECURRING_CYCLES = ["MONTHLY", "QUARTERLY", "YEARLY"] as const
@@ -41,7 +46,7 @@ export type VpPaymentMode = (typeof VP_PAYMENT_MODES)[number]
 export const VP_ENTITY_TYPES = [
     "VpCompany", "VpVendor", "VpCategory", "VpItem",
     "VpPurchaseOrder", "VpProformaInvoice",
-    "VpInvoice", "VpPayment", "VpDeliveryRecord",
+    "VpInvoice", "VpPayment", "VpDeliveryRecord", "VpReturnRecord",
     "VpProcurement",
 ] as const
 export type VpEntityType = (typeof VP_ENTITY_TYPES)[number]
@@ -52,6 +57,7 @@ export const VP_NOTIFICATION_TYPES = [
     "INVOICE_SUBMITTED", "INVOICE_APPROVED", "INVOICE_REJECTED",
     "PAYMENT_INITIATED", "PAYMENT_CONFIRMED",
     "DELIVERY_CREATED", "DELIVERY_APPROVED",
+    "RETURN_CREATED", "RETURN_COMPLETED",
 ] as const
 export type VpNotificationType = (typeof VP_NOTIFICATION_TYPES)[number]
 

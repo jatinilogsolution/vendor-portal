@@ -53,6 +53,7 @@ model User {
   vpInvoicesCreated          VpInvoice[]           @relation("VpInvoice_createdBy")
   vpInvoicesReviewed         VpInvoice[]           @relation("VpInvoice_reviewedBy")
   vpInvoiceDocumentsUploaded VpInvoiceDocument[]   @relation("VpInvoiceDocument_uploadedBy")
+  vpReturnsCreated           VpReturnRecord[]      @relation("VpReturnRecord_createdBy")
   vpPaymentsInitiated        VpPayment[]           @relation("VpPayment_initiatedBy")
   vpNotifications            VpNotification[]      @relation("VpNotification_user")
   vpProcurements             VpProcurement[]
@@ -619,6 +620,7 @@ model VpItem {
 
   poLineItems VpPoLineItem[]
   piLineItems VpPiLineItem[]
+  returnItems VpReturnItem[]
 
   @@index([code])
   @@index([categoryId])
@@ -662,6 +664,7 @@ model VpVendor {
   bankDetails        VpVendorBankDetails?
   categories         VpVendorCategory[]
   companies          VpVendorCompany[]
+  returnRecords      VpReturnRecord[]
 
   @@index([existingVendorId])
   @@index([categoryId])
@@ -986,6 +989,7 @@ model VpInvoice {
   lineItems           VpInvoiceLineItem[]
   documents           VpInvoiceDocument[]
   payments            VpPayment[]
+  returnRecords       VpReturnRecord[]
   recurringSchedule   VpRecurringSchedule? @relation("VpInvoice_recurringSchedule", fields: [recurringScheduleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   recurringScheduleId String?
   billType            String               @default("STANDARD") // STANDARD | RECURRING | ADVANCE | CREDIT_NOTE
@@ -1013,6 +1017,7 @@ model VpInvoiceLineItem {
   unitPrice   Float
   tax         Float  @default(0)
   total       Float
+  returnItems VpReturnItem[]
 
   @@index([invoiceId])
   @@index([poLineItemId])
@@ -1112,6 +1117,59 @@ model VpDeliveryItem {
   @@index([deliveryId])
   @@index([poLineItemId])
   @@map("vp_delivery_items")
+}
+
+model VpReturnRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendorId String
+  vendor   VpVendor @relation(fields: [vendorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  invoiceId String?
+  invoice   VpInvoice? @relation(fields: [invoiceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  expectedPickupDate DateTime?
+  completedAt        DateTime?
+  pickupPersonName   String?
+  pickupPersonPhone  String?
+  status             String   @default("EXPECTED")
+  notes              String?  @db.NVarChar(Max)
+
+  createdById String
+  createdBy   User   @relation("VpReturnRecord_createdBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  items VpReturnItem[]
+
+  @@index([vendorId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("vp_return_records")
+}
+
+model VpReturnItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  returnId String
+  returnRecord VpReturnRecord @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   VpItem? @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  invoiceLineItemId String?
+  invoiceLineItem   VpInvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  description String
+  qty         Float
+  reason      String? @db.NVarChar(Max)
+
+  @@index([returnId])
+  @@index([itemId])
+  @@index([invoiceLineItemId])
+  @@map("vp_return_items")
 }
 
 // ── 9. In-App Notifications ─────────────────────────────────────────────────

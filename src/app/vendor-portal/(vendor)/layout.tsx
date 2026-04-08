@@ -14,6 +14,7 @@ const NAV = [
   { title: "Recurring Bills", href: "/vendor-portal/vendor/recurring",          icon: "recurring" },
   // ── Logistics ──
   { title: "My Deliveries",   href: "/vendor-portal/vendor/my-deliveries",      icon: "deliveries" },
+  { title: "My Returns",      href: "/vendor-portal/vendor/my-returns",         icon: "returns" },
   // ── Notifications ──
   { title: "Notifications",   href: "/vendor-portal/vendor/notifications",      icon: "bell" },
   { title: "My Profile", href: "/vendor-portal/vendor/profile", icon: "user" },

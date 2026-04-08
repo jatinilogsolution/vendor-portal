@@ -40,6 +40,29 @@ export type VpDeliveryRow = {
 
 export type VpDeliveryDetail = VpDeliveryRow & {
     items: VpDeliveryItemRow[]
+    poStatus: string
+    poCompanyName: string | null
+    poDeliveryDate: Date | null
+    poDeliveryAddress: string | null
+    proofUrl: string | null
+    proofUploadedAt: Date | null
+    invoices: {
+        id: string
+        invoiceNumber: string | null
+        status: string
+        totalAmount: number
+        createdAt: Date
+        documentCount: number
+    }[]
+    documents: {
+        id: string
+        label: string
+        filePath: string
+        uploadedAt: Date
+        sourceType: "DELIVERY_PROOF" | "INVOICE_ATTACHMENT"
+        invoiceId: string | null
+        invoiceNumber: string | null
+    }[]
 }
 
 export type VpDeliveryForPoRow = {
@@ -155,6 +178,37 @@ export async function getVpDeliveryById(
             where: { id },
             select: {
                 ...DELIVERY_SELECT,
+                proofUrl: true,
+                proofUploadedAt: true,
+                purchaseOrder: {
+                    select: {
+                        id: true,
+                        poNumber: true,
+                        status: true,
+                        deliveryDate: true,
+                        deliveryAddress: true,
+                        company: { select: { name: true } },
+                        vendor: { select: { existingVendor: { select: { name: true } } } },
+                        invoices: {
+                            select: {
+                                id: true,
+                                invoiceNumber: true,
+                                status: true,
+                                totalAmount: true,
+                                createdAt: true,
+                                documents: {
+                                    select: {
+                                        id: true,
+                                        filePath: true,
+                                        uploadedAt: true,
+                                    },
+                                    orderBy: { uploadedAt: "desc" },
+                                },
+                            },
+                            orderBy: { createdAt: "desc" },
+                        },
+                    },
+                },
                 items: {
                     select: {
                         id: true,
@@ -204,6 +258,12 @@ export async function getVpDeliveryById(
             success: true,
             data: {
                 ...mapRow(r),
+                poStatus: r.purchaseOrder.status,
+                poCompanyName: r.purchaseOrder.company?.name ?? null,
+                poDeliveryDate: r.purchaseOrder.deliveryDate,
+                poDeliveryAddress: r.purchaseOrder.deliveryAddress ?? null,
+                proofUrl: r.proofUrl ?? null,
+                proofUploadedAt: r.proofUploadedAt ?? null,
                 items: r.items.map((i) => ({
                     id: i.id,
                     poLineItemId: i.poLineItemId,
@@ -214,6 +274,38 @@ export async function getVpDeliveryById(
                     qtyDelivered: i.qtyDelivered,
                     condition: i.condition,
                 })),
+                invoices: r.purchaseOrder.invoices.map((invoice) => ({
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    status: invoice.status,
+                    totalAmount: invoice.totalAmount,
+                    createdAt: invoice.createdAt,
+                    documentCount: invoice.documents.length,
+                })),
+                documents: [
+                    ...(r.proofUrl
+                        ? [{
+                            id: `delivery-proof-${r.id}`,
+                            label: "Delivery Proof",
+                            filePath: r.proofUrl,
+                            uploadedAt: r.proofUploadedAt ?? r.createdAt,
+                            sourceType: "DELIVERY_PROOF" as const,
+                            invoiceId: null,
+                            invoiceNumber: null,
+                        }]
+                        : []),
+                    ...r.purchaseOrder.invoices.flatMap((invoice) =>
+                        invoice.documents.map((document) => ({
+                            id: document.id,
+                            label: `Invoice ${invoice.invoiceNumber ?? invoice.id} Attachment`,
+                            filePath: document.filePath,
+                            uploadedAt: document.uploadedAt,
+                            sourceType: "INVOICE_ATTACHMENT" as const,
+                            invoiceId: invoice.id,
+                            invoiceNumber: invoice.invoiceNumber,
+                        })),
+                    ),
+                ].sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime()),
             },
         }
     } catch (e) {

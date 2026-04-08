@@ -109,6 +109,13 @@ export default function AdminInvoiceDetailPage() {
                                 Back
                             </Link>
                         </Button>
+                        {role === "ADMIN" && (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/vendor-portal/admin/returns/new?vendorId=${inv.vendor.id}&invoiceId=${inv.id}`}>
+                                    Create Return
+                                </Link>
+                            </Button>
+                        )}
                         {canReview && (
                             <Button size="sm" onClick={handleStartReview} disabled={isPending}>
                                 <IconCheck size={14} className="mr-1.5" />

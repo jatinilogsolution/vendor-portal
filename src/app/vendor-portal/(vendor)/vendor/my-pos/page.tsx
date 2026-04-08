@@ -75,7 +75,7 @@ export default function VendorMyPosPage() {
             />
 
             {/* Filter */}
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-4">
                 <Select value={statusF} onValueChange={(v) => { setStatusF(v); setPage(1) }}>
                     <SelectTrigger className="w-52">
                         <SelectValue placeholder="All Statuses" />
@@ -87,14 +87,15 @@ export default function VendorMyPosPage() {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
-            <VpDateFilter
+                <VpDateFilter
                 from={from}
                 to={to}
                 onFrom={(v) => { setFrom(v); setPage(1) }}
                 onTo={(v) => { setTo(v); setPage(1) }}
                 onClear={() => { setFrom(""); setTo(""); setPage(1) }}
             />
+            </div>
+            
 
             {loading ? (
                 <div className="space-y-2">

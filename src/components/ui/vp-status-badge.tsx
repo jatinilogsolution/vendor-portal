@@ -30,6 +30,9 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
     PENDING: { label: "Pending", className: "bg-slate-100 text-slate-600 border-slate-200" },
     PARTIAL_DELIVERY: { label: "Partial Delivery", className: "bg-amber-100 text-amber-700 border-amber-200" },
     FULLY_DELIVERED: { label: "Delivered", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    // Returns
+    EXPECTED: { label: "Expected Pickup", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    RETURNED: { label: "Returned", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     // Vendor types
     STANDARD: { label: "Standard", className: "bg-slate-100 text-slate-600 border-slate-200" },
     IT: { label: "IT", className: "bg-purple-100 text-purple-700 border-purple-200" },

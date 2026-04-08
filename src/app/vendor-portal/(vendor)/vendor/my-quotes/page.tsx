@@ -70,13 +70,18 @@ export default function VendorMyQuotesPage() {
             />
 
             
-            <VpDateFilter
+
+             <div className=" w-full flex justify-end">
+            
+                     <VpDateFilter
                 from={from}
                 to={to}
                 onFrom={(v) => { setFrom(v); setPage(1) }}
                 onTo={(v) => { setTo(v); setPage(1) }}
                 onClear={() => { setFrom(""); setTo(""); setPage(1) }}
             />
+                        </div>
+           
 
             {/* Open procurement invitations */}
             {openPrs.length > 0 && (

@@ -243,6 +243,7 @@ const ICON_MAP: Record<string, any> = {
   vendors: IconBuildingStore,
   categories: IconCategory,
   items: IconPackage,
+  returns: IconPackage,
   procurement: IconClipboardList,
   pos: IconShoppingCart,
   pis: IconFileInvoice,
