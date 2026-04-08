@@ -38,6 +38,8 @@ const BOSS_NAV = [
     { title: "Audit Logs", href: "/vendor-portal/boss/logs", icon: "logs" },
     // ── Vendors ──
     { title: "Vendors", href: "/vendor-portal/admin/vendors", icon: "vendors" },
+     { title: "Categories", href: "/vendor-portal/admin/categories", icon: "categories" },
+    { title: "Item Master", href: "/vendor-portal/admin/items", icon: "items" },
     { title: "Users", href: "/vendor-portal/admin/users", icon: "users" },
     { title: "Profile", href: "/vendor-portal/profile", icon: "user" },
 
