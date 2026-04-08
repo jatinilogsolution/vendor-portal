@@ -2,6 +2,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -34,6 +35,7 @@ import { getVpCategoriesFlat } from "@/actions/vp/category.action"
 import { useSession } from "@/lib/auth-client"
 import { VpEmptyState } from "@/components/ui/vp-empty-state"
 import { VpPageHeader } from "@/components/ui/vp-page-header"
+import { ChevronsRight } from "lucide-react"
 
 export default function ItemsPage() {
     const searchParams = useSearchParams()
@@ -103,6 +105,11 @@ export default function ItemsPage() {
                 description={`${total} items in the catalog`}
                 actions={
                     <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href="/vendor-portal/admin/items/intelligence">
+                                Price Intelligence
+                            </Link>
+                        </Button>
                         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
                             <IconRefresh size={15} className={loading ? "animate-spin" : ""} />
                         </Button>
@@ -157,6 +164,7 @@ export default function ItemsPage() {
                             <TableHead className="text-right">Default Price</TableHead>
                             <TableHead>HSN</TableHead>
                             <TableHead>Used In</TableHead>
+                            <TableHead className="w-28">Insight</TableHead>
                             {canEdit && <TableHead className="w-24" />}
                         </TableRow>
                     </TableHeader>
@@ -164,7 +172,7 @@ export default function ItemsPage() {
                         {loading
                             ? Array.from({ length: 6 }).map((_, i) => (
                                 <TableRow key={i}>
-                                    {Array.from({ length: canEdit ? 8 : 7 }).map((_, j) => (
+                                    {Array.from({ length: canEdit ? 9 : 8 }).map((_, j) => (
                                         <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                                     ))}
                                 </TableRow>
@@ -172,7 +180,7 @@ export default function ItemsPage() {
                             : items.length === 0
                                 ? (
                                     <TableRow>
-                                        <TableCell colSpan={canEdit ? 8 : 7} className="py-0">
+                                        <TableCell colSpan={canEdit ? 9 : 8} className="py-0">
                                             <VpEmptyState
                                                 icon={IconPackage}
                                                 title="No items found"
@@ -216,6 +224,17 @@ export default function ItemsPage() {
                                             <span className="text-xs text-muted-foreground">
                                                 {item._count.poLineItems + item._count.piLineItems} orders
                                             </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                asChild
+                                                variant="ghost"
+                                                size="sm"
+                                            >
+                                                <Link href={`/vendor-portal/admin/items/intelligence?itemId=${item.id}`}>
+                                                    <ChevronsRight color="#87CEEB" />
+                                                </Link>
+                                            </Button>
                                         </TableCell>
                                         {canEdit && (
                                             <TableCell>

@@ -58,6 +58,7 @@ export const VP_NOTIFICATION_TYPES = [
     "PAYMENT_INITIATED", "PAYMENT_CONFIRMED",
     "DELIVERY_CREATED", "DELIVERY_APPROVED",
     "RETURN_CREATED", "RETURN_COMPLETED",
+    "ITEM_ASSIGNED",
 ] as const
 export type VpNotificationType = (typeof VP_NOTIFICATION_TYPES)[number]
 

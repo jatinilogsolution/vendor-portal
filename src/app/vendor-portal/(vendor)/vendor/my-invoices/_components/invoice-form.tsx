@@ -1035,14 +1035,13 @@ export function InvoiceForm({ editing }: InvoiceFormProps) {
 
                                       const nextSelectedItem = invoiceItemOptions.find((item) => item.id === value)
                                       if (!nextSelectedItem) return
-
-                                      // const nextUnitPrice = Number(nextSelectedItem.defaultPrice ?? 0)
-                                      // form.setValue(
-                                      //   `items.${index}.description`,
-                                      //   getVpInvoiceCatalogItemDescription(nextSelectedItem),
-                                      // )
-                                      // form.setValue(`items.${index}.unitPrice`, nextUnitPrice)
-                                      // form.setValue(`items.${index}.total`, Number(qty) * nextUnitPrice)
+                                      const nextUnitPrice = Number(nextSelectedItem.defaultPrice ?? 0)
+                                      form.setValue(
+                                        `items.${index}.description`,
+                                        getVpInvoiceCatalogItemDescription(nextSelectedItem),
+                                      )
+                                      form.setValue(`items.${index}.unitPrice`, nextUnitPrice)
+                                      form.setValue(`items.${index}.total`, Number(qty) * nextUnitPrice)
                                     }}
                                   >
                                     <FormControl className="">
