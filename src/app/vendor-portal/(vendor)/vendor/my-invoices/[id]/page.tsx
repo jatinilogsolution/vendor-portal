@@ -93,7 +93,7 @@ export default function VendorInvoiceDetailPage() {
 
     const canEdit = inv.status === "DRAFT"
     const canSubmit = inv.status === "DRAFT"
-    const canDelete = inv.status === "DRAFT"
+    const canDelete = ["DRAFT", "SUBMITTED"].includes(inv.status)
     const canUpload = ["DRAFT", "SUBMITTED"].includes(inv.status)
     const recurringLabel = inv.recurringCycle
         ? VP_RECURRING_CYCLE_LABELS[inv.recurringCycle as keyof typeof VP_RECURRING_CYCLE_LABELS] || inv.recurringCycle
@@ -363,7 +363,7 @@ export default function VendorInvoiceDetailPage() {
                             onClick={() => act(async () => {
                                 const r = await deleteVpInvoice(id)
                                 if (r.success) router.push("/vendor-portal/vendor/my-invoices")
-                                return r
+                                // return r
                             }, "Invoice deleted")}
                         >
                             Delete

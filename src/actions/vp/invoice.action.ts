@@ -539,54 +539,7 @@ export async function getVpInvoiceById(
         const session = await getCustomSession()
         const r = await prisma.vpInvoice.findUnique({
             where: { id },
-            select: {
-                ...INVOICE_SELECT,
-                purchaseOrder: {
-                    select: {
-                        poNumber: true,
-                        deliveries: {
-                            select: {
-                                id: true,
-                                status: true,
-                                deliveryDate: true,
-                                _count: { select: { items: true } },
-                            },
-                            orderBy: { createdAt: "desc" },
-                        },
-                    },
-                },
-                lineItems: {
-                    select: {
-                        id: true,
-                        poLineItemId: true,
-                        description: true,
-                        qty: true, unitPrice: true, tax: true, total: true,
-                    },
-                },
-                documents: {
-                    select: {
-                        id: true,
-                        filePath: true,
-                        uploadedAt: true,
-                        uploadedBy: { select: { name: true } },
-                    },
-                    orderBy: { uploadedAt: "desc" },
-                },
-                payments: {
-                    select: {
-                        id: true,
-                        amount: true,
-                        paymentMode: true,
-                        transactionRef: true,
-                        notes: true,
-                        paymentDate: true,
-                        status: true,
-                        proofUrl: true,
-                        initiatedBy: { select: { name: true } },
-                    },
-                    orderBy: { createdAt: "desc" },
-                },
-            },
+            select: INVOICE_SELECT,
         })
         if (!r) return { success: false, error: "Invoice not found" }
 
@@ -597,17 +550,88 @@ export async function getVpInvoiceById(
             }
         }
 
-        const logs = await prisma.log.findMany({
-            where: { model: "VpInvoice", recordId: id },
-            select: {
-                id: true,
-                createdAt: true,
-                description: true,
-                newData: true,
-                user: { select: { name: true } },
-            },
-            orderBy: { createdAt: "asc" },
-        })
+        const [
+            deliveries,
+            lineItems,
+            documents,
+            payments,
+            logs,
+            parentInvoice,
+            purchaseOrder,
+        ] = await Promise.all([
+            r.poId
+                ? prisma.vpDeliveryRecord.findMany({
+                    where: { poId: r.poId },
+                    select: {
+                        id: true,
+                        status: true,
+                        deliveryDate: true,
+                        _count: { select: { items: true } },
+                    },
+                    orderBy: { createdAt: "desc" },
+                })
+                : Promise.resolve([]),
+            prisma.vpInvoiceLineItem.findMany({
+                where: { invoiceId: id },
+                select: {
+                    id: true,
+                    poLineItemId: true,
+                    description: true,
+                    qty: true,
+                    unitPrice: true,
+                    tax: true,
+                    total: true,
+                },
+            }),
+            prisma.vpInvoiceDocument.findMany({
+                where: { invoiceId: id },
+                select: {
+                    id: true,
+                    filePath: true,
+                    uploadedAt: true,
+                    uploadedBy: { select: { name: true } },
+                },
+                orderBy: { uploadedAt: "desc" },
+            }),
+            prisma.vpPayment.findMany({
+                where: { invoiceId: id },
+                select: {
+                    id: true,
+                    amount: true,
+                    paymentMode: true,
+                    transactionRef: true,
+                    notes: true,
+                    paymentDate: true,
+                    status: true,
+                    proofUrl: true,
+                    initiatedBy: { select: { name: true } },
+                },
+                orderBy: { createdAt: "desc" },
+            }),
+            prisma.log.findMany({
+                where: { model: "VpInvoice", recordId: id },
+                select: {
+                    id: true,
+                    createdAt: true,
+                    description: true,
+                    newData: true,
+                    user: { select: { name: true } },
+                },
+                orderBy: { createdAt: "asc" },
+            }),
+            r.parentInvoiceId
+                ? prisma.vpInvoice.findUnique({
+                    where: { id: r.parentInvoiceId },
+                    select: { invoiceNumber: true },
+                })
+                : Promise.resolve(null),
+            r.poId
+                ? prisma.vpPurchaseOrder.findUnique({
+                    where: { id: r.poId },
+                    select: { poNumber: true },
+                })
+                : Promise.resolve(null),
+        ])
 
         const timeline = logs.map((l) => {
             let toStatus: string | null = null
@@ -628,28 +652,26 @@ export async function getVpInvoiceById(
             }
         })
 
-        const parentInvoice = r.parentInvoiceId
-            ? await prisma.vpInvoice.findUnique({
-                where: { id: r.parentInvoiceId },
-                select: { invoiceNumber: true },
-            })
-            : null
-
         return {
             success: true,
             data: {
-                ...mapRow(r),
-                items: r.lineItems,
-                deliveries: (r.purchaseOrder?.deliveries ?? []).map((delivery) => ({
+                ...mapRow({
+                    ...r,
+                    purchaseOrder: purchaseOrder
+                        ? { ...purchaseOrder, deliveries }
+                        : r.purchaseOrder,
+                }),
+                items: lineItems,
+                deliveries: deliveries.map((delivery) => ({
                     id: delivery.id,
                     status: delivery.status,
                     deliveryDate: delivery.deliveryDate,
                     poId: r.poId ?? "",
-                    poNumber: r.purchaseOrder?.poNumber ?? "—",
+                    poNumber: purchaseOrder?.poNumber ?? "—",
                     itemCount: delivery._count.items,
                 })),
-                documents: r.documents,
-                payments: r.payments,
+                documents,
+                payments,
                 timeline,
                 parentInvoiceNumber: parentInvoice?.invoiceNumber ?? null,
             },
@@ -1043,10 +1065,23 @@ export async function deleteVpInvoice(id: string): Promise<VpActionResult<null>>
 
     const inv = await prisma.vpInvoice.findUnique({
         where: { id },
-        select: { status: true, createdById: true, invoiceNumber: true },
+        select: {
+            status: true,
+            createdById: true,
+            invoiceNumber: true,
+            reviewedById: true,
+            approvedAt: true,
+            rejectedAt: true,
+        },
     })
     if (!inv) return { success: false, error: "Invoice not found" }
-    if (inv.status !== "DRAFT") return { success: false, error: "Only DRAFT invoices can be deleted" }
+    const vendorDeletableStatuses = ["DRAFT", "SUBMITTED"]
+    if (!vendorDeletableStatuses.includes(inv.status)) {
+        return { success: false, error: "Only Draft or Submitted invoices can be deleted" }
+    }
+    if (inv.reviewedById || inv.approvedAt || inv.rejectedAt) {
+        return { success: false, error: "Invoice is already reviewed and cannot be deleted" }
+    }
     if (inv.createdById !== session.user.id)
         return { success: false, error: "You can only delete your own invoices" }
 
